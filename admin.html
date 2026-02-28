@@ -211,7 +211,7 @@ async function loadAll(){
   ]);
   if(usrs!==null){
     DB_OK=true;
-    S.usrs=usrs.map(u=>({id:u.id,nombre:u.nombre,cedula:u.cedula,pass:u.pass,rol:u.rol,activo:u.activo}));
+    S.usrs=usrs.map(u=>({id:u.id,nombre:u.nombre,cedula:u.cedula,pass:u.pass,rol:u.rol,activo:u.activo,apodo:u.apodo||''}));
     S.pts=pts?pts.map(p=>({id:p.id,nombre:p.nombre,cedula:p.cedula,telefono:p.telefono||'',email:p.email||'',genero:p.genero||'',direccion:p.direccion||'',ciudad:p.ciudad||'',empresa:p.empresa,cargo:p.cargo||'',fecha_nacimiento:p.fecha_nacimiento||''})):[];
     S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin'})):[];
     S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado})):[];
@@ -511,30 +511,33 @@ function umMod(uid){
   const u=uid?S.usrs.find(x=>x.id===uid):null;const d=u||{};
   openModal(`<div class="mhd"><h3>${u?'Editar':'Nuevo'} Usuario</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
   <div class="mbd">
-    <div class="fg"><label>Nombre *</label><input class="fi" id="un" value="${d.nombre||''}"></div>
+    <div class="fg"><label>Nombre Completo *</label><input class="fi" id="un" value="${d.nombre||''}"></div>
+    <div class="fg"><label>👋 Nombre para saludo (cómo quiere que le digan)</label><input class="fi" id="uapodo" value="${d.apodo||''}" placeholder="Ej: Leo, Eleny, Carlos..."></div>
     <div class="fg"><label>Cédula (login) *</label><input class="fi" id="uc" value="${d.cedula||''}" maxlength="20"></div>
     <div class="fg"><label>${u?'Nueva Contraseña (vacío = no cambiar)':'Contraseña *'}</label><input class="fi" id="upass" type="password" placeholder="${u?'••••••••':''}"></div>
     <div class="fg"><label>Rol *</label><select class="fi" id="ur"><option value="administrador" ${d.rol==='administrador'?'selected':''}>Administrador</option><option value="enfermeria" ${d.rol==='enfermeria'?'selected':''}>Enfermería</option><option value="medico" ${d.rol==='medico'?'selected':''}>Médico</option><option value="laboratorio" ${d.rol==='laboratorio'?'selected':''}>Laboratorio</option><option value="radiologia" ${d.rol==='radiologia'?'selected':''}>Radiología</option><option value="psicologia" ${d.rol==='psicologia'?'selected':''}>Psicología</option></select></div>
   </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svU('${d.id||''}')">${u?'Guardar':'Crear'}</button></div>`);
 }
 async function svU(eid){
-  const nombre=document.getElementById('un').value,cedula=document.getElementById('uc').value,pass=document.getElementById('upass').value,rol=document.getElementById('ur').value;
+  const nombre=document.getElementById('un').value,cedula=document.getElementById('uc').value,pass=document.getElementById('upass').value,rol=document.getElementById('ur').value,apodo=document.getElementById('uapodo')?.value?.trim()||'';
   if(!nombre||!cedula){alert('Nombre y Cédula obligatorios');return;}
   if(eid){
     const i=S.usrs.findIndex(u=>u.id===eid);
     if(i>-1){
       if(S.usrs.find(u=>u.cedula===cedula&&u.id!==eid)){alert('Cédula ya existe');return;}
-      S.usrs[i].nombre=nombre;S.usrs[i].cedula=cedula;S.usrs[i].rol=rol;if(pass)S.usrs[i].pass=pass;
-      if(DB_OK){const patch={nombre,cedula,rol};if(pass)patch.pass=pass;await SB.patch('usuarios',patch,`id=eq.${eid}`);}
+      S.usrs[i].nombre=nombre;S.usrs[i].cedula=cedula;S.usrs[i].rol=rol;S.usrs[i].apodo=apodo;if(pass)S.usrs[i].pass=pass;
+      if(DB_OK){const patch={nombre,cedula,rol,apodo};if(pass)patch.pass=pass;await SB.patch('usuarios',patch,`id=eq.${eid}`);}
     }
   }else{
     if(!pass||pass.length<4){alert('Contraseña mín 4 caracteres');return;}
     if(S.usrs.find(u=>u.cedula===cedula)){alert('Cédula ya existe');return;}
     if(DB_OK){
-      const r=await SB.post('usuarios',{nombre,cedula,pass,rol,activo:true});
-      if(r&&r[0]){S.usrs.push({id:r[0].id,nombre,cedula,pass,rol,activo:true});}
-    }else{S.usrs.push({id:gid(),nombre,cedula,pass,rol,activo:true});}
+      const r=await SB.post('usuarios',{nombre,cedula,pass,rol,activo:true,apodo});
+      if(r&&r[0]){S.usrs.push({id:r[0].id,nombre,cedula,pass,rol,activo:true,apodo});}
+    }else{S.usrs.push({id:gid(),nombre,cedula,pass,rol,activo:true,apodo});}
   }
+  // Actualizar apodo del usuario logueado si se editó a sí mismo
+  if(eid&&S.u?.id===eid)S.u.apodo=apodo;
   closeModal();render();
 }
 async function toggleUser(uid){
@@ -783,7 +786,7 @@ function rDash(){
   const dc=getDashCfg();
   const hora=new Date().getHours();
   const saludo=hora<12?'Buenos días':hora<18?'Buenas tardes':'Buenas noches';
-  const nombre=S.u?.nombre?.split(' ')[0]||'';
+  const nombre=S.u?.apodo||S.u?.nombre?.split(' ')[0]||'';
   const frase=dc.frases[new Date().getDate()%dc.frases.length]||'';
   const fechaLarga=new Date().toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const titulo=dc.titulo||ec.nombre||'VitalWork SAS';
