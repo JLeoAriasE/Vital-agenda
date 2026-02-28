@@ -540,6 +540,18 @@ async function svU(eid){
   if(eid&&S.u?.id===eid)S.u.apodo=apodo;
   closeModal();render();
 }
+async function saveApodo(uid){
+  const inp=document.getElementById('apodo_'+uid);
+  if(!inp)return;
+  const apodo=inp.value.trim();
+  const i=S.usrs.findIndex(u=>u.id===uid);
+  if(i>-1){
+    S.usrs[i].apodo=apodo;
+    if(DB_OK)await SB.patch('usuarios',{apodo},`id=eq.${uid}`);
+    if(S.u?.id===uid)S.u.apodo=apodo;
+    alert(`✅ Nombre de saludo actualizado: ${apodo||'(sin apodo)'}`);
+  }
+}
 async function toggleUser(uid){
   const i=S.usrs.findIndex(u=>u.id===uid);
   if(i>-1){
@@ -1180,11 +1192,24 @@ function rAllO(){
 
 // ═══ USER MANAGEMENT (admin only) ═══
 function rUsr(){
+  // Enfermería solo ve usuarios y puede cambiar apodos
+  if(isE()){
+    return`<div class="ph"><div><h2>👋 Nombres de Saludo</h2><p class="ph-s">Configura cómo quiere cada persona que le saluden</p></div></div>
+    <div class="cd"><div class="tw"><table><thead><tr><th>Nombre Completo</th><th>Rol</th><th>👋 Nombre para saludo</th><th></th></tr></thead><tbody>
+    ${S.usrs.filter(u=>u.activo).map(u=>`<tr>
+      <td style="font-weight:600">${u.nombre}</td>
+      <td><span class="ba ba-p">${rolN[u.rol]}</span></td>
+      <td><input class="fi" id="apodo_${u.id}" value="${u.apodo||''}" placeholder="Ej: Leo, Eleny..." style="padding:6px 10px;font-size:13px"></td>
+      <td><button class="btn bsm bp" onclick="saveApodo('${u.id}')">💾</button></td>
+    </tr>`).join('')}</tbody></table></div></div>
+    <div style="padding:12px;font-size:12px;color:var(--tm)">Este nombre aparece en el saludo del Dashboard cuando cada persona inicia sesión.</div>`;
+  }
+  // Admin ve todo
   const activos=S.usrs.filter(u=>u.activo).length;
   return`<div class="ph"><div><h2>Gestión de Usuarios</h2><p class="ph-s">${S.usrs.length} usuarios · ${activos} activos</p></div><button class="btn bp" onclick="umMod()">${ic('pls')} Nuevo Usuario</button></div>
   <div class="cd"><div class="tw"><table><thead><tr><th>Nombre</th><th>Cédula</th><th>Rol</th><th>Estado</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
   ${S.usrs.map(u=>{const yo=u.id===S.u.id;return`<tr style="${!u.activo?'opacity:.5':''}">
-    <td style="font-weight:600">${u.nombre}${yo?' <span style="font-size:9px;color:var(--a)">(tú)</span>':''}</td>
+    <td style="font-weight:600">${u.nombre}${u.apodo?` <span style="font-size:9px;color:var(--tm)">(${u.apodo})</span>`:''}${yo?' <span style="font-size:9px;color:var(--a)">(tú)</span>':''}</td>
     <td class="mono" style="font-size:11px">${u.cedula}</td>
     <td><span class="ba ba-p">${rolN[u.rol]}</span></td>
     <td>${u.activo?'<span class="ba ba-ok">Activo</span>':'<span class="ba ba-er">Inactivo</span>'}</td>
@@ -1199,6 +1224,7 @@ function rUsr(){
     <strong style="color:var(--w)">🧪 Laboratorio</strong> → Solo ve y completa órdenes de lab. <strong style="color:var(--er)">NO ve RX</strong><br>
     <strong style="color:var(--or)">🦴 Radiología</strong> → Solo ve y completa órdenes de RX. <strong style="color:var(--er)">NO ve Lab</strong><br>
     <strong style="color:var(--a)">🩺 Médico</strong> → Ve y completa: ficha ocupacional, espirometría, audiometría y atención médica<br>
+    <strong style="color:#9333ea">🧠 Psicología</strong> → Ve y completa: valoración psicológica ocupacional y clínica<br>
     <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)">📋 Cuando <strong>todas</strong> las órdenes de una cita se completan → la cita pasa a <strong style="color:var(--ok)">Completada</strong> automáticamente</div>
   </div></div>`;
 }
