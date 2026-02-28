@@ -748,6 +748,7 @@ function rSide(){
     <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">${ic('nrs')} Médico</div>
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
+    <div class="ni ${S.v==='umg'?'on':''}" onclick="nav('umg')">${ic('up')} Usuarios</div>
     <div class="ni ${S.v==='aord'?'on':''}" onclick="nav('aord')">${ic('clp')} Todas las Órdenes ${pO?`<span class="nbg">${pO}</span>`:''}</div>
     <div class="ni ${S.v==='bkp'?'on':''}" onclick="nav('bkp')">${ic('stg')} Configuración</div>
     <div class="ni" onclick="S.cfgTab='links';nav('bkp')">${ic('lnk')} Link Público</div>`;
@@ -770,7 +771,7 @@ function rSide(){
 
 function rView(){
   // Enfermería ve todo excepto gestión de usuarios
-  if(S.v==='umg'&&!isA()){return rDash();}
+  if(S.v==='umg'&&!(isA()||isE())){return rDash();}
   switch(S.v){
     case'dash':return rDash();case'cal':return rCal();case'pts':return rPts();case'apt':return rApt();case'det':return rDet();
     case'nrs':return rNrs();case'lord':return rLabO();case'rxord':return rRxO();case'medord':return rMedO();case'psiord':return rPsiO();case'aord':return rAllO();case'umg':return rUsr();case'bkp':return rBkp();default:return(isA()||isE())?rDash():isL()?rLabO():isR()?rRxO():isM()?rMedO():isPsi()?rPsiO():rDash();
