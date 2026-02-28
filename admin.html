@@ -742,9 +742,9 @@ function rSide(){
     <div class="nsc">Enfermería</div>
     <div class="ni ${S.v==='nrs'?'on':''}" onclick="nav('nrs')">${ic('nrs')} Panel Enfermería ${pN?`<span class="nbg">${pN}</span>`:''}</div>
     <div class="nsc">Proveedores</div>
-    <div class="ni ${S.v==='lord'?'on':''}" onclick="nav('lord')">${ic('flk')} Laboratorio</div>
-    <div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">${ic('xr')} Radiología</div>
-    <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">${ic('nrs')} Médico</div>
+    <div class="ni ${S.v==='lord'?'on':''}" onclick="nav('lord')">🧪 Laboratorio</div>
+    <div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">🦴 Radiología</div>
+    <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Médico</div>
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
@@ -761,9 +761,9 @@ function rSide(){
     <div class="nsc">Enfermería</div>
     <div class="ni ${S.v==='nrs'?'on':''}" onclick="nav('nrs')">${ic('nrs')} Panel Enfermería ${pN?`<span class="nbg">${pN}</span>`:''}</div>
     <div class="nsc">Proveedores</div>
-    <div class="ni ${S.v==='lord'?'on':''}" onclick="nav('lord')">${ic('flk')} Laboratorio</div>
-    <div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">${ic('xr')} Radiología</div>
-    <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">${ic('nrs')} Médico</div>
+    <div class="ni ${S.v==='lord'?'on':''}" onclick="nav('lord')">🧪 Laboratorio</div>
+    <div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">🦴 Radiología</div>
+    <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Médico</div>
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
@@ -773,11 +773,11 @@ function rSide(){
     <div class="ni ${S.v==='bkp'?'on':''}" onclick="nav('bkp')">${ic('stg')} Configuración</div>
     <div class="ni" onclick="S.cfgTab='links';nav('bkp')">${ic('lnk')} Link Público</div>`;
   }else if(isL()){
-    items=`<div class="ni ${S.v==='lord'?'on':''}" onclick="nav('lord')">${ic('flk')} Mis Órdenes Lab</div>`;
+    items=`<div class="ni ${S.v==='lord'?'on':''}" onclick="nav('lord')">🧪 Mis Órdenes Lab</div>`;
   }else if(isR()){
-    items=`<div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">${ic('xr')} Mis Órdenes RX</div>`;
+    items=`<div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">🦴 Mis Órdenes RX</div>`;
   }else if(isM()){
-    items=`<div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">${ic('nrs')} Mis Órdenes</div>`;
+    items=`<div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Mis Órdenes</div>`;
   }else if(isPsi()){
     items=`<div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Mis Órdenes Psicología</div>`;
   }
