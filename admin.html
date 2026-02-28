@@ -21,7 +21,7 @@
 .nsc{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--td);padding:12px 10px 3px}
 .ubar{padding:8px 10px;border-radius:var(--rs);background:var(--ci);border:1px solid var(--bd);display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px}
 .uav{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:#fff}
-.uav-a{background:linear-gradient(135deg,var(--p),#6366f1)}.uav-e{background:linear-gradient(135deg,var(--tl),#06b6d4)}.uav-l{background:linear-gradient(135deg,var(--w),var(--or))}.uav-r{background:linear-gradient(135deg,var(--or),var(--er))}.uav-m{background:linear-gradient(135deg,#3b82f6,#1e40af)}
+.uav-a{background:linear-gradient(135deg,var(--p),#6366f1)}.uav-e{background:linear-gradient(135deg,var(--tl),#06b6d4)}.uav-l{background:linear-gradient(135deg,var(--w),var(--or))}.uav-r{background:linear-gradient(135deg,var(--or),var(--er))}.uav-m{background:linear-gradient(135deg,#3b82f6,#1e40af)}.uav-p{background:linear-gradient(135deg,#9333ea,#7c3aed)}
 .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
 .ph h2{font-size:20px;font-weight:700}.ph-s{color:var(--tm);font-size:11px;margin-top:2px}
 .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:20px}
@@ -189,14 +189,15 @@ function gAO(aid){return S.ord.filter(o=>o.aid===aid);}
 function gTS(){const s=[];for(let h=7;h<=18;h++){s.push(`${String(h).padStart(2,'0')}:00`);s.push(`${String(h).padStart(2,'0')}:30`);}return s;}
 const EB={pendiente:'ba-w',confirmada:'ba-i',en_proceso:'ba-t',completada:'ba-ok',cancelada:'ba-er'};
 const EL={pendiente:'Pendiente',confirmada:'Confirmada',en_proceso:'En Proceso',completada:'Completada',cancelada:'Cancelada'};
-const cI={laboratorio:'🧪',radiologia:'🦴',ecografia:'🔊',electrocardiograma:'❤️',espirometria:'🫁',audiometria:'👂',atencion_medica:'🩺',ficha_ocupacional:'📋'};
-const rolN={administrador:'Administrador',enfermeria:'Enfermería',laboratorio:'Laboratorio',radiologia:'Radiología',medico:'Médico'};
-const rolC={administrador:'uav-a',enfermeria:'uav-e',laboratorio:'uav-l',radiologia:'uav-r',medico:'uav-m'};
+const cI={laboratorio:'🧪',radiologia:'🦴',ecografia:'🔊',electrocardiograma:'❤️',espirometria:'🫁',audiometria:'👂',atencion_medica:'🩺',ficha_ocupacional:'📋',psico_ocupacional:'🧠',psico_clinica:'🧠'};
+const rolN={administrador:'Administrador',enfermeria:'Enfermería',laboratorio:'Laboratorio',radiologia:'Radiología',medico:'Médico',psicologia:'Psicología'};
+const rolC={administrador:'uav-a',enfermeria:'uav-e',laboratorio:'uav-l',radiologia:'uav-r',medico:'uav-m',psicologia:'uav-p'};
 function isA(){return S.u?.rol==='administrador';}
 function isE(){return S.u?.rol==='enfermeria';}
 function isL(){return S.u?.rol==='laboratorio';}
 function isR(){return S.u?.rol==='radiologia';}
 function isM(){return S.u?.rol==='medico';}
+function isPsi(){return S.u?.rol==='psicologia';}
 function canAssign(){return isA()||isE();}
 
 // ═══ LOAD DATA FROM SUPABASE ═══
@@ -224,6 +225,7 @@ async function loadAll(){
       if(c.clave==='empresa'&&v&&Object.keys(v).length>0)localStorage.setItem('mediagenda_emp',JSON.stringify(v));
       if(c.clave==='theme'&&v&&Object.keys(v).length>0){localStorage.setItem('mediagenda_theme',JSON.stringify(v));applyTheme();}
       if(c.clave==='dias_bloqueados'&&Array.isArray(v))localStorage.setItem('mediagenda_dias_bloqueados',JSON.stringify(v));
+      if(c.clave==='dash_cfg'&&v&&Object.keys(v).length>0)localStorage.setItem('mediagenda_dash_cfg',JSON.stringify(v));
     });}
     console.log('✅ Datos cargados desde Supabase');
   }else{
@@ -242,7 +244,7 @@ function login(){
   const u=S.usrs.find(u=>u.cedula===c&&u.pass===p);
   if(!u){alert('❌ Credenciales incorrectas');return;}
   if(!u.activo){alert('⚠️ Usuario desactivado. Contacta al administrador.');return;}
-  S.u=u;S.v=(isA()||isE())?'dash':isL()?'lord':isR()?'rxord':isM()?'medord':'dash';render();
+  S.u=u;S.v=(isA()||isE())?'dash':isL()?'lord':isR()?'rxord':isM()?'medord':isPsi()?'psiord':'dash';render();
 }
 function logout(){S.u=null;S.v='login';render();}
 
@@ -296,7 +298,7 @@ async function updO(id,u){
   }
   render();
 }
-function canComplete(){return isA()||isE()||isL()||isR();}
+function canComplete(){return isA()||isE()||isL()||isR()||isPsi();}
 
 // ═══ WHATSAPP (Manual + API Ready) ═══
 function sWA(a){
@@ -512,7 +514,7 @@ function umMod(uid){
     <div class="fg"><label>Nombre *</label><input class="fi" id="un" value="${d.nombre||''}"></div>
     <div class="fg"><label>Cédula (login) *</label><input class="fi" id="uc" value="${d.cedula||''}" maxlength="20"></div>
     <div class="fg"><label>${u?'Nueva Contraseña (vacío = no cambiar)':'Contraseña *'}</label><input class="fi" id="upass" type="password" placeholder="${u?'••••••••':''}"></div>
-    <div class="fg"><label>Rol *</label><select class="fi" id="ur"><option value="administrador" ${d.rol==='administrador'?'selected':''}>Administrador</option><option value="enfermeria" ${d.rol==='enfermeria'?'selected':''}>Enfermería</option><option value="medico" ${d.rol==='medico'?'selected':''}>Médico</option><option value="laboratorio" ${d.rol==='laboratorio'?'selected':''}>Laboratorio</option><option value="radiologia" ${d.rol==='radiologia'?'selected':''}>Radiología</option></select></div>
+    <div class="fg"><label>Rol *</label><select class="fi" id="ur"><option value="administrador" ${d.rol==='administrador'?'selected':''}>Administrador</option><option value="enfermeria" ${d.rol==='enfermeria'?'selected':''}>Enfermería</option><option value="medico" ${d.rol==='medico'?'selected':''}>Médico</option><option value="laboratorio" ${d.rol==='laboratorio'?'selected':''}>Laboratorio</option><option value="radiologia" ${d.rol==='radiologia'?'selected':''}>Radiología</option><option value="psicologia" ${d.rol==='psicologia'?'selected':''}>Psicología</option></select></div>
   </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svU('${d.id||''}')">${u?'Guardar':'Crear'}</button></div>`);
 }
 async function svU(eid){
@@ -602,6 +604,8 @@ function exMod(aid){
       <div class="ei" style="padding:8px" onclick="tgO(this,'ekg')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:500">❤️ Electrocardiograma (EKG)</span></div>
       <div class="ei" style="padding:8px" onclick="tgO(this,'esp')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:500">🫁 Espirometría (Dr.)</span></div>
       <div class="ei" style="padding:8px" onclick="tgO(this,'aud')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:500">👂 Audiometría (Dr.)</span></div>
+      <div class="ei" style="padding:8px;background:rgba(147,51,234,.08);border-radius:6px;margin-top:8px;border:1px solid rgba(147,51,234,.2)" onclick="tgO(this,'psiocu')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:600;color:#9333ea">🧠 Valoración Psicológica Ocupacional</span></div>
+      <div class="ei" style="padding:8px;background:rgba(147,51,234,.05);border-radius:6px;margin-bottom:6px;border:1px solid rgba(147,51,234,.15)" onclick="tgO(this,'psicli')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:600;color:#7c3aed">🧠 Valoración Psicológica Clínica</span></div>
     </div>
   </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bs" onclick="svEx()">✅ Guardar Órdenes</button></div>`);
   window._rxCount=1;
@@ -652,6 +656,8 @@ function svEx(){
   if(s.ekg)addO({aid:s.aid,pid:s.pid,cat:'electrocardiograma',exams:['EKG 12 derivaciones']});
   if(s.esp)addO({aid:s.aid,pid:s.pid,cat:'espirometria',exams:['Espirometría']});
   if(s.aud)addO({aid:s.aid,pid:s.pid,cat:'audiometria',exams:['Audiometría']});
+  if(s.psiocu)addO({aid:s.aid,pid:s.pid,cat:'psico_ocupacional',exams:['Valoración Psicológica Ocupacional']});
+  if(s.psicli)addO({aid:s.aid,pid:s.pid,cat:'psico_clinica',exams:['Valoración Psicológica Clínica']});
   if(s.med)addO({aid:s.aid,pid:s.pid,cat:'atencion_medica',exams:['Atención Médica']});
   if(s.ficha)addO({aid:s.aid,pid:s.pid,cat:'ficha_ocupacional',exams:['Ficha Ocupacional']});
   updA(s.aid,{exAsig:true,estado:'en_proceso'});
@@ -660,6 +666,8 @@ function svEx(){
   if(s.lab.length)r+=`🧪 Lab: ${s.lab.length} exámenes\n`;
   if(rxStudies.length)r+=`🦴 RX: ${rxStudies.length} estudios\n`;
   if(s.eco)r+='🔊 Eco\n';if(s.ekg)r+='❤️ EKG\n';if(s.esp)r+='🫁 Espiro\n';if(s.aud)r+='👂 Audio\n';
+  if(s.psiocu)r+='🧠 Psico. Ocupacional\n';
+  if(s.psicli)r+='🧠 Psico. Clínica\n';
   if(s.med)r+='🩺 Atención Médica\n';
   if(s.ficha)r+='📋 Ficha Ocupacional\n';
   alert(r);
@@ -718,6 +726,7 @@ function rSide(){
     <div class="ni ${S.v==='lord'?'on':''}" onclick="nav('lord')">${ic('flk')} Laboratorio</div>
     <div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">${ic('xr')} Radiología</div>
     <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">${ic('nrs')} Médico</div>
+    <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='umg'?'on':''}" onclick="nav('umg')">${ic('up')} Usuarios</div>
     <div class="ni ${S.v==='aord'?'on':''}" onclick="nav('aord')">${ic('clp')} Todas las Órdenes ${pO?`<span class="nbg">${pO}</span>`:''}</div>
@@ -734,6 +743,7 @@ function rSide(){
     <div class="ni ${S.v==='lord'?'on':''}" onclick="nav('lord')">${ic('flk')} Laboratorio</div>
     <div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">${ic('xr')} Radiología</div>
     <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">${ic('nrs')} Médico</div>
+    <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='aord'?'on':''}" onclick="nav('aord')">${ic('clp')} Todas las Órdenes ${pO?`<span class="nbg">${pO}</span>`:''}</div>
     <div class="ni ${S.v==='bkp'?'on':''}" onclick="nav('bkp')">${ic('stg')} Configuración</div>
@@ -744,6 +754,8 @@ function rSide(){
     items=`<div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">${ic('xr')} Mis Órdenes RX</div>`;
   }else if(isM()){
     items=`<div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">${ic('nrs')} Mis Órdenes</div>`;
+  }else if(isPsi()){
+    items=`<div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Mis Órdenes Psicología</div>`;
   }
   return `<aside class="side ${S.so?'open':''}">
     <div class="brand">${getEmpCfg().logo?`<img src="${getEmpCfg().logo}" style="width:${Math.min(getEmpCfg().logo_size||36,50)}px;height:${Math.min(getEmpCfg().logo_size||36,50)}px;object-fit:contain;border-radius:9px">`:`<div class="brand-i">${ic('cal',18)}</div>`}<div><h1>${getEmpCfg().nombre||'MediAgenda'}</h1><small>${getEmpCfg().direccion||'Salud Ocupacional'}</small></div></div>
@@ -758,7 +770,7 @@ function rView(){
   if(S.v==='umg'&&!isA()){return rDash();}
   switch(S.v){
     case'dash':return rDash();case'cal':return rCal();case'pts':return rPts();case'apt':return rApt();case'det':return rDet();
-    case'nrs':return rNrs();case'lord':return rLabO();case'rxord':return rRxO();case'medord':return rMedO();case'aord':return rAllO();case'umg':return rUsr();case'bkp':return rBkp();default:return(isA()||isE())?rDash():isL()?rLabO():isR()?rRxO():isM()?rMedO():rDash();
+    case'nrs':return rNrs();case'lord':return rLabO();case'rxord':return rRxO();case'medord':return rMedO();case'psiord':return rPsiO();case'aord':return rAllO();case'umg':return rUsr();case'bkp':return rBkp();default:return(isA()||isE())?rDash():isL()?rLabO():isR()?rRxO():isM()?rMedO():isPsi()?rPsiO():rDash();
   }
 }
 
@@ -767,7 +779,31 @@ function rDash(){
   const tA=S.apt.filter(a=>a.fecha===TD).sort((a,b)=>a.hora.localeCompare(b.hora));
   const pnd=S.apt.filter(a=>a.estado==='pendiente'||a.estado==='confirmada').length;
   const pO=S.ord.filter(o=>o.estado==='pendiente').length;
-  return `<div class="ph"><div style="display:flex;align-items:center;gap:10px">${getEmpCfg().logo?`<img src="${getEmpCfg().logo}" style="width:${getEmpCfg().logo_size||40}px;object-fit:contain;border-radius:6px">`:''}<div><h2>Dashboard</h2><p class="ph-s">${fD(TD)}</p></div></div><button class="btn bp" onclick="amMod()">${ic('pls')} Nueva Cita</button></div>
+  const ec=getEmpCfg();
+  const dc=getDashCfg();
+  const hora=new Date().getHours();
+  const saludo=hora<12?'Buenos días':hora<18?'Buenas tardes':'Buenas noches';
+  const nombre=S.u?.nombre?.split(' ')[0]||'';
+  const frase=dc.frases[new Date().getDate()%dc.frases.length]||'';
+  const fechaLarga=new Date().toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const titulo=dc.titulo||ec.nombre||'VitalWork SAS';
+  const subtitulo=dc.subtitulo||'';
+  return `
+  <div style="margin-bottom:22px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+      <div style="display:flex;align-items:center;gap:14px">
+        ${ec.logo?`<img src="${ec.logo}" style="width:${Math.min(ec.logo_size||60,80)}px;object-fit:contain;border-radius:10px">`:''}
+        <div>
+          <div style="font-size:13px;color:var(--tm)">${saludo}, <strong style="color:var(--t)">${nombre}</strong> 👋</div>
+          <h2 style="font-size:22px;font-weight:700;margin:2px 0">${titulo}</h2>
+          ${subtitulo?`<div style="font-size:12px;color:var(--tm);margin-bottom:2px">${subtitulo}</div>`:''}
+          <div style="font-size:14px;color:var(--a);font-weight:600;text-transform:capitalize">${fechaLarga}</div>
+          ${frase?`<div style="font-size:11px;color:var(--tm);margin-top:4px;font-style:italic">"${frase}"</div>`:''}
+        </div>
+      </div>
+      <button class="btn bp" onclick="amMod()">${ic('pls')} Nueva Cita</button>
+    </div>
+  </div>
   <div class="sg">
     <div class="sc"><div class="si si-b">👥</div><div class="sv"><h3>${S.pts.length}</h3><p>Pacientes</p></div></div>
     <div class="sc"><div class="si si-p">📅</div><div class="sv"><h3>${tA.length}</h3><p>Citas Hoy</p></div></div>
@@ -1061,6 +1097,33 @@ function rRxO(){
   <td><span class="ba ba-o">${x.parte||''}</span></td><td>${x.proy||''}</td>
   <td><span class="ba ${EB[x.estado]}">${EL[x.estado]}</span></td>
   <td>${x.estado!=='completado'?`<button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`}</div>`;
+}
+
+// ═══ PSICOLOGÍA ORDERS ═══
+function rPsiO(){
+  const psiCats=['psico_ocupacional','psico_clinica'];
+  const o=S.ord.filter(x=>psiCats.includes(x.cat)).sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1));
+  const pend=o.filter(x=>x.estado==='pendiente').length;
+  const ocup=o.filter(x=>x.cat==='psico_ocupacional');
+  const clin=o.filter(x=>x.cat==='psico_clinica');
+
+  return`<div class="ph"><div><h2>🧠 Órdenes de Psicología</h2><p class="ph-s">${pend} pendientes de ${o.length} total</p></div></div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px">
+    <div class="cd" style="margin:0"><div class="cdb" style="text-align:center;padding:14px">
+      <div style="font-size:24px">🧠</div><div style="font-size:20px;font-weight:700;color:var(--a)">${ocup.filter(x=>x.estado==='pendiente').length}</div><div style="font-size:10px;color:var(--tm)">V. Psico. Ocupacional</div>
+    </div></div>
+    <div class="cd" style="margin:0"><div class="cdb" style="text-align:center;padding:14px">
+      <div style="font-size:24px">💬</div><div style="font-size:20px;font-weight:700;color:var(--tl)">${clin.filter(x=>x.estado==='pendiente').length}</div><div style="font-size:10px;color:var(--tm)">V. Psico. Clínica</div>
+    </div></div>
+  </div>
+
+  <div class="cd">${o.length===0?'<div class="es"><h4>Sin órdenes de psicología</h4></div>':`<div class="tw"><table><thead><tr><th>Tipo</th><th>Paciente</th><th>Empresa</th><th>Estado</th>${(isA()||isE()||isPsi())?'<th>Acción</th>':''}</tr></thead><tbody>
+  ${o.map(x=>{const p=gP(x.pid);return`<tr>
+  <td>🧠 <span style="font-size:10px;font-weight:600">${x.cat==='psico_ocupacional'?'Psico. Ocupacional':'Psico. Clínica'}</span></td>
+  <td style="font-weight:500">${p?.nombre||'—'}</td><td style="font-size:11px">${p?.empresa||''}</td>
+  <td><span class="ba ${EB[x.estado]}">${EL[x.estado]}</span></td>
+  ${(isA()||isE()||isPsi())&&x.estado!=='completado'?`<td><button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button></td>`:''}</tr>`;}).join('')}</tbody></table></div>`}</div>`;
 }
 
 // ═══ MEDICO ORDERS (ficha, espirometría, audiometría, atención médica) ═══
@@ -1438,6 +1501,7 @@ function rBkp(){
 
   const tabs=`<div class="cvtabs" style="margin-bottom:14px">
     <button class="cvt ${t==='empresa'?'on':''}" onclick="S.cfgTab='empresa';render()">🏥 Empresa</button>
+    <button class="cvt ${t==='dashboard'?'on':''}" onclick="S.cfgTab='dashboard';render()">📊 Dashboard</button>
     <button class="cvt ${t==='horarios'?'on':''}" onclick="S.cfgTab='horarios';render()">🕐 Horarios</button>
     <button class="cvt ${t==='apariencia'?'on':''}" onclick="S.cfgTab='apariencia';render()">🎨 Apariencia</button>
     <button class="cvt ${t==='gsheet'?'on':''}" onclick="S.cfgTab='gsheet';render()">📊 Google Sheet</button>
@@ -1474,6 +1538,34 @@ function rBkp(){
         ${ec.logo?`<img id="logo_prev" src="${ec.logo}" style="width:${ec.logo_size||80}px;border-radius:8px" onerror="this.style.display='none'">`:'<div id="logo_prev" style="color:var(--tm);font-size:12px">Sin logo configurado</div>'}
       </div>
       <button class="btn bp" onclick="saveLogoCfg()">💾 Guardar Logo</button>
+    </div></div>`;
+
+  }else if(t==='dashboard'){
+    const dc=getDashCfg();
+    body=`
+    <div class="cd"><div class="cdh"><h3>📊 Personalizar Dashboard</h3></div><div class="cdb">
+      <p style="font-size:12px;color:var(--tm);margin-bottom:14px">Personaliza lo que ven todos los usuarios al iniciar sesión.</p>
+      <div class="fg"><label>Título principal del Dashboard</label><input class="fi" id="dash_titulo" value="${dc.titulo||''}" placeholder="Ej: VitalWork SAS (si está vacío usa el nombre de la empresa)"></div>
+      <div class="fg"><label>Subtítulo / Eslogan</label><input class="fi" id="dash_subtitulo" value="${dc.subtitulo||''}" placeholder="Ej: Servicios Ocupacionales de Excelencia"></div>
+      <button class="btn bp" onclick="saveDashCfg()" style="margin-top:6px">💾 Guardar</button>
+    </div></div>
+
+    <div class="cd"><div class="cdh"><h3>💬 Frases Motivacionales</h3></div><div class="cdb">
+      <p style="font-size:12px;color:var(--tm);margin-bottom:14px">Estas frases aparecen en el Dashboard y cambian cada día. Puedes agregar, editar o eliminar.</p>
+      <div id="frases_list">
+        ${dc.frases.map((f,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <input class="fi" value="${f.replace(/"/g,'&quot;')}" id="frase_${i}" style="flex:1">
+          <button class="btn bsm" style="background:var(--er);color:#fff;padding:4px 10px" onclick="removeFrase(${i})">✕</button>
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input class="fi" id="nueva_frase" placeholder="Escribe una nueva frase motivacional..." style="flex:1">
+        <button class="btn bsm bp" onclick="addFrase()">➕ Agregar</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn bp" onclick="saveFrases()">💾 Guardar Frases</button>
+        <button class="btn bg" onclick="resetFrases()">🔄 Restaurar Originales</button>
+      </div>
     </div></div>`;
 
   }else if(t==='horarios'){
@@ -1674,6 +1766,171 @@ async function saveLogoCfg(){
 }
 
 // ═══ THEME CONFIG ═══
+// ═══ DASHBOARD CONFIG ═══
+const _defaultFrases=[
+  // ═══ PROPÓSITO Y VOCACIÓN ═══
+  'No elegiste una profesión, elegiste salvar vidas.',
+  'Cada paciente que tocas hoy recordará cómo lo hiciste sentir.',
+  'Tu vocación no es un trabajo, es un llamado del corazón.',
+  'Detrás de cada historia clínica hay un padre, una madre, un hijo que cuenta contigo.',
+  'No subestimes tu impacto: lo que haces hoy cambia familias enteras.',
+  'El mundo necesita más personas como tú, que eligen cuidar a otros.',
+  'Hay trabajos que pagan facturas y trabajos que salvan vidas. Tú elegiste el segundo.',
+  'Cuando un paciente te dice gracias, recuerda que tú mereces escucharlo.',
+  'Tu presencia le da tranquilidad a alguien que tiene miedo.',
+  'No todos los héroes llevan capa; algunos llevan bata.',
+  // ═══ EXCELENCIA Y DISCIPLINA ═══
+  'La excelencia no es un acto, es un hábito que se construye cada día.',
+  'Los detalles que nadie ve son los que marcan la diferencia.',
+  'Haz las cosas bien cuando nadie te mira. Eso define tu carácter.',
+  'La disciplina es el puente entre tus metas y tus logros.',
+  'No busques ser perfecto, busca ser mejor que ayer.',
+  'La calidad no es un accidente, es el resultado de un esfuerzo inteligente.',
+  'Quien domina la rutina con pasión, domina los resultados.',
+  'Hoy no vine a cumplir un horario, vine a dar lo mejor de mí.',
+  'El profesionalismo se demuestra en lo que haces cuando nadie supervisa.',
+  'Ser bueno es una opción. Ser extraordinario es una decisión.',
+  // ═══ FRASES CÉLEBRES DE ALTO IMPACTO ═══
+  'El único modo de hacer un gran trabajo es amar lo que haces. — Steve Jobs',
+  'Sé el cambio que quieres ver en el mundo. — Mahatma Gandhi',
+  'No cuentes los días, haz que los días cuenten. — Muhammad Ali',
+  'El futuro pertenece a quienes creen en la belleza de sus sueños. — Eleanor Roosevelt',
+  'Las personas olvidarán lo que dijiste, pero nunca cómo las hiciste sentir. — Maya Angelou',
+  'La vida se encoge o se expande en proporción al coraje de uno. — Anaïs Nin',
+  'Lo que no te desafía, no te cambia.',
+  'Empieza donde estás. Usa lo que tienes. Haz lo que puedas. — Arthur Ashe',
+  'El éxito no es definitivo, el fracaso no es fatal: lo que cuenta es el coraje de continuar. — Winston Churchill',
+  'Quien tiene un porqué para vivir, puede soportar casi cualquier cómo. — Friedrich Nietzsche',
+  'La mejor venganza es un éxito masivo. — Frank Sinatra',
+  'No reces por una vida fácil, reza por la fuerza para soportar una difícil. — Bruce Lee',
+  'El conocimiento habla, pero la sabiduría escucha. — Jimi Hendrix',
+  'Cree que puedes y ya estarás a medio camino. — Theodore Roosevelt',
+  'La única limitación es la que te pones a ti mismo.',
+  // ═══ SALUD Y PREVENCIÓN ═══
+  'La salud no es simplemente la ausencia de enfermedad, es el bienestar total.',
+  'Prevenir hoy es el regalo más grande que puedes darle al mañana.',
+  'Cada examen que realizamos es una oportunidad de detectar lo invisible.',
+  'La seguridad no es un gasto, es la inversión más rentable que existe.',
+  'Un trabajador protegido es una familia protegida.',
+  'La medicina preventiva no apaga incendios, evita que se enciendan.',
+  'La salud ocupacional no es un requisito legal, es un compromiso moral.',
+  'No hay riqueza más grande que la salud. Todo lo demás es secundario.',
+  'Cuidar tu cuerpo es el acto de amor propio más importante.',
+  'La prevención es silenciosa, pero sus resultados hablan fuerte.',
+  // ═══ TRABAJO EN EQUIPO ═══
+  'Solos podemos hacer poco; juntos podemos hacer mucho. — Helen Keller',
+  'Un equipo no se construye con los mejores, sino con los más comprometidos.',
+  'La fortaleza de la manada es el lobo. La fortaleza del lobo es la manada.',
+  'Ninguno de nosotros es tan inteligente como todos nosotros juntos.',
+  'El talento gana partidos, pero el trabajo en equipo gana campeonatos. — Michael Jordan',
+  'Cuando el equipo funciona, los imposibles se vuelven rutina.',
+  'Confía en tu equipo. La confianza es el pegamento de toda organización.',
+  'Celebra los logros del equipo como si fueran tuyos, porque lo son.',
+  'Un buen equipo es como una orquesta: cada instrumento importa.',
+  'La unidad no es uniformidad. Es respeto por las diferencias.',
+  // ═══ RESILIENCIA Y FORTALEZA ═══
+  'Las tormentas más fuertes producen los mejores marineros.',
+  'No se trata de cuántas veces caes, sino de cuántas te levantas.',
+  'La presión crea diamantes.',
+  'Los días difíciles son los que te hacen más fuerte.',
+  'Donde hay una voluntad inquebrantable, siempre hay un camino.',
+  'El roble más fuerte del bosque no es el que está protegido, sino el que soporta todas las tormentas.',
+  'Tu fortaleza no se mide en los días fáciles, sino en los momentos que casi te rindes.',
+  'El dolor es temporal, el orgullo de haberlo superado es para siempre.',
+  'Rendirse nunca es opción cuando tu trabajo importa.',
+  'Cada dificultad superada es un escalón hacia tu mejor versión.',
+  // ═══ ACTITUD Y MENTALIDAD ═══
+  'Tu actitud determina tu dirección.',
+  'Una sonrisa tuya puede ser la mejor medicina para alguien hoy.',
+  'La gratitud transforma lo que tenemos en más que suficiente.',
+  'Elige ser positivo. Es más que una actitud, es una revolución silenciosa.',
+  'No puedes controlar lo que pasa, pero sí cómo reaccionas.',
+  'Cada mañana traes dos opciones: quedarte dormido con tus sueños o despertar y perseguirlos.',
+  'La energía que transmites es la energía que recibes.',
+  'Un pensamiento positivo por la mañana puede cambiar todo tu día.',
+  'Preocúpate menos, actúa más. Los resultados siguen a la acción.',
+  'Si no te gusta algo, cámbialo. Si no puedes cambiarlo, cambia tu actitud.',
+  // ═══ LIDERAZGO Y SERVICIO ═══
+  'Liderar no es mandar. Liderar es servir con el ejemplo.',
+  'La mejor forma de predecir el futuro es crearlo. — Peter Drucker',
+  'El servicio a los demás es la renta que pagas por vivir. — Muhammad Ali',
+  'Un gran líder no crea seguidores, crea más líderes.',
+  'Quien salva una vida, salva al mundo entero.',
+  'El verdadero éxito no se mide en dinero, sino en vidas impactadas.',
+  'La compasión sin acción es solo lástima. Actúa.',
+  'Haz más de lo que se espera de ti y la vida te dará más de lo que esperas.',
+  'El legado más poderoso es haber hecho la diferencia en la vida de alguien.',
+  'No aspires a ser importante. Aspira a ser útil.',
+  // ═══ INSPIRACIÓN DIARIA ═══
+  'Hoy es el día que recordarás como el inicio de algo grande.',
+  'No esperes el momento perfecto. Toma el momento y hazlo perfecto.',
+  'El secreto de avanzar es empezar. — Mark Twain',
+  'Sueña en grande, empieza en pequeño, pero empieza hoy.',
+  'Cada experto fue alguna vez un principiante.',
+  'Haz de cada día una obra maestra. — John Wooden',
+  'La vida es demasiado corta para ser pequeña. — Benjamin Disraeli',
+  'Lo que hagas hoy puede mejorar todos tus mañanas. — Ralph Marston',
+  'No dejes que lo que no puedes hacer interfiera con lo que sí puedes hacer. — John Wooden',
+  'El mejor momento para plantar un árbol fue hace 20 años. El segundo mejor momento es ahora.',
+];
+
+function getDashCfg(){
+  try{
+    const v=JSON.parse(localStorage.getItem('mediagenda_dash_cfg')||'{}');
+    if(!v.frases||!Array.isArray(v.frases)||v.frases.length===0)v.frases=[..._defaultFrases];
+    return v;
+  }catch(e){return{titulo:'',subtitulo:'',frases:[..._defaultFrases]};}
+}
+
+async function saveDashCfg(){
+  const dc=getDashCfg();
+  dc.titulo=document.getElementById('dash_titulo')?.value?.trim()||'';
+  dc.subtitulo=document.getElementById('dash_subtitulo')?.value?.trim()||'';
+  localStorage.setItem('mediagenda_dash_cfg',JSON.stringify(dc));
+  if(DB_OK)await SB.patch('configuracion',{valor:JSON.stringify(dc)},"clave=eq.dash_cfg");
+  render();alert('✅ Dashboard actualizado');
+}
+
+async function saveFrases(){
+  const dc=getDashCfg();
+  const newFrases=[];
+  dc.frases.forEach((f,i)=>{
+    const el=document.getElementById('frase_'+i);
+    if(el&&el.value.trim())newFrases.push(el.value.trim());
+  });
+  dc.frases=newFrases;
+  localStorage.setItem('mediagenda_dash_cfg',JSON.stringify(dc));
+  if(DB_OK)await SB.patch('configuracion',{valor:JSON.stringify(dc)},"clave=eq.dash_cfg");
+  render();alert('✅ Frases guardadas');
+}
+
+function addFrase(){
+  const inp=document.getElementById('nueva_frase');
+  const txt=inp?.value?.trim();
+  if(!txt){alert('Escribe una frase');return;}
+  const dc=getDashCfg();
+  dc.frases.push(txt);
+  localStorage.setItem('mediagenda_dash_cfg',JSON.stringify(dc));
+  inp.value='';
+  render();
+}
+
+function removeFrase(idx){
+  const dc=getDashCfg();
+  dc.frases.splice(idx,1);
+  localStorage.setItem('mediagenda_dash_cfg',JSON.stringify(dc));
+  render();
+}
+
+async function resetFrases(){
+  if(!confirm('¿Restaurar las frases originales?'))return;
+  const dc=getDashCfg();
+  dc.frases=[..._defaultFrases];
+  localStorage.setItem('mediagenda_dash_cfg',JSON.stringify(dc));
+  if(DB_OK)await SB.patch('configuracion',{valor:JSON.stringify(dc)},"clave=eq.dash_cfg");
+  render();alert('✅ Frases restauradas');
+}
+
 function getThemeCfg(){try{return JSON.parse(localStorage.getItem('mediagenda_theme')||'{}');}catch(e){return{};}}
 
 // ═══ 10 PALETAS PROFESIONALES ═══
