@@ -1678,26 +1678,28 @@ function getThemeCfg(){try{return JSON.parse(localStorage.getItem('mediagenda_th
 
 // ═══ 10 PALETAS PROFESIONALES ═══
 function _getPaletas(){return[
-  {id:'oscuro',name:'🌑 Oscuro Clásico',desc:'Negro y azul — elegante y moderno',
-    bg:'#0a0e17',c1:'#111827',c2:'#1a2332',bd:'#1e2a3a',t:'#e2e8f0',tm:'#64748b',a:'#3b82f6',tl:'#14b8a6',ok:'#10b981',w:'#f59e0b',er:'#ef4444'},
-  {id:'medianoche',name:'🌌 Medianoche Índigo',desc:'Azul profundo con acentos violeta',
-    bg:'#0f0a1e',c1:'#1a1333',c2:'#231c42',bd:'#2e2555',t:'#e8e0ff',tm:'#8b7cc8',a:'#7c3aed',tl:'#a78bfa',ok:'#34d399',w:'#fbbf24',er:'#f472b6'},
-  {id:'vitalwork',name:'🛡️ VitalWork Institucional',desc:'Azul y rojo — los colores de tu logo',
-    bg:'#0c1525',c1:'#132040',c2:'#1a2d52',bd:'#253d6b',t:'#e8ecf4',tm:'#7b8fb5',a:'#1e3a8a',tl:'#dc2626',ok:'#16a34a',w:'#ea580c',er:'#dc2626'},
-  {id:'oceano',name:'🌊 Océano Atlántico',desc:'Tonos agua y cian — calma profesional',
-    bg:'#0a1419',c1:'#0f1e26',c2:'#152a35',bd:'#1e3a48',t:'#e0f2f1',tm:'#6b9dab',a:'#0891b2',tl:'#06b6d4',ok:'#2dd4bf',w:'#f59e0b',er:'#f43f5e'},
-  {id:'esmeralda',name:'🌿 Esmeralda Médico',desc:'Verde salud — confianza y bienestar',
-    bg:'#0a1510',c1:'#0f1f16',c2:'#152b1f',bd:'#1e3a2a',t:'#e0f5ea',tm:'#6b9d80',a:'#059669',tl:'#10b981',ok:'#34d399',w:'#f59e0b',er:'#ef4444'},
-  {id:'ejecutivo',name:'🏛️ Ejecutivo Dorado',desc:'Negro y dorado — prestigio corporativo',
-    bg:'#0d0b07',c1:'#1a1610',c2:'#24201a',bd:'#3a3428',t:'#f5f0e0',tm:'#a09478',a:'#d4a017',tl:'#c88a0a',ok:'#65a30d',w:'#ea580c',er:'#dc2626'},
-  {id:'claro',name:'☀️ Luz Profesional',desc:'Fondo claro — ideal para ambientes iluminados',
-    bg:'#f1f5f9',c1:'#ffffff',c2:'#f8fafc',bd:'#e2e8f0',t:'#0f172a',tm:'#64748b',a:'#2563eb',tl:'#0d9488',ok:'#059669',w:'#d97706',er:'#dc2626'},
-  {id:'perla',name:'🤍 Perla y Zafiro',desc:'Blanco elegante con azul intenso',
-    bg:'#eef2f7',c1:'#ffffff',c2:'#f5f7fa',bd:'#d5dde8',t:'#1e293b',tm:'#64748b',a:'#1e40af',tl:'#3b82f6',ok:'#16a34a',w:'#ca8a04',er:'#b91c1c'},
-  {id:'rosa_medico',name:'🩺 Rosa Clínico',desc:'Suave y acogedor — ambiente clínico cálido',
-    bg:'#fdf2f8',c1:'#ffffff',c2:'#fce7f3',bd:'#f3d1e4',t:'#1e1b2e',tm:'#7c6f8a',a:'#be185d',tl:'#ec4899',ok:'#059669',w:'#d97706',er:'#e11d48'},
-  {id:'carbon',name:'⚫ Carbón Premium',desc:'Gris oscuro sofisticado — mínimo y limpio',
-    bg:'#18181b',c1:'#27272a',c2:'#303035',bd:'#3f3f46',t:'#fafafa',tm:'#a1a1aa',a:'#f4f4f5',tl:'#a1a1aa',ok:'#22c55e',w:'#eab308',er:'#ef4444'},
+  // ═══ TEMAS OSCUROS ═══
+  {id:'oscuro',name:'🌑 Obsidiana',desc:'Negro profundo con azul eléctrico — moderno y potente',
+    bg:'#07090f',c1:'#0f1219',c2:'#161b25',bd:'#1f2737',t:'#edf0f7',tm:'#6b7a94',a:'#4f8df5',tl:'#38bdf8',ok:'#22d3a8',w:'#fbbf24',er:'#fb7185'},
+  {id:'ejecutivo',name:'✨ Noir & Gold',desc:'Negro absoluto con oro — máximo lujo y prestigio',
+    bg:'#08070a',c1:'#121115',c2:'#1a181e',bd:'#2e2a25',t:'#faf6eb',tm:'#b8a88a',a:'#e2b84a',tl:'#d4a030',ok:'#6ec87a',w:'#e8943a',er:'#e05252'},
+  {id:'vitalwork',name:'🛡️ VitalWork',desc:'Azul profundo y rojo vivo — identidad institucional',
+    bg:'#080e1c',c1:'#0e1830',c2:'#142242',bd:'#1e3460',t:'#eaeff8',tm:'#7d91b8',a:'#2d5dcc',tl:'#e53e3e',ok:'#38b865',w:'#ed8936',er:'#e53e3e'},
+  {id:'medianoche',name:'🌌 Royal Violeta',desc:'Índigo y púrpura — distinguido y creativo',
+    bg:'#0b0816',c1:'#14102a',c2:'#1c1738',bd:'#2a2450',t:'#ede8ff',tm:'#9088c0',a:'#8b5cf6',tl:'#c084fc',ok:'#4ade80',w:'#fbbf24',er:'#fb7185'},
+  {id:'oceano',name:'🌊 Deep Ocean',desc:'Azul petróleo y turquesa — calma y profesionalismo',
+    bg:'#060e14',c1:'#0b1a24',c2:'#102430',bd:'#183444',t:'#e2f1f8',tm:'#6da0b8',a:'#0ea5e9',tl:'#2dd4bf',ok:'#34d399',w:'#fbbf24',er:'#f87171'},
+  {id:'esmeralda',name:'💎 Esmeralda',desc:'Verde oscuro con jade — salud y confianza',
+    bg:'#060f0a',c1:'#0c1a12',c2:'#12251a',bd:'#1c3828',t:'#e5f5ed',tm:'#6faa85',a:'#10b981',tl:'#34d399',ok:'#4ade80',w:'#fbbf24',er:'#f87171'},
+  {id:'carbon',name:'🖤 Carbón Titanio',desc:'Gris neutro oscuro — minimalista y elegante',
+    bg:'#111113',c1:'#1c1c1f',c2:'#242428',bd:'#333338',t:'#f0f0f2',tm:'#8e8e96',a:'#a0a0ab',tl:'#71717a',ok:'#4ade80',w:'#facc15',er:'#f87171'},
+  // ═══ TEMAS CLAROS ═══
+  {id:'claro',name:'☀️ Luz Profesional',desc:'Blanco limpio con azul — claridad total',
+    bg:'#f0f4f8',c1:'#ffffff',c2:'#f7f9fc',bd:'#dde3ed',t:'#0f1d2f',tm:'#5a6b80',a:'#2563eb',tl:'#0d9488',ok:'#059669',w:'#d97706',er:'#dc2626'},
+  {id:'perla',name:'🤍 Perla & Zafiro',desc:'Blanco cálido con azul real — refinado y limpio',
+    bg:'#f3f1ee',c1:'#fffefa',c2:'#f8f6f2',bd:'#e0dbd2',t:'#1a1814',tm:'#7a7468',a:'#1e3a8a',tl:'#2563eb',ok:'#15803d',w:'#b45309',er:'#b91c1c'},
+  {id:'crema_oro',name:'👑 Crema & Oro',desc:'Marfil con detalles dorados — lujo sofisticado',
+    bg:'#f5f0e6',c1:'#fffcf5',c2:'#faf6ec',bd:'#e5dcc8',t:'#1c1708',tm:'#8a7e62',a:'#b8860b',tl:'#d4a030',ok:'#2d8a4e',w:'#c27a10',er:'#c23028'},
 ];}
 
 function applyTheme(){
