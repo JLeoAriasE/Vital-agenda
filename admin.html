@@ -1731,32 +1731,60 @@ function syncPublic(){
   }catch(e){}
 }
 
-// ═══ AUTO-REFRESH (cada 30 seg recarga datos de Supabase) ═══
+// ═══ AUTO-REFRESH INTELIGENTE (solo render si hay cambios) ═══
 let _refreshTimer=null;
+let _lastDataHash='';
+
+function _dataHash(pts,apt,ord){
+  // Generar un hash simple basado en cantidad y últimos IDs
+  const p=pts?pts.length:0;
+  const a=apt?apt.length:0;
+  const o=ord?ord.length:0;
+  const lastPid=pts&&pts.length>0?pts[pts.length-1].id:'';
+  const lastAid=apt&&apt.length>0?apt[apt.length-1].id:'';
+  const lastOid=ord&&ord.length>0?ord[ord.length-1].id:'';
+  // También incluir estados para detectar cambios de estado
+  const estados=apt?apt.map(x=>x.estado).join(''):'';
+  const ordEstados=ord?ord.map(x=>x.estado).join(''):'';
+  return`${p}-${a}-${o}-${lastPid}-${lastAid}-${lastOid}-${estados}-${ordEstados}`;
+}
+
 async function autoRefresh(){
   if(!DB_OK||!S.u)return;
-  const [pts,apt,ord]=await Promise.all([
-    SB.get('pacientes','select=*&order=created_at'),
-    SB.get('citas','select=*&order=created_at'),
-    SB.get('ordenes','select=*&order=created_at'),
-  ]);
-  if(pts!==null){
+  try{
+    const [pts,apt,ord]=await Promise.all([
+      SB.get('pacientes','select=*&order=created_at'),
+      SB.get('citas','select=*&order=created_at'),
+      SB.get('ordenes','select=*&order=created_at'),
+    ]);
+    if(pts===null)return;
+    
+    // Verificar si hay cambios reales
+    const newHash=_dataHash(pts,apt,ord);
+    const hasChanges=newHash!==_lastDataHash;
+    
+    // Siempre actualizar datos en memoria
     S.pts=pts.map(p=>({id:p.id,nombre:p.nombre,cedula:p.cedula,telefono:p.telefono||'',email:p.email||'',genero:p.genero||'',direccion:p.direccion||'',ciudad:p.ciudad||'',empresa:p.empresa,cargo:p.cargo||'',fecha_nacimiento:p.fecha_nacimiento||''}));
     S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin'})):S.apt;
     S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado})):S.ord;
-    render();
-  }
+    
+    _lastDataHash=newHash;
+    
+    // Solo hacer render si hay cambios Y el usuario no está ocupado
+    if(hasChanges&&!_isUserBusy()){
+      render();
+    }
+  }catch(e){console.warn('AutoRefresh error:',e);}
 }
+
 function _isUserBusy(){
-  // No hacer render si hay un modal abierto
   if(document.querySelector('.mo'))return true;
   if(document.getElementById('bloq_modal_overlay'))return true;
-  // No hacer render si el usuario está escribiendo en un input
   const ae=document.activeElement;
   if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT'))return true;
   return false;
 }
-function startAutoRefresh(){if(_refreshTimer)clearInterval(_refreshTimer);_refreshTimer=setInterval(autoRefresh,3000);}
+function startAutoRefresh(){if(_refreshTimer)clearInterval(_refreshTimer);_refreshTimer=setInterval(autoRefresh,5000);}
 function stopAutoRefresh(){if(_refreshTimer){clearInterval(_refreshTimer);_refreshTimer=null;}}
 
 // ═══ DESCARGAR EXCEL DE PACIENTES ATENDIDOS ═══
