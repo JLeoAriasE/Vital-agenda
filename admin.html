@@ -175,7 +175,7 @@ const PROY=['AP','Lateral','Oblicua','AP + Lateral','AP + Lat + Oblicua'];
 const allRX=Object.values(RXZ).flat();
 
 // ═══ STATE ═══
-let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],sel:null,q:'',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
+let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],sel:null,q:'',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
 const TD=new Date().toISOString().split('T')[0];
 
 // ═══ HELPERS ═══
@@ -203,11 +203,12 @@ function canAssign(){return isA()||isE();}
 // ═══ LOAD DATA FROM SUPABASE ═══
 async function loadAll(){
   S.loading=true;render();
-  const [usrs,pts,apt,ord]=await Promise.all([
+  const [usrs,pts,apt,ord,emps]=await Promise.all([
     SB.get('usuarios','select=*&order=created_at'),
     SB.get('pacientes','select=*&order=created_at'),
     SB.get('citas','select=*&order=created_at'),
     SB.get('ordenes','select=*&order=created_at'),
+    SB.get('empresas','select=*&order=nombre'),
   ]);
   if(usrs!==null){
     DB_OK=true;
@@ -215,6 +216,7 @@ async function loadAll(){
     S.pts=pts?pts.map(p=>({id:p.id,nombre:p.nombre,cedula:p.cedula,telefono:p.telefono||'',email:p.email||'',genero:p.genero||'',direccion:p.direccion||'',ciudad:p.ciudad||'',empresa:p.empresa,cargo:p.cargo||'',fecha_nacimiento:p.fecha_nacimiento||''})):[];
     S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin'})):[];
     S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado})):[];
+    S.empresas_cli=emps?emps.map(e=>({id:e.id,nombre:e.nombre,ruc:e.ruc||'',ciiu:e.ciiu||'',direccion:e.direccion||'',telefono:e.telefono||'',contacto:e.contacto||''})):[];
     // Load config
     const cfg=await SB.get('configuracion','select=*');
     if(cfg){cfg.forEach(c=>{
@@ -1531,6 +1533,7 @@ function rBkp(){
 
   const tabs=`<div class="cvtabs" style="margin-bottom:14px">
     <button class="cvt ${t==='empresa'?'on':''}" onclick="S.cfgTab='empresa';render()">🏥 Empresa</button>
+    <button class="cvt ${t==='empresas_cli'?'on':''}" onclick="S.cfgTab='empresas_cli';render()">🏢 Empresas Clientes</button>
     <button class="cvt ${t==='dashboard'?'on':''}" onclick="S.cfgTab='dashboard';render()">📊 Dashboard</button>
     <button class="cvt ${t==='horarios'?'on':''}" onclick="S.cfgTab='horarios';render()">🕐 Horarios</button>
     <button class="cvt ${t==='apariencia'?'on':''}" onclick="S.cfgTab='apariencia';render()">🎨 Apariencia</button>
@@ -1568,6 +1571,32 @@ function rBkp(){
         ${ec.logo?`<img id="logo_prev" src="${ec.logo}" style="width:${ec.logo_size||80}px;border-radius:8px" onerror="this.style.display='none'">`:'<div id="logo_prev" style="color:var(--tm);font-size:12px">Sin logo configurado</div>'}
       </div>
       <button class="btn bp" onclick="saveLogoCfg()">💾 Guardar Logo</button>
+    </div></div>`;
+
+  }else if(t==='empresas_cli'){
+    const emps=S.empresas_cli||[];
+    body=`
+    <div class="cd"><div class="cdh"><h3>🏢 Catálogo de Empresas Clientes</h3>
+      <button class="btn bsm bp" onclick="empCliMod()">➕ Nueva Empresa</button>
+    </div><div class="cdb">
+      <p style="font-size:12px;color:var(--tm);margin-bottom:14px">Registra las empresas que envían trabajadores. Estos datos se usan en la ficha ocupacional.</p>
+      ${emps.length===0?'<div style="color:var(--tm);font-size:12px;padding:12px;text-align:center">No hay empresas registradas aún. Haz clic en ➕ Nueva Empresa para agregar.</div>':`
+      <div style="margin-bottom:10px"><input class="fi" id="buscar_emp" placeholder="🔍 Buscar empresa..." oninput="filterEmps(this.value)" style="max-width:350px"></div>
+      <div class="tw"><table><thead><tr><th>Nombre</th><th>RUC</th><th>CIIU</th><th>Dirección</th><th>Teléfono</th><th>Contacto</th><th>Acc.</th></tr></thead><tbody id="emps_tbody">
+      ${emps.map(e=>`<tr class="emp_row" data-search="${(e.nombre+' '+e.ruc+' '+e.ciiu).toLowerCase()}">
+        <td style="font-weight:600">${e.nombre}</td>
+        <td class="mono" style="font-size:11px">${e.ruc||'—'}</td>
+        <td style="font-size:11px">${e.ciiu||'—'}</td>
+        <td style="font-size:11px">${e.direccion||'—'}</td>
+        <td style="font-size:11px">${e.telefono||'—'}</td>
+        <td style="font-size:11px">${e.contacto||'—'}</td>
+        <td style="white-space:nowrap">
+          <button class="btn bsm bg" onclick="empCliMod('${e.id}')">✏️</button>
+          <button class="btn bsm bd" onclick="delEmpCli('${e.id}')">🗑️</button>
+        </td>
+      </tr>`).join('')}
+      </tbody></table></div>`}
+      <div style="margin-top:10px;font-size:11px;color:var(--tm)">${emps.length} empresa${emps.length!==1?'s':''} registrada${emps.length!==1?'s':''}</div>
     </div></div>`;
 
   }else if(t==='dashboard'){
@@ -1796,6 +1825,72 @@ async function saveLogoCfg(){
 }
 
 // ═══ THEME CONFIG ═══
+// ═══ EMPRESAS CLIENTES (catálogo) ═══
+function filterEmps(q){
+  const rows=document.querySelectorAll('.emp_row');
+  const s=q.toLowerCase();
+  rows.forEach(r=>{r.style.display=r.dataset.search.includes(s)?'':'none';});
+}
+
+function empCliMod(eid){
+  const e=eid?(S.empresas_cli||[]).find(x=>x.id===eid):null;
+  const d=e||{};
+  openModal(`<div class="mhd"><h3>${e?'✏️ Editar':'➕ Nueva'} Empresa Cliente</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
+  <div class="mbd">
+    <div class="fg"><label>Nombre de la Empresa *</label><input class="fi" id="ec_nombre" value="${d.nombre||''}" placeholder="Ej: INT FOOD SERVICES CORP"></div>
+    <div class="fr">
+      <div class="fg"><label>RUC</label><input class="fi" id="ec_ruc" value="${d.ruc||''}" placeholder="Ej: 1791415132001" maxlength="13"></div>
+      <div class="fg"><label>Código CIIU</label><input class="fi" id="ec_ciiu" value="${d.ciiu||''}" placeholder="Ej: C1010.22"></div>
+    </div>
+    <div class="fg"><label>Dirección</label><input class="fi" id="ec_dir" value="${d.direccion||''}" placeholder="Ej: Machala, El Oro"></div>
+    <div class="fr">
+      <div class="fg"><label>Teléfono</label><input class="fi" id="ec_tel" value="${d.telefono||''}" placeholder="Ej: +593999999999"></div>
+      <div class="fg"><label>Persona de Contacto</label><input class="fi" id="ec_contacto" value="${d.contacto||''}" placeholder="Ej: Ing. Juan Pérez"></div>
+    </div>
+  </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svEmpCli('${d.id||''}')">${e?'Guardar':'Crear'}</button></div>`);
+}
+
+async function svEmpCli(eid){
+  const nombre=document.getElementById('ec_nombre')?.value?.trim();
+  if(!nombre){alert('El nombre de la empresa es obligatorio');return;}
+  const data={
+    nombre,
+    ruc:document.getElementById('ec_ruc')?.value?.trim()||'',
+    ciiu:document.getElementById('ec_ciiu')?.value?.trim()||'',
+    direccion:document.getElementById('ec_dir')?.value?.trim()||'',
+    telefono:document.getElementById('ec_tel')?.value?.trim()||'',
+    contacto:document.getElementById('ec_contacto')?.value?.trim()||'',
+  };
+  if(!S.empresas_cli)S.empresas_cli=[];
+  if(eid){
+    const i=S.empresas_cli.findIndex(e=>e.id===eid);
+    if(i>-1){
+      S.empresas_cli[i]={...S.empresas_cli[i],...data};
+      if(DB_OK)await SB.patch('empresas',data,`id=eq.${eid}`);
+    }
+  }else{
+    if(DB_OK){
+      const r=await SB.post('empresas',data);
+      if(r&&r[0])S.empresas_cli.push({id:r[0].id,...data});
+      else S.empresas_cli.push({id:gid(),...data});
+    }else{
+      S.empresas_cli.push({id:gid(),...data});
+    }
+  }
+  closeModal();render();
+  alert(`✅ Empresa ${eid?'actualizada':'registrada'}: ${nombre}`);
+}
+
+async function delEmpCli(eid){
+  const e=(S.empresas_cli||[]).find(x=>x.id===eid);
+  if(!e)return;
+  if(!confirm(`¿Eliminar la empresa "${e.nombre}"?`))return;
+  S.empresas_cli=S.empresas_cli.filter(x=>x.id!==eid);
+  if(DB_OK)await SB.del('empresas',`id=eq.${eid}`);
+  render();
+  alert(`✅ Empresa eliminada: ${e.nombre}`);
+}
+
 // ═══ DASHBOARD CONFIG ═══
 const _defaultFrases=[
   // ═══ PROPÓSITO Y VOCACIÓN ═══
