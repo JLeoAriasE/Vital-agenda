@@ -175,7 +175,7 @@ const PROY=['AP','Lateral','Oblicua','AP + Lateral','AP + Lat + Oblicua'];
 const allRX=Object.values(RXZ).flat();
 
 // ═══ STATE ═══
-let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],sel:null,q:'',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
+let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],sel:null,q:'',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
 const TD=new Date().toISOString().split('T')[0];
 
 // ═══ HELPERS ═══
@@ -203,12 +203,13 @@ function canAssign(){return isA()||isE();}
 // ═══ LOAD DATA FROM SUPABASE ═══
 async function loadAll(){
   S.loading=true;render();
-  const [usrs,pts,apt,ord,emps]=await Promise.all([
+  const [usrs,pts,apt,ord,emps,cargos]=await Promise.all([
     SB.get('usuarios','select=*&order=created_at'),
     SB.get('pacientes','select=*&order=created_at'),
     SB.get('citas','select=*&order=created_at'),
     SB.get('ordenes','select=*&order=created_at'),
     SB.get('empresas','select=*&order=nombre'),
+    SB.get('cargos_ciuo','select=*&order=nombre'),
   ]);
   if(usrs!==null){
     DB_OK=true;
@@ -217,6 +218,7 @@ async function loadAll(){
     S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin'})):[];
     S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado})):[];
     S.empresas_cli=emps?emps.map(e=>({id:e.id,nombre:e.nombre,ruc:e.ruc||'',ciiu:e.ciiu||'',direccion:e.direccion||'',telefono:e.telefono||'',contacto:e.contacto||''})):[];
+    S.cargos_ciuo=cargos?cargos.map(c=>({id:c.id,codigo:c.codigo,nombre:c.nombre})):[];
     // Load config
     const cfg=await SB.get('configuracion','select=*');
     if(cfg){cfg.forEach(c=>{
@@ -745,6 +747,8 @@ function rSide(){
     <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">${ic('nrs')} Médico</div>
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
+    <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
+    <div class="ni ${S.v==='cargos'?'on':''}" onclick="nav('cargos')">💼 Cargos CIUO</div>
     <div class="ni ${S.v==='umg'?'on':''}" onclick="nav('umg')">${ic('up')} Usuarios</div>
     <div class="ni ${S.v==='aord'?'on':''}" onclick="nav('aord')">${ic('clp')} Todas las Órdenes ${pO?`<span class="nbg">${pO}</span>`:''}</div>
     <div class="ni ${S.v==='bkp'?'on':''}" onclick="nav('bkp')">${ic('stg')} Configuración</div>
@@ -762,6 +766,8 @@ function rSide(){
     <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">${ic('nrs')} Médico</div>
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
+    <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
+    <div class="ni ${S.v==='cargos'?'on':''}" onclick="nav('cargos')">💼 Cargos CIUO</div>
     <div class="ni ${S.v==='umg'?'on':''}" onclick="nav('umg')">${ic('up')} Usuarios</div>
     <div class="ni ${S.v==='aord'?'on':''}" onclick="nav('aord')">${ic('clp')} Todas las Órdenes ${pO?`<span class="nbg">${pO}</span>`:''}</div>
     <div class="ni ${S.v==='bkp'?'on':''}" onclick="nav('bkp')">${ic('stg')} Configuración</div>
@@ -788,7 +794,7 @@ function rView(){
   if(S.v==='umg'&&!(isA()||isE())){return rDash();}
   switch(S.v){
     case'dash':return rDash();case'cal':return rCal();case'pts':return rPts();case'apt':return rApt();case'det':return rDet();
-    case'nrs':return rNrs();case'lord':return rLabO();case'rxord':return rRxO();case'medord':return rMedO();case'psiord':return rPsiO();case'aord':return rAllO();case'umg':return rUsr();case'bkp':return rBkp();default:return(isA()||isE())?rDash():isL()?rLabO():isR()?rRxO():isM()?rMedO():isPsi()?rPsiO():rDash();
+    case'nrs':return rNrs();case'lord':return rLabO();case'rxord':return rRxO();case'medord':return rMedO();case'psiord':return rPsiO();case'empcli':return rEmpCli();case'cargos':return rCargos();case'aord':return rAllO();case'umg':return rUsr();case'bkp':return rBkp();default:return(isA()||isE())?rDash():isL()?rLabO():isR()?rRxO():isM()?rMedO():isPsi()?rPsiO():rDash();
   }
 }
 
@@ -1115,6 +1121,96 @@ function rRxO(){
   <td><span class="ba ba-o">${x.parte||''}</span></td><td>${x.proy||''}</td>
   <td><span class="ba ${EB[x.estado]}">${EL[x.estado]}</span></td>
   <td>${x.estado!=='completado'?`<button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`}</div>`;
+}
+
+// ═══ EMPRESAS CLIENTES (vista sidebar) ═══
+function rEmpCli(){
+  const emps=S.empresas_cli||[];
+  return`<div class="ph"><div><h2>🏢 Empresas Clientes</h2><p class="ph-s">${emps.length} empresa${emps.length!==1?'s':''} registrada${emps.length!==1?'s':''}</p></div>
+  <button class="btn bp" onclick="empCliMod()">➕ Nueva Empresa</button></div>
+  ${emps.length>3?`<div style="margin-bottom:10px"><input class="fi" id="buscar_emp" placeholder="🔍 Buscar empresa por nombre, RUC o CIIU..." oninput="filterEmps(this.value)" style="max-width:400px"></div>`:''}
+  <div class="cd">${emps.length===0?'<div class="es"><h4>No hay empresas registradas</h4><p style="color:var(--tm)">Haz clic en ➕ Nueva Empresa para agregar la primera</p></div>':`<div class="tw"><table><thead><tr><th>Nombre de la Empresa</th><th>RUC</th><th>CIIU</th><th>Dirección</th><th>Teléfono</th><th>Contacto</th><th style="text-align:center">Acc.</th></tr></thead><tbody>
+  ${emps.map(e=>`<tr class="emp_row" data-search="${(e.nombre+' '+e.ruc+' '+e.ciiu).toLowerCase()}">
+    <td style="font-weight:600">${e.nombre}</td>
+    <td class="mono" style="font-size:11px">${e.ruc||'—'}</td>
+    <td style="font-size:11px">${e.ciiu||'—'}</td>
+    <td style="font-size:11px">${e.direccion||'—'}</td>
+    <td style="font-size:11px">${e.telefono||'—'}</td>
+    <td style="font-size:11px">${e.contacto||'—'}</td>
+    <td style="text-align:center;white-space:nowrap">
+      <button class="btn bsm bg" onclick="empCliMod('${e.id}')">✏️</button>
+      <button class="btn bsm bd" onclick="delEmpCli('${e.id}')">🗑️</button>
+    </td>
+  </tr>`).join('')}
+  </tbody></table></div>`}</div>`;
+}
+
+// ═══ CARGOS CIUO (vista sidebar) ═══
+function rCargos(){
+  const cargos=S.cargos_ciuo||[];
+  return`<div class="ph"><div><h2>💼 Cargos CIUO</h2><p class="ph-s">${cargos.length} cargo${cargos.length!==1?'s':''} registrado${cargos.length!==1?'s':''}</p></div>
+  <button class="btn bp" onclick="cargoMod()">➕ Nuevo Cargo</button></div>
+  <div style="margin-bottom:10px"><input class="fi" id="buscar_cargo" placeholder="🔍 Buscar por código o nombre de cargo..." oninput="filterCargos(this.value)" style="max-width:400px"></div>
+  <div class="cd">${cargos.length===0?'<div class="es"><h4>No hay cargos registrados</h4><p style="color:var(--tm)">Ejecuta el SQL en Supabase para precargar +280 cargos</p></div>':`<div class="tw" style="max-height:65vh;overflow-y:auto"><table><thead><tr><th style="width:80px">Código</th><th>Nombre del Cargo</th><th style="text-align:center;width:90px">Acc.</th></tr></thead><tbody>
+  ${cargos.map(c=>`<tr class="cargo_row" data-search="${(c.codigo+' '+c.nombre).toLowerCase()}">
+    <td class="mono" style="font-weight:600;color:var(--a)">${c.codigo}</td>
+    <td>${c.nombre}</td>
+    <td style="text-align:center;white-space:nowrap">
+      <button class="btn bsm bg" onclick="cargoMod('${c.id}')">✏️</button>
+      <button class="btn bsm bd" onclick="delCargo('${c.id}')">🗑️</button>
+    </td>
+  </tr>`).join('')}
+  </tbody></table></div>`}</div>
+  <div style="padding:8px;font-size:11px;color:var(--tm)">💡 Estos cargos se usan en la ficha ocupacional. Si no encuentras uno, agrégalo con ➕ Nuevo Cargo.</div>`;
+}
+
+function filterCargos(q){
+  const rows=document.querySelectorAll('.cargo_row');
+  const s=q.toLowerCase();
+  rows.forEach(r=>{r.style.display=r.dataset.search.includes(s)?'':'none';});
+}
+
+function cargoMod(cid){
+  const c=cid?(S.cargos_ciuo||[]).find(x=>x.id===cid):null;
+  const d=c||{};
+  openModal(`<div class="mhd"><h3>${c?'✏️ Editar':'➕ Nuevo'} Cargo CIUO</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
+  <div class="mbd">
+    <div class="fr">
+      <div class="fg" style="max-width:120px"><label>Código CIUO *</label><input class="fi" id="cg_cod" value="${d.codigo||''}" placeholder="Ej: 8322"></div>
+      <div class="fg" style="flex:1"><label>Nombre del Cargo *</label><input class="fi" id="cg_nom" value="${d.nombre||''}" placeholder="Ej: Conductor de Camiones Pesados"></div>
+    </div>
+  </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svCargo('${d.id||''}')">${c?'Guardar':'Crear'}</button></div>`);
+}
+
+async function svCargo(cid){
+  const codigo=document.getElementById('cg_cod')?.value?.trim();
+  const nombre=document.getElementById('cg_nom')?.value?.trim();
+  if(!codigo||!nombre){alert('Código y nombre son obligatorios');return;}
+  if(!S.cargos_ciuo)S.cargos_ciuo=[];
+  if(cid){
+    const i=S.cargos_ciuo.findIndex(c=>c.id===cid);
+    if(i>-1){
+      S.cargos_ciuo[i].codigo=codigo;S.cargos_ciuo[i].nombre=nombre;
+      if(DB_OK)await SB.patch('cargos_ciuo',{codigo,nombre},`id=eq.${cid}`);
+    }
+  }else{
+    if(DB_OK){
+      const r=await SB.post('cargos_ciuo',{codigo,nombre});
+      if(r&&r[0])S.cargos_ciuo.push({id:r[0].id,codigo,nombre});
+      else S.cargos_ciuo.push({id:gid(),codigo,nombre});
+    }else{S.cargos_ciuo.push({id:gid(),codigo,nombre});}
+  }
+  closeModal();render();
+  alert(`✅ Cargo ${cid?'actualizado':'registrado'}: (${codigo}) ${nombre}`);
+}
+
+async function delCargo(cid){
+  const c=(S.cargos_ciuo||[]).find(x=>x.id===cid);
+  if(!c)return;
+  if(!confirm(`¿Eliminar el cargo "${c.nombre}"?`))return;
+  S.cargos_ciuo=S.cargos_ciuo.filter(x=>x.id!==cid);
+  if(DB_OK)await SB.del('cargos_ciuo',`id=eq.${cid}`);
+  render();
 }
 
 // ═══ PSICOLOGÍA ORDERS ═══
