@@ -669,7 +669,17 @@ function svEx(){
 function render(){
   const a=document.getElementById('app');
   if(!S.u||S.v==='login'){rLogin(a);return;}
+  // Preservar posición de scroll del sidebar y main
+  const sideEl=document.querySelector('.side');
+  const mainEl=document.querySelector('.main');
+  const sideScroll=sideEl?sideEl.scrollTop:0;
+  const mainScroll=mainEl?mainEl.scrollTop:0;
   a.innerHTML=`<div class="app">${rSide()}<main class="main">${rView()}</main></div><button class="mtog" onclick="document.querySelector('.side').classList.toggle('open')">☰</button>`;
+  // Restaurar scroll
+  const newSide=document.querySelector('.side');
+  const newMain=document.querySelector('.main');
+  if(newSide)newSide.scrollTop=sideScroll;
+  if(newMain)newMain.scrollTop=mainScroll;
 }
 
 function rLogin(a){
@@ -1500,23 +1510,51 @@ function rBkp(){
 
   }else if(t==='apariencia'){
     body=`
-    <div class="cd"><div class="cdh"><h3>🎨 Colores del Sistema</h3></div><div class="cdb">
-      <p style="font-size:12px;color:var(--tm);margin-bottom:12px">Personaliza los colores de la interfaz.</p>
+    <div class="cd"><div class="cdh"><h3>🎨 Paletas de Colores</h3></div><div class="cdb">
+      <p style="font-size:12px;color:var(--tm);margin-bottom:14px">Elige una paleta prediseñada. El cambio se aplica para <strong style="color:var(--t)">todos los usuarios</strong> del sistema.</p>
+      <div id="paletas_grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+      ${_getPaletas().map(p=>{
+        const cur=getThemeCfg();
+        const isActive=cur.paletaId===p.id;
+        return`<div style="background:${p.c1};border:2px solid ${isActive?p.a:p.bd};border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;${isActive?'box-shadow:0 0 12px '+p.a+'40':''}" onclick="applyPaleta('${p.id}')">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:700;color:${p.t}">${p.name}</span>
+            ${isActive?'<span style="font-size:10px;background:'+p.a+';color:#fff;padding:2px 8px;border-radius:10px;font-weight:600">ACTIVA</span>':''}
+          </div>
+          <div style="font-size:10px;color:${p.tm};margin-bottom:10px">${p.desc}</div>
+          <div style="display:flex;gap:4px">
+            <div style="width:28px;height:28px;border-radius:6px;background:${p.bg};border:1px solid ${p.bd}" title="Fondo"></div>
+            <div style="width:28px;height:28px;border-radius:6px;background:${p.c1};border:1px solid ${p.bd}" title="Tarjetas"></div>
+            <div style="width:28px;height:28px;border-radius:6px;background:${p.a}" title="Principal"></div>
+            <div style="width:28px;height:28px;border-radius:6px;background:${p.tl}" title="Secundario"></div>
+            <div style="width:28px;height:28px;border-radius:6px;background:${p.ok}" title="Éxito"></div>
+            <div style="width:28px;height:28px;border-radius:6px;background:${p.w}" title="Alerta"></div>
+            <div style="width:28px;height:28px;border-radius:6px;background:${p.er}" title="Error"></div>
+          </div>
+        </div>`;
+      }).join('')}
+      </div>
+    </div></div>
+
+    <div class="cd"><div class="cdh"><h3>🔧 Personalización Manual (Avanzado)</h3>
+      <button class="btn bsm bg" onclick="document.getElementById('manual_colors').style.display=document.getElementById('manual_colors').style.display==='none'?'block':'none'">Mostrar/Ocultar</button>
+    </div><div class="cdb" id="manual_colors" style="display:none">
+      <p style="font-size:12px;color:var(--tm);margin-bottom:12px">Ajusta colores individuales. Estos cambios sobreescriben la paleta seleccionada.</p>
       <div class="fr">
-        <div class="fg"><label>Color Principal</label><input type="color" class="fi" id="tc_primary" value="${tc.primary||'#3b82f6'}" style="height:40px;padding:4px"></div>
-        <div class="fg"><label>Color Secundario</label><input type="color" class="fi" id="tc_secondary" value="${tc.secondary||'#14b8a6'}" style="height:40px;padding:4px"></div>
+        <div class="fg"><label>Color Principal</label><input type="color" class="fi" id="tc_primary" value="${tc.primary||tc.a||'#3b82f6'}" style="height:40px;padding:4px"></div>
+        <div class="fg"><label>Color Secundario</label><input type="color" class="fi" id="tc_secondary" value="${tc.secondary||tc.tl||'#14b8a6'}" style="height:40px;padding:4px"></div>
       </div>
       <div class="fr">
-        <div class="fg"><label>Fondo Principal</label><input type="color" class="fi" id="tc_bg" value="${tc.bg||'#0f172a'}" style="height:40px;padding:4px"></div>
-        <div class="fg"><label>Fondo Tarjetas</label><input type="color" class="fi" id="tc_card" value="${tc.card||'#1e293b'}" style="height:40px;padding:4px"></div>
+        <div class="fg"><label>Fondo Principal</label><input type="color" class="fi" id="tc_bg" value="${tc.bg||'#0a0e17'}" style="height:40px;padding:4px"></div>
+        <div class="fg"><label>Fondo Tarjetas</label><input type="color" class="fi" id="tc_card" value="${tc.card||tc.c1||'#111827'}" style="height:40px;padding:4px"></div>
       </div>
       <div class="fr">
         <div class="fg"><label>Color Éxito</label><input type="color" class="fi" id="tc_ok" value="${tc.ok||'#10b981'}" style="height:40px;padding:4px"></div>
-        <div class="fg"><label>Color Alerta</label><input type="color" class="fi" id="tc_warn" value="${tc.warn||'#f59e0b'}" style="height:40px;padding:4px"></div>
+        <div class="fg"><label>Color Alerta</label><input type="color" class="fi" id="tc_warn" value="${tc.warn||tc.w||'#f59e0b'}" style="height:40px;padding:4px"></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn bp" onclick="saveThemeCfg()">💾 Aplicar Colores</button>
-        <button class="btn bg" onclick="resetTheme()">🔄 Restaurar Originales</button>
+        <button class="btn bp" onclick="saveThemeCfg()">💾 Aplicar Colores Manuales</button>
+        <button class="btn bg" onclick="resetTheme()">🔄 Restaurar Original</button>
       </div>
     </div></div>`;
 
@@ -1638,36 +1676,83 @@ async function saveLogoCfg(){
 // ═══ THEME CONFIG ═══
 function getThemeCfg(){try{return JSON.parse(localStorage.getItem('mediagenda_theme')||'{}');}catch(e){return{};}}
 
+// ═══ 10 PALETAS PROFESIONALES ═══
+function _getPaletas(){return[
+  {id:'oscuro',name:'🌑 Oscuro Clásico',desc:'Negro y azul — elegante y moderno',
+    bg:'#0a0e17',c1:'#111827',c2:'#1a2332',bd:'#1e2a3a',t:'#e2e8f0',tm:'#64748b',a:'#3b82f6',tl:'#14b8a6',ok:'#10b981',w:'#f59e0b',er:'#ef4444'},
+  {id:'medianoche',name:'🌌 Medianoche Índigo',desc:'Azul profundo con acentos violeta',
+    bg:'#0f0a1e',c1:'#1a1333',c2:'#231c42',bd:'#2e2555',t:'#e8e0ff',tm:'#8b7cc8',a:'#7c3aed',tl:'#a78bfa',ok:'#34d399',w:'#fbbf24',er:'#f472b6'},
+  {id:'vitalwork',name:'🛡️ VitalWork Institucional',desc:'Azul y rojo — los colores de tu logo',
+    bg:'#0c1525',c1:'#132040',c2:'#1a2d52',bd:'#253d6b',t:'#e8ecf4',tm:'#7b8fb5',a:'#1e3a8a',tl:'#dc2626',ok:'#16a34a',w:'#ea580c',er:'#dc2626'},
+  {id:'oceano',name:'🌊 Océano Atlántico',desc:'Tonos agua y cian — calma profesional',
+    bg:'#0a1419',c1:'#0f1e26',c2:'#152a35',bd:'#1e3a48',t:'#e0f2f1',tm:'#6b9dab',a:'#0891b2',tl:'#06b6d4',ok:'#2dd4bf',w:'#f59e0b',er:'#f43f5e'},
+  {id:'esmeralda',name:'🌿 Esmeralda Médico',desc:'Verde salud — confianza y bienestar',
+    bg:'#0a1510',c1:'#0f1f16',c2:'#152b1f',bd:'#1e3a2a',t:'#e0f5ea',tm:'#6b9d80',a:'#059669',tl:'#10b981',ok:'#34d399',w:'#f59e0b',er:'#ef4444'},
+  {id:'ejecutivo',name:'🏛️ Ejecutivo Dorado',desc:'Negro y dorado — prestigio corporativo',
+    bg:'#0d0b07',c1:'#1a1610',c2:'#24201a',bd:'#3a3428',t:'#f5f0e0',tm:'#a09478',a:'#d4a017',tl:'#c88a0a',ok:'#65a30d',w:'#ea580c',er:'#dc2626'},
+  {id:'claro',name:'☀️ Luz Profesional',desc:'Fondo claro — ideal para ambientes iluminados',
+    bg:'#f1f5f9',c1:'#ffffff',c2:'#f8fafc',bd:'#e2e8f0',t:'#0f172a',tm:'#64748b',a:'#2563eb',tl:'#0d9488',ok:'#059669',w:'#d97706',er:'#dc2626'},
+  {id:'perla',name:'🤍 Perla y Zafiro',desc:'Blanco elegante con azul intenso',
+    bg:'#eef2f7',c1:'#ffffff',c2:'#f5f7fa',bd:'#d5dde8',t:'#1e293b',tm:'#64748b',a:'#1e40af',tl:'#3b82f6',ok:'#16a34a',w:'#ca8a04',er:'#b91c1c'},
+  {id:'rosa_medico',name:'🩺 Rosa Clínico',desc:'Suave y acogedor — ambiente clínico cálido',
+    bg:'#fdf2f8',c1:'#ffffff',c2:'#fce7f3',bd:'#f3d1e4',t:'#1e1b2e',tm:'#7c6f8a',a:'#be185d',tl:'#ec4899',ok:'#059669',w:'#d97706',er:'#e11d48'},
+  {id:'carbon',name:'⚫ Carbón Premium',desc:'Gris oscuro sofisticado — mínimo y limpio',
+    bg:'#18181b',c1:'#27272a',c2:'#303035',bd:'#3f3f46',t:'#fafafa',tm:'#a1a1aa',a:'#f4f4f5',tl:'#a1a1aa',ok:'#22c55e',w:'#eab308',er:'#ef4444'},
+];}
+
 function applyTheme(){
-  const tc=getThemeCfg();if(!tc.primary)return;
+  const tc=getThemeCfg();
+  // Si tiene paletaId, aplicar paleta completa
+  const paleta=tc.paletaId?_getPaletas().find(p=>p.id===tc.paletaId):null;
+  const src=paleta||tc;
+  if(!src.a&&!src.primary)return;
   const r=document.documentElement.style;
-  if(tc.primary){r.setProperty('--a',tc.primary);r.setProperty('--as',tc.primary+'1f');}
-  if(tc.secondary){r.setProperty('--tl',tc.secondary);r.setProperty('--tls',tc.secondary+'1f');}
-  if(tc.bg){r.setProperty('--bg',tc.bg);r.setProperty('--ci',tc.bg);}
-  if(tc.card){r.setProperty('--c1',tc.card);r.setProperty('--c2',tc.card);}
-  if(tc.ok){r.setProperty('--ok',tc.ok);r.setProperty('--oks',tc.ok+'1f');}
-  if(tc.warn){r.setProperty('--w',tc.warn);r.setProperty('--ws',tc.warn+'1f');}
+  if(src.bg||src.bg){r.setProperty('--bg',src.bg);r.setProperty('--ci',src.bg);}
+  if(src.c1||src.card){r.setProperty('--c1',src.c1||src.card);r.setProperty('--c2',src.c2||src.card);}
+  if(src.bd)r.setProperty('--bd',src.bd);
+  if(src.t)r.setProperty('--t',src.t);
+  if(src.tm){r.setProperty('--tm',src.tm);r.setProperty('--td',src.tm);}
+  if(src.a||src.primary){const c=src.a||src.primary;r.setProperty('--a',c);r.setProperty('--as',c+'1f');}
+  if(src.tl||src.secondary){const c=src.tl||src.secondary;r.setProperty('--tl',c);r.setProperty('--tls',c+'1f');}
+  if(src.ok){r.setProperty('--ok',src.ok);r.setProperty('--oks',src.ok+'1f');}
+  if(src.w||src.warn){const c=src.w||src.warn;r.setProperty('--w',c);r.setProperty('--ws',c+'1f');}
+  if(src.er)r.setProperty('--er',src.er);
+  // Si hay colores manuales que sobreescriben
+  if(tc.primary&&!paleta){r.setProperty('--a',tc.primary);r.setProperty('--as',tc.primary+'1f');}
+  if(tc.secondary&&!paleta){r.setProperty('--tl',tc.secondary);r.setProperty('--tls',tc.secondary+'1f');}
+}
+
+async function applyPaleta(id){
+  const p=_getPaletas().find(x=>x.id===id);
+  if(!p)return;
+  const tc={paletaId:id,bg:p.bg,c1:p.c1,c2:p.c2,bd:p.bd,t:p.t,tm:p.tm,a:p.a,tl:p.tl,ok:p.ok,w:p.w,er:p.er};
+  localStorage.setItem('mediagenda_theme',JSON.stringify(tc));
+  if(DB_OK)await SB.patch('configuracion',{valor:JSON.stringify(tc)},"clave=eq.theme");
+  applyTheme();render();
 }
 
 async function saveThemeCfg(){
-  const tc={
-    primary:document.getElementById('tc_primary').value,
-    secondary:document.getElementById('tc_secondary').value,
-    bg:document.getElementById('tc_bg').value,
-    card:document.getElementById('tc_card').value,
-    ok:document.getElementById('tc_ok').value,
-    warn:document.getElementById('tc_warn').value,
-  };
+  const tc=getThemeCfg();
+  tc.primary=document.getElementById('tc_primary').value;
+  tc.secondary=document.getElementById('tc_secondary').value;
+  tc.bg=document.getElementById('tc_bg').value;
+  tc.card=document.getElementById('tc_card').value;
+  tc.c1=document.getElementById('tc_card').value;
+  tc.ok=document.getElementById('tc_ok').value;
+  tc.warn=document.getElementById('tc_warn').value;
+  tc.w=document.getElementById('tc_warn').value;
+  tc.a=tc.primary;tc.tl=tc.secondary;
+  delete tc.paletaId;
   localStorage.setItem('mediagenda_theme',JSON.stringify(tc));
   if(DB_OK)await SB.patch('configuracion',{valor:JSON.stringify(tc)},"clave=eq.theme");
-  applyTheme();render();alert('✅ Colores aplicados');
+  applyTheme();render();alert('✅ Colores manuales aplicados');
 }
 
 function resetTheme(){
   localStorage.removeItem('mediagenda_theme');
-  ['--a','--as','--tl','--tls','--bg','--ci','--c1','--c2','--ok','--oks','--w','--ws'].forEach(v=>document.documentElement.style.removeProperty(v));
+  ['--a','--as','--tl','--tls','--bg','--ci','--c1','--c2','--ok','--oks','--w','--ws','--bd','--t','--tm','--td','--er'].forEach(v=>document.documentElement.style.removeProperty(v));
   if(DB_OK)SB.patch('configuracion',{valor:'{}'},"clave=eq.theme");
-  render();alert('✅ Colores restaurados');
+  render();alert('✅ Colores restaurados al original');
 }
 
 // ═══ GOOGLE SHEET IMPORT ═══
