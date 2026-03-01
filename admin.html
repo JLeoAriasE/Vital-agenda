@@ -2339,11 +2339,11 @@ function calcFichaProgress(){
 function validateFichaRequired(){
   const d=FO.data;const a=d.a||{};
   const missing=[];
-  if(!a.ap1?.trim()) missing.push('Primer Apellido');
-  if(!a.ap2?.trim()) missing.push('Segundo Apellido');
-  if(!a.n1?.trim()) missing.push('Primer Nombre');
-  if(!a.n2?.trim()) missing.push('Segundo Nombre');
-  if(!a.sexo || a.sexo==='--') missing.push('Sexo');
+  if(!a.ap1 || a.ap1.length===0) missing.push('Primer Apellido');
+  if(!a.ap2 || a.ap2.length===0) missing.push('Segundo Apellido');
+  if(!a.n1 || a.n1.length===0) missing.push('Primer Nombre');
+  if(!a.n2 || a.n2.length===0) missing.push('Segundo Nombre');
+  if(!a.sexo || a.sexo==='' || a.sexo==='--') missing.push('Sexo');
   // Cédula y fecha nacimiento vienen del paciente
   const p=gP(FO.pid);
   if(p){
@@ -2388,14 +2388,19 @@ function showFichaError(missing){
     const id=fieldMap[m];
     if(id){const el=document.getElementById(id);if(el){el.style.border='2px solid red';el.style.background='#fff5f5';}}
   });
-  // Mostrar mensaje en pantalla
+  // Mostrar mensaje visual
   let box=document.getElementById('ficha_error_msg');
-  if(!box){box=document.createElement('div');box.id='ficha_error_msg';document.getElementById('ficha_sec_body')?.prepend(box);}
-  box.innerHTML=`<div style="background:#fed7d7;border:1px solid #fc8181;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
-    <span style="font-size:20px">⚠️</span>
-    <div><div style="font-weight:700;color:#c53030;font-size:13px;margin-bottom:4px">Faltan campos obligatorios</div>
-    <div style="font-size:12px;color:#9b2c2c">${missing.map(m=>'• '+m).join('<br>')}</div></div></div>`;
-  box.scrollIntoView({behavior:'smooth',block:'start'});
+  if(!box){box=document.createElement('div');box.id='ficha_error_msg';const parent=document.getElementById('ficha_sec_body');if(parent)parent.prepend(box);}
+  if(box){
+    box.innerHTML=`<div style="background:#fed7d7;border:2px solid #fc8181;border-radius:8px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
+      <span style="font-size:22px">⚠️</span>
+      <div><div style="font-weight:700;color:#c53030;font-size:14px;margin-bottom:6px">Faltan campos obligatorios</div>
+      <div style="font-size:12px;color:#9b2c2c;line-height:1.6">${missing.map(m=>'• '+m).join('<br>')}</div></div></div>`;
+    box.scrollIntoView({behavior:'smooth',block:'start'});
+  } else {
+    // Fallback si no encuentra el contenedor
+    alert('⚠️ FALTAN CAMPOS OBLIGATORIOS:\n\n'+missing.map(m=>'• '+m).join('\n')+'\n\nComplete todos los campos marcados con * para continuar.');
+  }
 }
 
 function saveFichaSection(){
