@@ -111,7 +111,7 @@ function getTodayCount(){
 }
 
 let step=1,assignedSlot='';
-let formData={nombre:'',cedula:'',ciudad:'',empresa:'',email:'',genero:'',telefono:''};
+let formData={nombre:'',ap1:'',ap2:'',n1:'',n2:'',cedula:'',ciudad:'',empresa:'',email:'',genero:'',telefono:''};
 
 function render(){
   const next=getNextSlot();
@@ -126,12 +126,6 @@ function render(){
       <p>📍 ${CFG.ADDR}</p>
     </div>
     <div class="today-bar">📅 <span>${fD(TDS)}</span> · 🕐 ${fNow()}</div>
-    <div class="counter">
-      <div class="cl">Pacientes registrados hoy</div><div class="cv">${count}</div>
-    </div>
-    <div class="counter">
-      <div class="cl">Turnos disponibles</div><div class="cv">${remaining > 0 ? remaining : '0'}</div>
-    </div>
     ${remaining<=0&&step===1?noSlots():step===1?rForm():step===2?rConfirm():rSuccess()}`;
 }
 
@@ -162,7 +156,14 @@ function rForm(){
       <div class="fg"><label>N° de Documento <span class="req">*</span></label><input class="fi" id="f_cedula" value="${formData.cedula}" placeholder="${formData.docTipo==='cedula'?'10 dígitos':'Número de pasaporte'}" maxlength="${formData.docTipo==='cedula'?10:20}" ${formData.docTipo==='cedula'?'inputmode="numeric" pattern="[0-9]*"':''} autocomplete="off" onblur="buscarPaciente(this.value)"></div>
     </div>
     <div id="paciente_found" style="display:none;background:var(--oks);border:1px solid var(--ok);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px"></div>
-    <div class="fg"><label>Nombres y Apellidos Completos <span class="req">*</span></label><input class="fi" id="f_nombre" value="${formData.nombre}" placeholder="Ej: María Isabel García López" autocomplete="name"></div>
+    <div class="fr">
+      <div class="fg"><label>Primer Apellido <span class="req">*</span></label><input class="fi" id="f_ap1" value="${formData.ap1||''}" placeholder="Ej: García" autocomplete="off"></div>
+      <div class="fg"><label>Segundo Apellido</label><input class="fi" id="f_ap2" value="${formData.ap2||''}" placeholder="Ej: López" autocomplete="off"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Primer Nombre <span class="req">*</span></label><input class="fi" id="f_n1" value="${formData.n1||''}" placeholder="Ej: María" autocomplete="off"></div>
+      <div class="fg"><label>Segundo Nombre</label><input class="fi" id="f_n2" value="${formData.n2||''}" placeholder="Ej: Isabel" autocomplete="off"></div>
+    </div>
     <div class="fr">
       <div class="fg"><label>Género <span class="req">*</span></label>
         <select class="fi" id="f_genero">
@@ -191,13 +192,19 @@ async function buscarPaciente(doc){
     const p=res[0];
     box.style.display='block';
     box.innerHTML=`✅ <strong>Paciente encontrado:</strong> ${p.nombre} · ${p.empresa||''} · ${p.ciudad||''}<br><span style="font-size:11px;color:var(--tm)">Los datos se autocompletaron. Puede modificarlos si es necesario.</span>`;
-    document.getElementById('f_nombre').value=p.nombre||'';
+    // Separar nombre en partes
+    const partes=(p.nombre||'').split(' ').filter(Boolean);
+    const ap1=partes[0]||'';const ap2=partes[1]||'';const n1=partes[2]||'';const n2=partes.slice(3).join(' ')||'';
+    document.getElementById('f_ap1').value=ap1;
+    document.getElementById('f_ap2').value=ap2;
+    document.getElementById('f_n1').value=n1;
+    document.getElementById('f_n2').value=n2;
     document.getElementById('f_genero').value=p.genero||'';
     document.getElementById('f_telefono').value=p.telefono||'';
     document.getElementById('f_ciudad').value=p.ciudad||'';
     document.getElementById('f_empresa').value=p.empresa||'';
     document.getElementById('f_email').value=p.email||'';
-    formData.nombre=p.nombre||'';formData.genero=p.genero||'';formData.telefono=p.telefono||'';
+    formData.nombre=p.nombre||'';formData.ap1=ap1;formData.ap2=ap2;formData.n1=n1;formData.n2=n2;formData.genero=p.genero||'';formData.telefono=p.telefono||'';
     formData.ciudad=p.ciudad||'';formData.empresa=p.empresa||'';formData.email=p.email||'';
   }else{
     box.style.display='none';
@@ -205,7 +212,11 @@ async function buscarPaciente(doc){
 }
 
 function validate(){
-  formData.nombre=document.getElementById('f_nombre').value.trim();
+  formData.ap1=(document.getElementById('f_ap1')?.value||'').trim();
+  formData.ap2=(document.getElementById('f_ap2')?.value||'').trim();
+  formData.n1=(document.getElementById('f_n1')?.value||'').trim();
+  formData.n2=(document.getElementById('f_n2')?.value||'').trim();
+  formData.nombre=[formData.ap1,formData.ap2,formData.n1,formData.n2].filter(Boolean).join(' ');
   formData.cedula=document.getElementById('f_cedula').value.trim();
   formData.genero=document.getElementById('f_genero').value;
   formData.telefono=document.getElementById('f_telefono').value.trim();
@@ -213,7 +224,8 @@ function validate(){
   formData.empresa=document.getElementById('f_empresa').value.trim();
   formData.email=document.getElementById('f_email').value.trim();
 
-  if(!formData.nombre){alert('Ingrese el nombre completo');return;}
+  if(!formData.ap1){alert('Ingrese el Primer Apellido');return;}
+  if(!formData.n1){alert('Ingrese el Primer Nombre');return;}
   if(formData.docTipo==='cedula'){
     if(!formData.cedula||formData.cedula.length!==10||!/^\d{10}$/.test(formData.cedula)){alert('La cédula debe tener exactamente 10 dígitos numéricos');return;}
   }else{
