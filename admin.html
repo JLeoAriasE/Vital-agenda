@@ -185,6 +185,10 @@ function fT(t){if(!t)return'';const[h,m]=t.split(':');const hr=+h;return`${hr>12
 function ini(n){return n?n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase():'?';}
 function gid(){return crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).substr(2,9);}
 function gP(id){return S.pts.find(p=>p.id===id);}
+function getNombres(p){if(!p||!p.nombre)return '';const parts=p.nombre.split('||');return parts[0]||p.nombre;}
+function getApellidos(p){if(!p||!p.nombre)return '';const parts=p.nombre.split('||');return parts[1]||'';}
+function getFullName(p){if(!p||!p.nombre)return '';const n=getNombres(p),a=getApellidos(p);return a?(a+' '+n).trim():p.nombre;}
+function getDisplayName(p){return getFullName(p)||p?.nombre||'';}
 function gPA(id){return S.apt.filter(a=>a.pid===id).sort((a,b)=>(b.fecha+b.hora).localeCompare(a.fecha+a.hora));}
 function gAO(aid){return S.ord.filter(o=>o.aid===aid);}
 function gTS(){const s=[];for(let h=7;h<=18;h++){s.push(`${String(h).padStart(2,'0')}:00`);s.push(`${String(h).padStart(2,'0')}:30`);}return s;}
@@ -480,9 +484,11 @@ function closeModal(){const m=document.getElementById('_modal');if(m)m.remove();
 // ═══ PATIENT MODAL ═══
 function pmMod(p){
   const d=p||{};
+  const nombres=d.nombre?d.nombre.split('||')[0]||d.nombre:'';
+  const apellidos=d.nombre?d.nombre.split('||')[1]||'':'';
   openModal(`<div class="mhd"><h3>${p?'Editar':'Nuevo'} Paciente</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
   <div class="mbd">
-    <div class="fg"><label>Nombre *</label><input class="fi" id="mn" value="${d.nombre||''}"></div>
+    <div class="fr"><div class="fg"><label>Nombres *</label><input class="fi" id="mn_nombres" value="${nombres}" placeholder="Ej: Jorge Leonardo" style="text-transform:uppercase"></div><div class="fg"><label>Apellidos *</label><input class="fi" id="mn_apellidos" value="${apellidos}" placeholder="Ej: Arias Espinoza" style="text-transform:uppercase"></div></div>
     <div class="fr"><div class="fg"><label>Cédula</label><input class="fi" id="mc" value="${d.cedula||''}"></div><div class="fg"><label>Género</label><select class="fi" id="mg"><option value="">—</option><option ${d.genero==='Masculino'?'selected':''}>Masculino</option><option ${d.genero==='Femenino'?'selected':''}>Femenino</option></select></div></div>
     <div class="fr"><div class="fg"><label>Teléfono</label><input class="fi" id="mt" value="${d.telefono||''}"></div><div class="fg"><label>Email</label><input class="fi" id="me" value="${d.email||''}"></div></div>
     <div class="fr"><div class="fg"><label>Dirección</label><input class="fi" id="md" value="${d.direccion||''}"></div><div class="fg"><label>Ciudad</label><input class="fi" id="mci" value="${d.ciudad||''}"></div></div>
@@ -491,8 +497,10 @@ function pmMod(p){
   </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svP('${d.id||''}')">${p?'Guardar':'Registrar'}</button></div>`);
 }
 function svP(eid){
-  const d={nombre:document.getElementById('mn').value,cedula:document.getElementById('mc').value,genero:document.getElementById('mg').value,telefono:document.getElementById('mt').value,email:document.getElementById('me').value,direccion:document.getElementById('md').value,ciudad:document.getElementById('mci').value,empresa:document.getElementById('mem').value,cargo:document.getElementById('mcg').value,fecha_nacimiento:document.getElementById('mfn').value};
-  if(!d.nombre||!d.empresa){alert('Nombre y Empresa obligatorios');return;}
+  const nombres=(document.getElementById('mn_nombres').value||'').trim().toUpperCase();
+  const apellidos=(document.getElementById('mn_apellidos').value||'').trim().toUpperCase();
+  const d={nombre:nombres+'||'+apellidos,cedula:document.getElementById('mc').value,genero:document.getElementById('mg').value,telefono:document.getElementById('mt').value,email:document.getElementById('me').value,direccion:document.getElementById('md').value,ciudad:document.getElementById('mci').value,empresa:document.getElementById('mem').value,cargo:document.getElementById('mcg').value,fecha_nacimiento:document.getElementById('mfn').value};
+  if(!nombres||!apellidos||!d.empresa){alert('Nombres, Apellidos y Empresa obligatorios');return;}
   closeModal();if(eid){d.id=eid;updP(d);}else addP(d);
 }
 
@@ -2284,7 +2292,7 @@ function rFichaOcup(){
           <span style="background:var(--a);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${FO.sec}</span>
           <h3 style="margin:0;font-size:15px">${secs.find(s=>s.k===FO.sec)?.i||''} ${secs.find(s=>s.k===FO.sec)?.t||''}</h3>
         </div>
-        ${fichaSecContent(FO.sec)}
+        <div id="ficha_sec_body">${fichaSecContent(FO.sec)}</div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:10px">
         <button class="btn bg" onclick="fichaNav(-1)" ${FO.sec==='A'?'disabled':''}>← Anterior</button>
@@ -2537,7 +2545,7 @@ function loadRiesgoPlantilla(cargo){
 // ── SECCIÓN H: Actividad Laboral ──
 function fichaSecH(h){
   return (h.empleos||[]).map((emp,i)=>`<div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:8px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:600;font-size:12px">● ${emp.estado==='ACTUAL'?'EMPLEO ACTUAL':'EMPLEO ANTERIOR'}</span>${i>0?`<button class="btn bsm bd" onclick="FO.data.h.empleos.splice(${i},1);render()" style="font-size:10px">✕</button>`:''}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-weight:600;font-size:12px">● ${emp.estado==='ACTUAL'?'EMPLEO ACTUAL':'EMPLEO ANTERIOR'}</span>${i>0?`<button class="btn bsm bd" onclick="FO.data.h.empleos.splice(${i},1);rerenderH()" style="font-size:10px">✕</button>`:''}</div>
   <div class="fr"><div class="fg" style="flex:2"><label>Centro de trabajo</label><input class="fi" value="${emp.centro||''}" onchange="FO.data.h.empleos[${i}].centro=this.value" placeholder="Nombre de la empresa" style="font-size:11px"></div>
   <div class="fg" style="flex:2"><label>Actividades / Cargo</label><input class="fi" value="${emp.cargo||''}" onchange="FO.data.h.empleos[${i}].cargo=this.value" placeholder="Descripción breve del cargo" style="font-size:11px"></div>
   <div class="fg"><label>Estado</label><select class="fi" onchange="FO.data.h.empleos[${i}].estado=this.value" style="font-size:11px"><option ${emp.estado==='ACTUAL'?'selected':''}>ACTUAL</option><option ${emp.estado==='ANTERIOR'?'selected':''}>ANTERIOR</option></select></div>
@@ -2553,8 +2561,8 @@ function fichaSecH(h){
       <span style="font-weight:600;font-size:11px;min-width:140px">${tipo}</span>
       ${checked?`<input class="fi" value="${inc.descripcion||''}" onchange="FO.data.h.empleos[${i}].inc_data['${tk}'].descripcion=this.value" placeholder="Describa el incidente o diagnóstico..." style="font-size:11px;flex:1">
       <span style="font-size:10px;color:var(--tm);white-space:nowrap">¿Calificado IESS?</span>
-      <button class="btn bsm ${inc.iess==='SI'?'bp':'bg'}" onclick="FO.data.h.empleos[${i}].inc_data['${tk}'].iess='SI';render()" style="font-size:10px;min-width:30px">SÍ</button>
-      <button class="btn bsm ${inc.iess==='NO'||!inc.iess?'bp':'bg'}" onclick="FO.data.h.empleos[${i}].inc_data['${tk}'].iess='NO';render()" style="font-size:10px;min-width:30px">NO</button>`:'<span style="font-size:10px;color:var(--tm)">Describa el incidente o diagnóstico...</span>'}
+      <button class="btn bsm ${inc.iess==='SI'?'bp':'bg'}" onclick="FO.data.h.empleos[${i}].inc_data['${tk}'].iess='SI';rerenderH()" style="font-size:10px;min-width:30px">SÍ</button>
+      <button class="btn bsm ${inc.iess==='NO'||!inc.iess?'bp':'bg'}" onclick="FO.data.h.empleos[${i}].inc_data['${tk}'].iess='NO';rerenderH()" style="font-size:10px;min-width:30px">NO</button>`:'<span style="font-size:10px;color:var(--tm)">Describa el incidente o diagnóstico...</span>'}
     </div>
     ${checked&&inc.iess==='SI'?`<div style="display:flex;gap:8px;margin-top:6px;padding-left:24px">
       <div class="fg"><label style="font-size:9px">Fecha calificación</label><input class="fi" type="date" value="${inc.fecha_calif||''}" onchange="FO.data.h.empleos[${i}].inc_data['${tk}'].fecha_calif=this.value" style="font-size:11px"></div>
@@ -2562,13 +2570,17 @@ function fichaSecH(h){
     </div>`:''}
     </div>`;
   }).join('')}
-  </div>`).join('')+`<button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="FO.data.h.empleos.push({centro:'',cargo:'',estado:'ANTERIOR',tiempo:'',inc_data:{}});render()">+ Registrar otra experiencia laboral</button>`;
+  </div>`).join('')+`<button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="FO.data.h.empleos.push({centro:'',cargo:'',estado:'ANTERIOR',tiempo:'',inc_data:{}});rerenderH()">+ Registrar otra experiencia laboral</button>`;
 }
 function toggleIncidente(empIdx,tk,checked){
   if(!FO.data.h.empleos[empIdx].inc_data)FO.data.h.empleos[empIdx].inc_data={};
   if(checked){FO.data.h.empleos[empIdx].inc_data[tk]={marcado:true,descripcion:'',iess:'NO',fecha_calif:'',obs_calif:''};}
   else{delete FO.data.h.empleos[empIdx].inc_data[tk];}
-  requestAnimationFrame(()=>render());
+  rerenderH();
+}
+function rerenderH(){
+  const el=document.getElementById('ficha_sec_body');
+  if(el)el.innerHTML=fichaSecH(FO.data.h);
 }
 
 // ── SECCIÓN I: Actividades Extra ──
