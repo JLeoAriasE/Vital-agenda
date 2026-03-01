@@ -2218,7 +2218,7 @@ function preloadFichaData(p){
   FO.data={
     a:{empresa:emp.nombre||p.empresa||'',ruc:emp.ruc||'',ciiu:emp.ciiu||'',centro:emp.nombre||p.empresa||'',nform:p.cedula||'',narch:p.cedula||'',ap1,ap2,n1,n2,sexo:p.genero==='masculino'?'M':p.genero==='femenino'?'F':'',cargo:cargo.codigo?`(${cargo.codigo}) ${p.cargo||''}`:(p.cargo||''),grupo_sang:'',lateralidad:'Diestro',atencion_prioritaria:[]},
     b:{puesto_ciuo:p.cargo||'',fecha_atencion:TD,tipo_eval:'INGRESO',fecha_ingreso:'',observacion:''},
-    c:{ant_clinicos:'APP: Niega\nAQx: Niega\nAlergias: Niega\nAPsi: Niega',ant_familiares:'HTA: Niega\nDM: Niega\nCáncer: Niega\nCardiopatías: Niega\nOtros: Niega',aut_transfusion:'No',trat_hormonal:'No',reprod_exam:'',reprod_tiempo:'',reprod_planif:'No',sustancias:[{nombre:'Tabaco',estado:'Nunca',consumo:'',abstinencia:''},{nombre:'Alcohol',estado:'Nunca',consumo:'',abstinencia:''}],actividad_fisica:[],medicacion:'Ninguna'},
+    c:{ant_clinicos:'APP: Niega\nAQx: Niega\nAlergias: Niega\nAPsi: Niega',ant_familiares:'Niega',aut_transfusion:'No',trat_hormonal:'No',trat_hormonal_detalle:'',reprod_exam:'',reprod_tiempo:'',reprod_planif:'No',sustancias:[{nombre:'Tabaco',estado:'Nunca',consumo:'',abstinencia:''},{nombre:'Alcohol',estado:'Nunca',consumo:'',abstinencia:''}],actividad_fisica:[],medicacion:'Ninguna'},
     d:{descripcion:''},
     e:{temp:'36.5',pa_s:'120',pa_d:'80',fc:'70',fr:'16',sat:'98',peso:'',talla:'',imc:'',clasif_imc:'',perim_abd:''},
     f:{hallazgos:{},observaciones:''},
@@ -2499,7 +2499,7 @@ function fichaSecG(g){
     {k:'ergonomicos',t:'ERGONÓMICO',items:['Manejo manual de cargas','Movimientos repetitivos','Posturas forzadas','Trabajos con PVD','Diseño inadecuado del puesto']},
     {k:'psicosociales',t:'PSICOSOCIAL',items:['Monotonía del trabajo','Sobrecarga laboral','Minuciosidad de la tarea','Alta responsabilidad','Autonomía en la toma de decisiones','Supervisión y estilos de dirección deficiente','Conflicto de rol','Falta de claridad en las funciones','Incorrecta distribución del trabajo','Turnos rotativos','Relaciones interpersonales','Inestabilidad laboral','Amenaza delincuencial']}
   ];
-  const hrs=[1,2,3,4,5,6,7,8];
+  const hrs=[1,2,3,4,5,6,7];
   if(!g.riesgos)g.riesgos={};
 
   function renderCat(cat){
@@ -2568,7 +2568,7 @@ function toggleIncidente(empIdx,tk,checked){
   if(!FO.data.h.empleos[empIdx].inc_data)FO.data.h.empleos[empIdx].inc_data={};
   if(checked){FO.data.h.empleos[empIdx].inc_data[tk]={marcado:true,descripcion:'',iess:'NO',fecha_calif:'',obs_calif:''};}
   else{delete FO.data.h.empleos[empIdx].inc_data[tk];}
-  render();
+  requestAnimationFrame(()=>render());
 }
 
 // ── SECCIÓN I: Actividades Extra ──
@@ -2688,8 +2688,16 @@ function addRecCustom(){const v=document.getElementById('fo_rec_nueva')?.value?.
 function autoFillCie(i,from){
   const dx=FO.data.k.diagnosticos[i];if(!dx)return;
   const cie=S.cie10||[];
-  if(from==='cod'){const found=cie.find(c=>c.codigo===dx.codigo);if(found){dx.descripcion=found.descripcion;render();}}
-  else{const found=cie.find(c=>c.descripcion===dx.descripcion);if(found){dx.codigo=found.codigo;render();}}
+  if(from==='cod'){
+    const cod=(dx.codigo||'').toUpperCase().trim();
+    dx.codigo=cod;
+    const found=cie.find(c=>c.codigo.toUpperCase()===cod);
+    if(found){dx.descripcion=found.descripcion;render();}
+  }else{
+    const desc=(dx.descripcion||'').toLowerCase().trim();
+    const found=cie.find(c=>c.descripcion.toLowerCase()===desc);
+    if(found){dx.codigo=found.codigo;render();}
+  }
 }
 
 // Quitar acentos para búsqueda
