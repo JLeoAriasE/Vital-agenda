@@ -2982,15 +2982,36 @@ function selectCIE(idx,codigo,descripcion){
 
 // ── SECCIÓN N: Datos Profesional ──
 function fichaSecN(n){
-  return`<div class="fr"><div class="fg" style="flex:2"><label>Nombre del profesional</label><input class="fi" id="fo_medico" value="${n.medico||''}" placeholder="Dr. Juan Pérez García" autocomplete="off"></div>
-  <div class="fg"><label>Código médico</label><input class="fi" id="fo_codmed" value="${n.codigo||''}" placeholder="MSP-12345" autocomplete="off"></div></div>
-  <p style="font-size:11px;color:var(--tm);margin:10px 0;background:var(--bg);padding:8px;border-radius:6px">ℹ️ La firma digital se agregará en la versión de producción.</p>
+  // Cargar lista de médicos guardados
+  const medicos=JSON.parse(localStorage.getItem('vw_medicos_list')||'[]');
+  const selMed=medicos.length?`<div class="fg" style="margin-bottom:10px">
+    <label style="font-weight:600">Seleccionar profesional guardado</label>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+    ${medicos.map((m,i)=>`<button class="btn ${n.medico===m.nombre&&n.codigo===m.codigo?'bp':'bg'}" onclick="FO.data.n.medico='${m.nombre.replace(/'/g,"\\'")}';FO.data.n.codigo='${m.codigo}';render()" style="font-size:11px">👨‍⚕️ ${m.nombre} <span style="opacity:.6;font-size:10px">(${m.codigo})</span></button>`).join('')}
+    </div></div>`:'';
+
+  return`${selMed}
+  <div class="fr"><div class="fg" style="flex:2"><label>Nombre del profesional</label><input class="fi" id="fo_medico" value="${n.medico||''}" placeholder="Dr. Juan Pérez García" autocomplete="off"></div>
+  <div class="fg"><label>Código médico</label><input class="fi" id="fo_codmed" value="${n.codigo||''}" placeholder="MSP-12345" autocomplete="off"></div>
+  <div class="fg" style="align-self:flex-end"><button class="btn bsm" onclick="guardarMedico()" style="font-size:11px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0;white-space:nowrap">💾 Guardar médico</button></div></div>
+  ${medicos.length?`<div style="margin-top:6px"><button class="btn bsm" onclick="if(confirm('¿Eliminar todos los médicos guardados?')){localStorage.removeItem('vw_medicos_list');render()}" style="font-size:10px;color:#e53e3e;background:none;border:none;cursor:pointer">🗑 Limpiar lista de médicos</button></div>`:''}
+  <p style="font-size:11px;color:var(--tm);margin:10px 0;background:var(--bg);padding:8px;border-radius:6px">ℹ️ Haz clic en "💾 Guardar médico" para agregar un profesional a la lista. El seleccionado se mantiene hasta que elijas otro.</p>
   <div style="display:flex;gap:8px;margin-top:16px">
     <button class="btn" style="background:#2b6cb0;color:#fff" onclick="saveFichaSection();saveMedCfgFromCert2();printCertOficial()">📄 Certificado</button>
     <button class="btn" style="background:#2b6cb0;color:#fff" onclick="saveFichaSection();printFichaOficial()">📋 Formulario</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="saveFichaSection();alert('🚧 Consentimiento en desarrollo')">✅ Consentimiento</button>
     <button class="btn" style="background:#718096;color:#fff" onclick="saveFichaSection();alert('🚧 Confidencialidad en desarrollo')">🔒 Confidencialidad</button>
   </div>`;
+}
+
+function guardarMedico(){
+  const nombre=gv('fo_medico')?.trim(),codigo=gv('fo_codmed')?.trim();
+  if(!nombre||!codigo){alert('Ingrese nombre y código del médico');return;}
+  const list=JSON.parse(localStorage.getItem('vw_medicos_list')||'[]');
+  if(list.find(m=>m.nombre===nombre&&m.codigo===codigo)){alert('Este médico ya está guardado');return;}
+  list.push({nombre,codigo});
+  localStorage.setItem('vw_medicos_list',JSON.stringify(list));
+  render();
 }
 function saveMedCfgFromCert2(){const nombre=gv('fo_medico'),codigo=gv('fo_codmed');if(nombre||codigo)localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));}
 
