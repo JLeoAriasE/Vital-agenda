@@ -2388,7 +2388,7 @@ function fichaSecA(a){
   <div class="fg"><label>Primer Nombre</label><input class="fi" id="fo_n1" value="${a.n1||''}"></div>
   <div class="fg"><label>Segundo Nombre</label><input class="fi" id="fo_n2" value="${a.n2||''}"></div></div>
   <div class="fr"><div class="fg"><label>Sexo</label><select class="fi" id="fo_sexo"><option value="M" ${a.sexo==='M'?'selected':''}>M</option><option value="F" ${a.sexo==='F'?'selected':''}>F</option></select></div>
-  <div class="fg" style="flex:2"><label>Puesto de Trabajo (CIUO)</label><input class="fi" id="fo_cargo" value="${a.cargo||''}" oninput="searchCIUO('fo_cargo','ciuo_res_a')" placeholder="Escriba para buscar..." autocomplete="off"><div id="ciuo_res_a" style="display:none;position:absolute;z-index:99;background:var(--crd);border:1px solid var(--bd);border-radius:6px;max-height:180px;overflow-y:auto;width:100%;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div></div></div>
+  <div class="fg" style="flex:2;position:relative"><label>Puesto de Trabajo (CIUO)</label><input class="fi" id="fo_cargo" value="${a.cargo||''}" oninput="searchCIUO('fo_cargo','ciuo_res_a')" placeholder="Escriba para buscar..." autocomplete="off"><div id="ciuo_res_a" style="display:none;position:absolute;z-index:999;background:var(--crd);border:1px solid var(--bd);border-radius:6px;max-height:180px;overflow-y:auto;width:100%;box-shadow:0 4px 12px rgba(0,0,0,.2);left:0;top:100%"></div></div></div>
   <div class="fr"><div class="fg"><label>Grupo Sanguíneo</label><select class="fi" id="fo_gsang"><option value="">--</option>${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g=>`<option ${a.grupo_sang===g?'selected':''}>${g}</option>`).join('')}</select></div>
   <div class="fg"><label>Lateralidad</label><div style="display:flex;gap:6px;margin-top:4px">${['Diestro','Zurdo','Ambidiestro'].map(l=>`<button class="btn bsm ${a.lateralidad===l?'bp':'bg'}" onclick="FO.data.a.lateralidad='${l}';render()" style="font-size:11px">${l}</button>`).join('')}</div></div></div>
   <div class="fg" style="margin-top:8px"><label>Atención prioritaria</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${['Persona con discapacidad','Enfermedad catastrófica','Adulto mayor'].map(t=>`<button class="btn bsm ${(a.atencion_prioritaria||[]).includes(t)?'bp':'bg'}" onclick="toggleAP('${t}')" style="font-size:11px">${t}</button>`).join('')}</div></div>`;
@@ -2398,7 +2398,7 @@ function toggleAP(t){if(!FO.data.a.atencion_prioritaria)FO.data.a.atencion_prior
 
 // ── SECCIÓN B: Motivo Consulta ──
 function fichaSecB(b){
-  return`<div class="fr"><div class="fg" style="flex:2"><label>Puesto de trabajo (CIUO)</label><input class="fi" id="fo_puesto" value="${b.puesto_ciuo||''}" oninput="searchCIUO('fo_puesto','ciuo_res_b')" placeholder="Escriba para buscar..." autocomplete="off"><div id="ciuo_res_b" style="display:none;position:absolute;z-index:99;background:var(--crd);border:1px solid var(--bd);border-radius:6px;max-height:180px;overflow-y:auto;width:100%;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div></div>
+  return`<div class="fr"><div class="fg" style="flex:2;position:relative"><label>Puesto de trabajo (CIUO)</label><input class="fi" id="fo_puesto" value="${b.puesto_ciuo||''}" oninput="searchCIUO('fo_puesto','ciuo_res_b')" placeholder="Escriba para buscar..." autocomplete="off"><div id="ciuo_res_b" style="display:none;position:absolute;z-index:999;background:var(--crd);border:1px solid var(--bd);border-radius:6px;max-height:180px;overflow-y:auto;width:100%;box-shadow:0 4px 12px rgba(0,0,0,.2);left:0;top:100%"></div></div>
   <div class="fg"><label>Fecha de atención</label><input class="fi" type="date" id="fo_fecha_at" value="${b.fecha_atencion||TD}"></div></div>
   <div class="fg" style="margin:10px 0"><label>Tipo de evaluación</label><div style="display:flex;gap:8px;margin-top:6px">${['INGRESO','PERIÓDICO','REINTEGRO','RETIRO'].map(t=>`<button class="btn ${b.tipo_eval===t?'bp':'bg'}" onclick="FO.data.b.tipo_eval='${t}';render()" style="flex:1;font-size:12px">${t.charAt(0)+t.slice(1).toLowerCase()}</button>`).join('')}</div></div>
   <div class="fg"><label>Fecha de ingreso</label><input class="fi" type="date" id="fo_fingreso" value="${b.fecha_ingreso||''}"></div>
@@ -2521,8 +2521,8 @@ function fichaSecJ(j){
 function fichaSecK(k){
   return`<table style="width:100%;font-size:11px"><thead><tr><th style="width:120px">CÓDIGO CIE-10</th><th>DESCRIPCIÓN DEL DIAGNÓSTICO</th><th style="width:100px">TIPO</th><th></th></tr></thead><tbody>
   ${(k.diagnosticos||[]).map((dx,i)=>`<tr>
-    <td><div style="position:relative"><input class="fi" value="${dx.codigo||''}" onchange="FO.data.k.diagnosticos[${i}].codigo=this.value;autoFillCie(${i},'cod')" oninput="searchCIE10(this,'cie_res_c${i}')" placeholder="Código..." style="font-size:11px" autocomplete="off"><div id="cie_res_c${i}" style="display:none;position:absolute;z-index:99;background:var(--crd);border:1px solid var(--bd);border-radius:6px;max-height:150px;overflow-y:auto;width:280px;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div></div></td>
-    <td><div style="position:relative"><input class="fi" value="${dx.descripcion||''}" onchange="FO.data.k.diagnosticos[${i}].descripcion=this.value;autoFillCie(${i},'desc')" oninput="searchCIE10Desc(this,'cie_res_d${i}')" placeholder="Descripción..." style="font-size:11px" autocomplete="off"><div id="cie_res_d${i}" style="display:none;position:absolute;z-index:99;background:var(--crd);border:1px solid var(--bd);border-radius:6px;max-height:150px;overflow-y:auto;width:350px;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div></div></td>
+    <td><div style="position:relative"><input class="fi" value="${dx.codigo||''}" onchange="FO.data.k.diagnosticos[${i}].codigo=this.value;autoFillCie(${i},'cod')" oninput="searchCIE10(this,'cie_res_c${i}')" placeholder="Código..." style="font-size:11px" autocomplete="off"><div id="cie_res_c${i}" style="display:none;position:absolute;z-index:999;background:var(--crd);border:1px solid var(--bd);border-radius:6px;max-height:150px;overflow-y:auto;width:280px;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div></div></td>
+    <td><div style="position:relative"><input class="fi" value="${dx.descripcion||''}" onchange="FO.data.k.diagnosticos[${i}].descripcion=this.value;autoFillCie(${i},'desc')" oninput="searchCIE10Desc(this,'cie_res_d${i}')" placeholder="Descripción..." style="font-size:11px" autocomplete="off"><div id="cie_res_d${i}" style="display:none;position:absolute;z-index:999;background:var(--crd);border:1px solid var(--bd);border-radius:6px;max-height:150px;overflow-y:auto;width:350px;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div></div></td>
     <td><select class="fi" onchange="FO.data.k.diagnosticos[${i}].tipo=this.value" style="font-size:11px"><option value="">-</option><option ${dx.tipo==='PRE'?'selected':''}>PRE</option><option ${dx.tipo==='DEF'?'selected':''}>DEF</option></select></td>
     <td><button class="btn bsm bd" onclick="FO.data.k.diagnosticos.splice(${i},1);render()" style="font-size:10px">✕</button></td>
   </tr>`).join('')}
@@ -2591,12 +2591,15 @@ function autoFillCie(i,from){
   else{const found=cie.find(c=>c.descripcion===dx.descripcion);if(found){dx.codigo=found.codigo;render();}}
 }
 
+// Quitar acentos para búsqueda
+function noAc(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+
 // Búsqueda dinámica CIUO
 function searchCIUO(inputId,resId){
-  const q=(document.getElementById(inputId)?.value||'').toLowerCase();
+  const q=noAc(document.getElementById(inputId)?.value||'');
   const box=document.getElementById(resId);if(!box)return;
   if(q.length<2){box.style.display='none';return;}
-  const matches=(S.cargos_ciuo||[]).filter(c=>(c.codigo+' '+c.nombre).toLowerCase().includes(q)).slice(0,15);
+  const matches=(S.cargos_ciuo||[]).filter(c=>noAc(c.codigo+' '+c.nombre).includes(q)).slice(0,15);
   if(!matches.length){box.style.display='none';return;}
   box.innerHTML=matches.map(c=>`<div style="padding:6px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--bd)" onmousedown="document.getElementById('${inputId}').value='(${c.codigo}) ${c.nombre}';document.getElementById('${resId}').style.display='none'"><span style="color:var(--a);font-weight:600">${c.codigo}</span> ${c.nombre}</div>`).join('');
   box.style.display='block';
@@ -2605,10 +2608,10 @@ function searchCIUO(inputId,resId){
 
 // Búsqueda dinámica CIE-10 por código
 function searchCIE10(input,resId){
-  const q=(input.value||'').toLowerCase();
+  const q=noAc(input.value||'');
   const box=document.getElementById(resId);if(!box)return;
   if(q.length<1){box.style.display='none';return;}
-  const matches=(S.cie10||[]).filter(c=>(c.codigo).toLowerCase().includes(q)).slice(0,12);
+  const matches=(S.cie10||[]).filter(c=>noAc(c.codigo).includes(q)).slice(0,12);
   if(!matches.length){box.style.display='none';return;}
   const idx=resId.replace(/\D/g,'');
   box.innerHTML=matches.map(c=>`<div style="padding:5px 8px;cursor:pointer;font-size:10px;border-bottom:1px solid var(--bd)" onmousedown="FO.data.k.diagnosticos[${idx}].codigo='${c.codigo}';FO.data.k.diagnosticos[${idx}].descripcion='${c.descripcion.replace(/'/g,"\\'")}';render()"><span style="color:var(--a);font-weight:600">${c.codigo}</span> ${c.descripcion}</div>`).join('');
@@ -2618,10 +2621,10 @@ function searchCIE10(input,resId){
 
 // Búsqueda dinámica CIE-10 por descripción
 function searchCIE10Desc(input,resId){
-  const q=(input.value||'').toLowerCase();
+  const q=noAc(input.value||'');
   const box=document.getElementById(resId);if(!box)return;
   if(q.length<2){box.style.display='none';return;}
-  const matches=(S.cie10||[]).filter(c=>(c.descripcion).toLowerCase().includes(q)).slice(0,12);
+  const matches=(S.cie10||[]).filter(c=>noAc(c.descripcion).includes(q)).slice(0,12);
   if(!matches.length){box.style.display='none';return;}
   const idx=resId.replace(/\D/g,'');
   box.innerHTML=matches.map(c=>`<div style="padding:5px 8px;cursor:pointer;font-size:10px;border-bottom:1px solid var(--bd)" onmousedown="FO.data.k.diagnosticos[${idx}].codigo='${c.codigo}';FO.data.k.diagnosticos[${idx}].descripcion='${c.descripcion.replace(/'/g,"\\'")}';render()"><span style="color:var(--a);font-weight:600">${c.codigo}</span> ${c.descripcion}</div>`).join('');
