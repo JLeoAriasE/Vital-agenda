@@ -148,7 +148,7 @@ function rForm(){
     <div class="info-box">Complete sus datos para asignarle un turno. Su próximo turno sería: <strong>${next?fT(next):'—'}</strong></div>
     <div class="fr">
       <div class="fg"><label>Tipo de Documento <span class="req">*</span></label>
-        <select class="fi" id="f_docTipo" onchange="formData.docTipo=this.value;document.getElementById('f_cedula').placeholder=this.value==='cedula'?'10 dígitos':'Número de pasaporte';document.getElementById('f_cedula').maxLength=this.value==='cedula'?10:20">
+        <select class="fi" id="f_docTipo" autocomplete="off" onchange="formData.docTipo=this.value;document.getElementById('f_cedula').placeholder=this.value==='cedula'?'10 dígitos':'Número de pasaporte';document.getElementById('f_cedula').maxLength=this.value==='cedula'?10:20">
           <option value="cedula" ${formData.docTipo==='cedula'?'selected':''}>🪪 Cédula</option>
           <option value="pasaporte" ${formData.docTipo==='pasaporte'?'selected':''}>📘 Pasaporte</option>
         </select>
@@ -157,28 +157,28 @@ function rForm(){
     </div>
     <div id="paciente_found" style="display:none;background:var(--oks);border:1px solid var(--ok);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px"></div>
     <div class="fr">
-      <div class="fg"><label>Primer Apellido <span class="req">*</span></label><input class="fi" id="f_ap1" value="${formData.ap1||''}" placeholder="Ej: García" autocomplete="off"></div>
-      <div class="fg"><label>Segundo Apellido</label><input class="fi" id="f_ap2" value="${formData.ap2||''}" placeholder="Ej: López" autocomplete="off"></div>
+      <div class="fg"><label>Primer Apellido <span class="req">*</span></label><input class="fi" id="f_ap1" value="${formData.ap1||''}" placeholder="Ej: García" autocomplete="off" oninput="this.value=this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g,'')"></div>
+      <div class="fg"><label>Segundo Apellido <span class="req">*</span></label><input class="fi" id="f_ap2" value="${formData.ap2||''}" placeholder="Ej: López" autocomplete="off" oninput="this.value=this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g,'')"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Primer Nombre <span class="req">*</span></label><input class="fi" id="f_n1" value="${formData.n1||''}" placeholder="Ej: María" autocomplete="off"></div>
-      <div class="fg"><label>Segundo Nombre</label><input class="fi" id="f_n2" value="${formData.n2||''}" placeholder="Ej: Isabel" autocomplete="off"></div>
+      <div class="fg"><label>Primer Nombre <span class="req">*</span></label><input class="fi" id="f_n1" value="${formData.n1||''}" placeholder="Ej: María" autocomplete="off" oninput="this.value=this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g,'')"></div>
+      <div class="fg"><label>Segundo Nombre <span class="req">*</span></label><input class="fi" id="f_n2" value="${formData.n2||''}" placeholder="Ej: Isabel" autocomplete="off" oninput="this.value=this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g,'')"></div>
     </div>
     <div class="fr">
       <div class="fg"><label>Género <span class="req">*</span></label>
-        <select class="fi" id="f_genero">
+        <select class="fi" id="f_genero" autocomplete="off">
           <option value="" ${!formData.genero?'selected':''}>Seleccione...</option>
           <option value="Masculino" ${formData.genero==='Masculino'?'selected':''}>👨 Masculino</option>
           <option value="Femenino" ${formData.genero==='Femenino'?'selected':''}>👩 Femenino</option>
         </select>
       </div>
-      <div class="fg"><label>Celular <span class="req">*</span></label><input class="fi" id="f_telefono" value="${formData.telefono||''}" placeholder="0999999999" maxlength="10" inputmode="numeric" pattern="[0-9]*" autocomplete="tel"></div>
+      <div class="fg"><label>Celular <span class="req">*</span></label><input class="fi" id="f_telefono" value="${formData.telefono||''}" placeholder="0999999999" maxlength="10" inputmode="numeric" pattern="[0-9]*" autocomplete="off"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Ciudad <span class="req">*</span></label><input class="fi" id="f_ciudad" value="${formData.ciudad}" placeholder="Ej: Machala"></div>
-      <div class="fg"><label>Empresa <span class="req">*</span></label><input class="fi" id="f_empresa" value="${formData.empresa}" placeholder="Nombre de la empresa"></div>
+      <div class="fg"><label>Ciudad <span class="req">*</span></label><input class="fi" id="f_ciudad" value="${formData.ciudad}" placeholder="Ej: Machala" autocomplete="off"></div>
+      <div class="fg"><label>Empresa <span class="req">*</span></label><input class="fi" id="f_empresa" value="${formData.empresa}" placeholder="Nombre de la empresa" autocomplete="off"></div>
     </div>
-    <div class="fg"><label>Correo Electrónico</label><input class="fi" id="f_email" value="${formData.email}" placeholder="correo@mail.com" type="email" autocomplete="email"></div>
+    <div class="fg"><label>Correo Electrónico</label><input class="fi" id="f_email" value="${formData.email}" placeholder="correo@mail.com" type="email" autocomplete="off"></div>
     <button class="btn bp" onclick="validate()">Registrar Paciente →</button>
   </div></div>`;
 }
@@ -213,10 +213,10 @@ async function buscarPaciente(doc){
 
 function validate(){
   formData.ap1=(document.getElementById('f_ap1')?.value||'').trim();
-  formData.ap2=(document.getElementById('f_ap2')?.value||'').trim();
+  formData.ap2=(document.getElementById('f_ap2')?.value||'');
   formData.n1=(document.getElementById('f_n1')?.value||'').trim();
-  formData.n2=(document.getElementById('f_n2')?.value||'').trim();
-  formData.nombre=[formData.ap1,formData.ap2,formData.n1,formData.n2].filter(Boolean).join(' ');
+  formData.n2=(document.getElementById('f_n2')?.value||'');
+  formData.nombre=[formData.ap1,formData.ap2.trim(),formData.n1,formData.n2.trim()].filter(Boolean).join(' ');
   formData.cedula=document.getElementById('f_cedula').value.trim();
   formData.genero=document.getElementById('f_genero').value;
   formData.telefono=document.getElementById('f_telefono').value.trim();
@@ -225,7 +225,9 @@ function validate(){
   formData.email=document.getElementById('f_email').value.trim();
 
   if(!formData.ap1){alert('Ingrese el Primer Apellido');return;}
+  if(!formData.ap2 || formData.ap2.length===0){alert('Ingrese el Segundo Apellido (si no tiene, escriba un espacio)');return;}
   if(!formData.n1){alert('Ingrese el Primer Nombre');return;}
+  if(!formData.n2 || formData.n2.length===0){alert('Ingrese el Segundo Nombre (si no tiene, escriba un espacio)');return;}
   if(formData.docTipo==='cedula'){
     if(!formData.cedula||formData.cedula.length!==10||!/^\d{10}$/.test(formData.cedula)){alert('La cédula debe tener exactamente 10 dígitos numéricos');return;}
   }else{

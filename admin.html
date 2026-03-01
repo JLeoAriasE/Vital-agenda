@@ -2439,7 +2439,7 @@ function fichaSecContent(s){
   if(s==='A') return fichaSecA(a);
   if(s==='B') return fichaSecB(b);
   if(s==='C') return fichaSecC(c);
-  if(s==='D') return `<div class="fg"><label>Descripción del problema actual</label><textarea class="fi" id="fo_enfactual" rows="8" placeholder="Describa la enfermedad o problema actual del paciente, incluyendo síntomas, duración, evolución..." style="text-transform:uppercase">${d.d?.descripcion||''}</textarea><p style="font-size:10px;color:var(--tm);margin-top:4px">Incluya: síntomas principales, tiempo de evolución, factores agravantes o atenuantes.</p></div>`;
+  if(s==='D') return `<div class="fg"><label>Descripción del problema actual</label><textarea class="fi" id="fo_enfactual" rows="8" placeholder="Describa la enfermedad o problema actual del paciente, incluyendo síntomas, duración, evolución..." style="text-transform:uppercase" autocomplete="off">${d.d?.descripcion||''}</textarea><p style="font-size:10px;color:var(--tm);margin-top:4px">Incluya: síntomas principales, tiempo de evolución, factores agravantes o atenuantes.</p></div>`;
   if(s==='E') return fichaSecE(e);
   if(s==='F') return fichaSecF(f);
   if(s==='G') return fichaSecG(d.g||{});
@@ -2456,19 +2456,19 @@ function fichaSecContent(s){
 
 // ── SECCIÓN A: Datos del Paciente ──
 function fichaSecA(a){
-  return`<div class="fr"><div class="fg" style="flex:2"><label>Institución / Empresa</label><input class="fi" id="fo_empresa" value="${a.empresa||''}" list="dl_emps2" onchange="fichaEmpChange()"><datalist id="dl_emps2">${(S.empresas_cli||[]).map(e=>'<option value="'+e.nombre+'">').join('')}</datalist></div>
-  <div class="fg"><label>RUC</label><input class="fi" id="fo_ruc" value="${a.ruc||''}"></div>
-  <div class="fg"><label>CIIU</label><input class="fi" id="fo_ciiu" value="${a.ciiu||''}"></div></div>
-  <div class="fr"><div class="fg" style="flex:2"><label>Establecimiento / Centro</label><input class="fi" id="fo_centro" value="${a.centro||''}"></div>
-  <div class="fg"><label>N° Formulario</label><input class="fi" id="fo_nform" value="${a.nform||''}"></div>
-  <div class="fg"><label>N° Archivo</label><input class="fi" id="fo_narch" value="${a.narch||''}"></div></div>
-  <div class="fr"><div class="fg"><label>Primer Apellido <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_ap1" value="${a.ap1||''}" required></div>
-  <div class="fg"><label>Segundo Apellido <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_ap2" value="${a.ap2||''}" required></div>
-  <div class="fg"><label>Primer Nombre <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_n1" value="${a.n1||''}" required></div>
-  <div class="fg"><label>Segundo Nombre <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_n2" value="${a.n2||''}" required></div></div>
-  <div class="fr"><div class="fg"><label>Sexo <b style="color:red;font-size:14px">*</b></label><select class="fi" id="fo_sexo"><option value="">--</option><option value="M" ${a.sexo==='M'?'selected':''}>M</option><option value="F" ${a.sexo==='F'?'selected':''}>F</option></select></div>
-  <div class="fg" style="flex:2"><label>Puesto de Trabajo (CIUO)</label><input class="fi" id="fo_cargo" value="${a.cargo||''}" oninput="searchCIUO('fo_cargo','ciuo_res_a')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox"><div id="ciuo_res_a"></div></div></div>
-  <div class="fr"><div class="fg"><label>Grupo Sanguíneo</label><select class="fi" id="fo_gsang"><option value="">--</option>${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g=>`<option ${a.grupo_sang===g?'selected':''}>${g}</option>`).join('')}</select></div>
+  return`<div class="fr"><div class="fg" style="flex:2"><label>Institución / Empresa</label><input class="fi" id="fo_empresa" value="${a.empresa||''}" list="dl_emps2" onchange="fichaEmpChange()" autocomplete="off"><datalist id="dl_emps2">${(S.empresas_cli||[]).map(e=>'<option value="'+e.nombre+'">').join('')}</datalist></div>
+  <div class="fg"><label>RUC</label><input class="fi" id="fo_ruc" value="${a.ruc||''}" autocomplete="off"></div>
+  <div class="fg"><label>CIIU</label><input class="fi" id="fo_ciiu" value="${a.ciiu||''}" autocomplete="off"></div></div>
+  <div class="fr"><div class="fg" style="flex:2"><label>Establecimiento / Centro</label><input class="fi" id="fo_centro" value="${a.centro||''}" autocomplete="off"></div>
+  <div class="fg"><label>N° Formulario</label><input class="fi" id="fo_nform" value="${a.nform||''}" autocomplete="off"></div>
+  <div class="fg"><label>N° Archivo</label><input class="fi" id="fo_narch" value="${a.narch||''}" autocomplete="off"></div></div>
+  <div class="fr"><div class="fg"><label>Primer Apellido <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_ap1" value="${a.ap1||''}" required autocomplete="off"></div>
+  <div class="fg"><label>Segundo Apellido <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_ap2" value="${a.ap2||''}" required autocomplete="off"></div>
+  <div class="fg"><label>Primer Nombre <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_n1" value="${a.n1||''}" required autocomplete="off"></div>
+  <div class="fg"><label>Segundo Nombre <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_n2" value="${a.n2||''}" required autocomplete="off"></div></div>
+  <div class="fr"><div class="fg"><label>Sexo <b style="color:red;font-size:14px">*</b></label><select class="fi" id="fo_sexo" autocomplete="off"><option value="">--</option><option value="M" ${a.sexo==='M'?'selected':''}>M</option><option value="F" ${a.sexo==='F'?'selected':''}>F</option></select></div>
+  <div class="fg" style="flex:2"><label>Puesto de Trabajo (CIUO)</label><input class="fi" id="fo_cargo" value="${a.cargo||''}" oninput="searchCIUO('fo_cargo','ciuo_res_a')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox" autocomplete="off"><div id="ciuo_res_a"></div></div></div>
+  <div class="fr"><div class="fg"><label>Grupo Sanguíneo</label><select class="fi" id="fo_gsang" autocomplete="off"><option value="">--</option>${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g=>`<option ${a.grupo_sang===g?'selected':''}>${g}</option>`).join('')}</select></div>
   <div class="fg"><label>Lateralidad</label><div style="display:flex;gap:6px;margin-top:4px">${['Diestro','Zurdo','Ambidiestro'].map(l=>`<button class="btn bsm ${a.lateralidad===l?'bp':'bg'}" onclick="FO.data.a.lateralidad='${l}';render()" style="font-size:11px">${l}</button>`).join('')}</div></div></div>
   <div class="fg" style="margin-top:8px"><label>Atención prioritaria</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${['Persona con discapacidad','Enfermedad catastrófica','Adulto mayor'].map(t=>`<button class="btn bsm ${(a.atencion_prioritaria||[]).includes(t)?'bp':'bg'}" onclick="toggleAP('${t}')" style="font-size:11px">${t}</button>`).join('')}</div></div>`;
 }
@@ -2477,17 +2477,17 @@ function toggleAP(t){if(!FO.data.a.atencion_prioritaria)FO.data.a.atencion_prior
 
 // ── SECCIÓN B: Motivo Consulta ──
 function fichaSecB(b){
-  return`<div class="fr"><div class="fg" style="flex:2"><label>Puesto de trabajo (CIUO)</label><input class="fi" id="fo_puesto" value="${b.puesto_ciuo||''}" oninput="searchCIUO('fo_puesto','ciuo_res_b')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox"><div id="ciuo_res_b"></div></div>
+  return`<div class="fr"><div class="fg" style="flex:2"><label>Puesto de trabajo (CIUO)</label><input class="fi" id="fo_puesto" value="${b.puesto_ciuo||''}" oninput="searchCIUO('fo_puesto','ciuo_res_b')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox" autocomplete="off"><div id="ciuo_res_b"></div></div>
   <div class="fg"><label>Fecha de atención</label><input class="fi" type="date" id="fo_fecha_at" value="${b.fecha_atencion||TD}"></div></div>
   <div class="fg" style="margin:10px 0"><label>Tipo de evaluación</label><div style="display:flex;gap:8px;margin-top:6px">${['INGRESO','PERIÓDICO','REINTEGRO','RETIRO'].map(t=>`<button class="btn ${b.tipo_eval===t?'bp':'bg'}" onclick="FO.data.b.tipo_eval='${t}';render()" style="flex:1;font-size:12px">${t.charAt(0)+t.slice(1).toLowerCase()}</button>`).join('')}</div></div>
   <div class="fg"><label>Fecha de ingreso</label><input class="fi" type="date" id="fo_fingreso" value="${b.fecha_ingreso||''}"></div>
-  <div class="fg" style="margin-top:8px"><label>Observación</label><textarea class="fi" id="fo_b_obs" rows="3" placeholder="Observaciones adicionales sobre el motivo de consulta...">${b.observacion||''}</textarea></div>`;
+  <div class="fg" style="margin-top:8px"><label>Observación</label><textarea class="fi" id="fo_b_obs" rows="3" placeholder="Observaciones adicionales sobre el motivo de consulta..." autocomplete="off">${b.observacion||''}</textarea></div>`;
 }
 
 // ── SECCIÓN C: Antecedentes ──
 function fichaSecC(c){
-  return`<div class="fr" style="gap:14px"><div class="fg" style="flex:1"><label style="font-weight:600">Antecedentes Clínicos y Quirúrgicos</label><textarea class="fi" id="fo_antclin" rows="5" style="text-transform:uppercase">${c.ant_clinicos||''}</textarea></div>
-  <div class="fg" style="flex:1"><label style="font-weight:600">Antecedentes Familiares</label><textarea class="fi" id="fo_antfam" rows="5" style="text-transform:uppercase">${c.ant_familiares||''}</textarea></div></div>
+  return`<div class="fr" style="gap:14px"><div class="fg" style="flex:1"><label style="font-weight:600">Antecedentes Clínicos y Quirúrgicos</label><textarea class="fi" id="fo_antclin" rows="5" style="text-transform:uppercase" autocomplete="off">${c.ant_clinicos||''}</textarea></div>
+  <div class="fg" style="flex:1"><label style="font-weight:600">Antecedentes Familiares</label><textarea class="fi" id="fo_antfam" rows="5" style="text-transform:uppercase" autocomplete="off">${c.ant_familiares||''}</textarea></div></div>
   <div style="background:var(--bg);border-radius:8px;padding:12px;margin:10px 0"><div style="font-weight:600;font-size:12px;margin-bottom:8px">Condición Especial</div>
   <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap"><div class="fg"><label>Autorización transfusión</label><div style="display:flex;gap:6px;margin-top:4px">${['Sí','No'].map(v=>`<button class="btn bsm ${c.aut_transfusion===v?'bp':'bg'}" onclick="FO.data.c.aut_transfusion='${v}';render()" style="font-size:11px;min-width:50px">${v}</button>`).join('')}</div></div>
   <div class="fg"><label>Tratamiento hormonal</label><div style="display:flex;gap:6px;align-items:center;margin-top:4px">${['Sí','No'].map(v=>`<button class="btn bsm ${c.trat_hormonal===v?'bp':'bg'}" onclick="FO.data.c.trat_hormonal='${v}';render()" style="font-size:11px;min-width:50px">${v}</button>`).join('')}${c.trat_hormonal==='Sí'?`<input class="fi" value="${c.trat_hormonal_detalle||''}" onchange="FO.data.c.trat_hormonal_detalle=this.value" placeholder="¿Cuál tratamiento?" style="font-size:11px;margin-left:8px;width:220px">`:''}</div></div></div></div>
@@ -2502,23 +2502,23 @@ function fichaSecC(c){
   </tr>`).join('')}
   </tbody></table>
   <button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="FO.data.c.sustancias.push({nombre:'',estado:'',consumo:'',abstinencia:''});render()">+ Agregar sustancia</button></div>
-  <div class="fg"><label style="font-weight:600">Medicación Habitual</label><textarea class="fi" id="fo_medic" rows="2" placeholder="Medicamentos que consume regularmente..." style="text-transform:uppercase">${c.medicacion||''}</textarea></div>`;
+  <div class="fg"><label style="font-weight:600">Medicación Habitual</label><textarea class="fi" id="fo_medic" rows="2" placeholder="Medicamentos que consume regularmente..." style="text-transform:uppercase" autocomplete="off">${c.medicacion||''}</textarea></div>`;
 }
 
 // ── SECCIÓN E: Constantes Vitales ──
 function fichaSecE(e){
   return`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
-  <div class="fg"><label>Temp. (°C)</label><input class="fi" id="fo_temp" type="number" step="0.1" value="${e.temp||''}" style="text-align:center"></div>
-  <div class="fg"><label>P/A (mmHg)</label><div style="display:flex;gap:2px;align-items:center"><input class="fi" id="fo_pas" type="number" value="${e.pa_s||''}" style="width:50%;text-align:center"><span>/</span><input class="fi" id="fo_pad" type="number" value="${e.pa_d||''}" style="width:50%;text-align:center"></div></div>
-  <div class="fg"><label>FC (lpm)</label><input class="fi" id="fo_fc" type="number" value="${e.fc||''}" style="text-align:center"></div>
-  <div class="fg"><label>FR (rpm)</label><input class="fi" id="fo_fr" type="number" value="${e.fr||''}" style="text-align:center"></div>
-  <div class="fg"><label>Sat O₂ (%)</label><input class="fi" id="fo_sat" type="number" value="${e.sat||''}" style="text-align:center"></div></div>
+  <div class="fg"><label>Temp. (°C)</label><input class="fi" id="fo_temp" type="number" step="0.1" value="${e.temp||''}" style="text-align:center" autocomplete="off"></div>
+  <div class="fg"><label>P/A (mmHg)</label><div style="display:flex;gap:2px;align-items:center"><input class="fi" id="fo_pas" type="number" value="${e.pa_s||''}" style="width:50%;text-align:center" autocomplete="off"><span>/</span><input class="fi" id="fo_pad" type="number" value="${e.pa_d||''}" style="width:50%;text-align:center" autocomplete="off"></div></div>
+  <div class="fg"><label>FC (lpm)</label><input class="fi" id="fo_fc" type="number" value="${e.fc||''}" style="text-align:center" autocomplete="off"></div>
+  <div class="fg"><label>FR (rpm)</label><input class="fi" id="fo_fr" type="number" value="${e.fr||''}" style="text-align:center" autocomplete="off"></div>
+  <div class="fg"><label>Sat O₂ (%)</label><input class="fi" id="fo_sat" type="number" value="${e.sat||''}" style="text-align:center" autocomplete="off"></div></div>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:6px">
-  <div class="fg"><label>Peso (kg)</label><input class="fi" id="fo_peso" type="number" step="0.1" value="${e.peso||''}" oninput="calcIMC()" style="text-align:center"></div>
-  <div class="fg"><label>Talla (cm)</label><input class="fi" id="fo_talla" type="number" value="${e.talla||''}" oninput="calcIMC()" style="text-align:center"></div>
-  <div class="fg"><label>IMC</label><input class="fi" id="fo_imc" value="${e.imc||'—'}" readonly style="background:var(--bg);font-weight:600;text-align:center"></div>
-  <div class="fg"><label>Clasif. IMC</label><input class="fi" id="fo_cimc" value="${e.clasif_imc||'—'}" readonly style="background:var(--bg);font-weight:600;text-align:center;font-size:10px"></div>
-  <div class="fg"><label>P. Abdom. (cm)</label><input class="fi" id="fo_pabd" type="number" value="${e.perim_abd||''}" style="text-align:center"></div></div>`;
+  <div class="fg"><label>Peso (kg)</label><input class="fi" id="fo_peso" type="number" step="0.1" value="${e.peso||''}" oninput="calcIMC()" style="text-align:center" autocomplete="off"></div>
+  <div class="fg"><label>Talla (cm)</label><input class="fi" id="fo_talla" type="number" value="${e.talla||''}" oninput="calcIMC()" style="text-align:center" autocomplete="off"></div>
+  <div class="fg"><label>IMC</label><input class="fi" id="fo_imc" value="${e.imc||'—'}" readonly style="background:var(--bg);font-weight:600;text-align:center" autocomplete="off"></div>
+  <div class="fg"><label>Clasif. IMC</label><input class="fi" id="fo_cimc" value="${e.clasif_imc||'—'}" readonly style="background:var(--bg);font-weight:600;text-align:center;font-size:10px" autocomplete="off"></div>
+  <div class="fg"><label>P. Abdom. (cm)</label><input class="fi" id="fo_pabd" type="number" value="${e.perim_abd||''}" style="text-align:center" autocomplete="off"></div></div>`;
 }
 function calcIMC(){const p=parseFloat(gv('fo_peso')),t=parseFloat(gv('fo_talla'))/100;if(p>0&&t>0){const imc=(p/(t*t)).toFixed(1);document.getElementById('fo_imc').value=imc;let cl='Normal';if(imc<18.5)cl='Bajo peso';else if(imc<25)cl='Normal';else if(imc<30)cl='Sobrepeso';else if(imc<35)cl='Obesidad I';else if(imc<40)cl='Obesidad II';else cl='Obesidad III';document.getElementById('fo_cimc').value=cl;}}
 
@@ -2547,7 +2547,7 @@ function fichaSecF(f){
   ${r.items.map((it,idx)=>{const key=r.n+lits[idx];return`<label style="display:flex;align-items:center;gap:4px;font-size:10px;margin:3px 0;cursor:pointer"><input type="checkbox" ${hall[key]?'checked':''} onchange="toggleExFis('${key}','${r.n}${lits[idx]} ${it}')"> <span style="color:var(--a);font-weight:600;font-size:9px;width:16px">${lits[idx]}</span> ${it}</label>`;}).join('')}
   </div>`).join('')}
   </div>
-  <div class="fg" style="margin-top:10px"><label style="font-weight:600">Observaciones</label><textarea class="fi" id="fo_f_obs" rows="5" style="text-transform:uppercase">${f.observaciones||''}</textarea></div>`;
+  <div class="fg" style="margin-top:10px"><label style="font-weight:600">Observaciones</label><textarea class="fi" id="fo_f_obs" rows="5" style="text-transform:uppercase" autocomplete="off">${f.observaciones||''}</textarea></div>`;
 }
 function toggleExFis(key,label){
   if(!FO.data.f.hallazgos)FO.data.f.hallazgos={};
@@ -2595,7 +2595,7 @@ function fichaSecG(g){
   }
 
   return cats.map(c=>renderCat(c)).join('')+`
-  <div class="fg" style="margin-top:8px"><label style="font-weight:600">MEDIDAS PREVENTIVAS</label><textarea class="fi" id="fo_g_medidas" rows="3" style="text-transform:uppercase">${g.medidas||'USO DE PRENDAS DE PREVENCIÓN\nPAUSAS ACTIVAS\nCUMPLIMIENTO DE PROTOCOLOS DE BIOSEGURIDAD Y TRABAJO SEGURO'}</textarea></div>
+  <div class="fg" style="margin-top:8px"><label style="font-weight:600">MEDIDAS PREVENTIVAS</label><textarea class="fi" id="fo_g_medidas" rows="3" style="text-transform:uppercase" autocomplete="off">${g.medidas||'USO DE PRENDAS DE PREVENCIÓN\nPAUSAS ACTIVAS\nCUMPLIMIENTO DE PROTOCOLOS DE BIOSEGURIDAD Y TRABAJO SEGURO'}</textarea></div>
   <button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="saveRiesgoPlantilla()">💾 Guardar como plantilla para este cargo</button>`;
 }
 
@@ -2721,7 +2721,7 @@ function fichaSecJ(j){
   });
 
   html+=`<button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="addCatExamManual()">+ Agregar categoría manual</button>
-  <div class="fg" style="margin-top:10px"><label>Observaciones</label><textarea class="fi" id="fo_j_obs" rows="2" placeholder="Observaciones sobre los resultados de exámenes...">${j.observaciones||''}</textarea></div>`;
+  <div class="fg" style="margin-top:10px"><label>Observaciones</label><textarea class="fi" id="fo_j_obs" rows="2" placeholder="Observaciones sobre los resultados de exámenes..." autocomplete="off">${j.observaciones||''}</textarea></div>`;
   return html;
 }
 
@@ -2774,7 +2774,7 @@ function fichaSecL(l){
     <div style="font-size:10px;color:var(--tm);margin-top:2px">${o.t}</div>
   </div>`).join('')}
   </div>
-  <div class="fg"><label>Observaciones</label><textarea class="fi" id="fo_l_obs" rows="3" placeholder="Observaciones sobre la aptitud médica, limitaciones específicas...">${l.observaciones||''}</textarea></div>`;
+  <div class="fg"><label>Observaciones</label><textarea class="fi" id="fo_l_obs" rows="3" placeholder="Observaciones sobre la aptitud médica, limitaciones específicas..." autocomplete="off">${l.observaciones||''}</textarea></div>`;
 }
 
 // ── SECCIÓN M: Recomendaciones ──
@@ -2833,10 +2833,10 @@ function fichaSecM(m){
   </div>`:''}
   <div style="background:var(--bg);border-radius:8px;padding:12px;margin-top:10px">
     <div style="font-weight:600;font-size:12px;margin-bottom:6px">Agregar recomendación personalizada</div>
-    <div style="display:flex;gap:6px"><input class="fi" id="fo_rec_nueva" placeholder="Escriba una recomendación y haga clic en Agregar..." style="flex:1;font-size:11px;text-transform:uppercase">
+    <div style="display:flex;gap:6px"><input class="fi" id="fo_rec_nueva" placeholder="Escriba una recomendación y haga clic en Agregar..." style="flex:1;font-size:11px;text-transform:uppercase" autocomplete="off">
     <button class="btn bp" onclick="addRecCustom()" style="font-size:11px;white-space:nowrap">+ Agregar</button></div>
   </div>
-  <div class="fg" style="margin-top:12px"><label style="font-weight:600">Observaciones adicionales</label><textarea class="fi" id="fo_m_med" rows="3" placeholder="Notas adicionales del médico...">${m.medicas||''}</textarea></div>`;
+  <div class="fg" style="margin-top:12px"><label style="font-weight:600">Observaciones adicionales</label><textarea class="fi" id="fo_m_med" rows="3" placeholder="Notas adicionales del médico..." autocomplete="off">${m.medicas||''}</textarea></div>`;
 }
 
 function addRecFicha(r){if(!FO.data.m.estandar)FO.data.m.estandar=[];if(!FO.data.m.estandar.includes(r)){FO.data.m.estandar.push(r);}render();}
@@ -2897,7 +2897,7 @@ function fichaSecRetiro(r){
 
   <div class="fg" style="margin-top:14px">
     <label style="font-weight:600">Observación</label>
-    <textarea class="fi" id="fo_r_obs" rows="3" style="text-transform:uppercase">${rr.observacion||'NINGUNA'}</textarea>
+    <textarea class="fi" id="fo_r_obs" rows="3" style="text-transform:uppercase" autocomplete="off">${rr.observacion||'NINGUNA'}</textarea>
   </div>
 
   <div style="background:var(--bg);border-radius:8px;padding:12px;margin-top:14px">
@@ -2982,8 +2982,8 @@ function selectCIE(idx,codigo,descripcion){
 
 // ── SECCIÓN N: Datos Profesional ──
 function fichaSecN(n){
-  return`<div class="fr"><div class="fg" style="flex:2"><label>Nombre del profesional</label><input class="fi" id="fo_medico" value="${n.medico||''}" placeholder="Dr. Juan Pérez García"></div>
-  <div class="fg"><label>Código médico</label><input class="fi" id="fo_codmed" value="${n.codigo||''}" placeholder="MSP-12345"></div></div>
+  return`<div class="fr"><div class="fg" style="flex:2"><label>Nombre del profesional</label><input class="fi" id="fo_medico" value="${n.medico||''}" placeholder="Dr. Juan Pérez García" autocomplete="off"></div>
+  <div class="fg"><label>Código médico</label><input class="fi" id="fo_codmed" value="${n.codigo||''}" placeholder="MSP-12345" autocomplete="off"></div></div>
   <p style="font-size:11px;color:var(--tm);margin:10px 0;background:var(--bg);padding:8px;border-radius:6px">ℹ️ La firma digital se agregará en la versión de producción.</p>
   <div style="display:flex;gap:8px;margin-top:16px">
     <button class="btn" style="background:#2b6cb0;color:#fff" onclick="saveFichaSection();saveMedCfgFromCert2();printCertOficial()">📄 Certificado</button>
