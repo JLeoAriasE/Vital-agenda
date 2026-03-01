@@ -2233,7 +2233,7 @@ function preloadFichaData(p){
     g:loadRiesgoPlantilla(p.cargo)||{riesgos:{},medidas:'USO DE PRENDAS DE PREVENCIÓN\nPAUSAS ACTIVAS\nCUMPLIMIENTO DE PROTOCOLOS DE BIOSEGURIDAD Y TRABAJO SEGURO'},
     h:{empleos:[{centro:p.empresa||'',cargo:p.cargo||'',estado:'ACTUAL',tiempo:'',inc_data:{}}]},
     i:{actividades:[]},
-    j:{examenes:[],observaciones:''},
+    j:{categorias:[],observaciones:''},
     k:{diagnosticos:[]},
     l:{aptitud:'',observaciones:''},
     m:{estandar:[],medicas:''},
@@ -2597,45 +2597,130 @@ function fichaSecI(data){
 }
 
 // ── SECCIÓN J: Resultados de Exámenes ──
-function fichaSecJ(j){
-  const predef=['Biometría hemática','Química sanguínea','EMO','Coproparasitario','Serología (VDRL/RPR)','Espirometría','Audiometría','Rx lumbar AP y lateral','Rx estándar de tórax','Glucosa','Colesterol total','Triglicéridos','HDL/LDL','Urea/Creatinina','TGO/TGP','Ácido úrico','Hemoglobina glicosilada','PSA','Optometría','Electrocardiograma'];
-  const existentes=(j.examenes||[]).map(x=>x.nombre?.toUpperCase());
-  // Exámenes de la orden de enfermería
-  const ordExams=getOrdenExams();
-  const disponibles=[...new Set([...ordExams,...predef])].filter(e=>!existentes.includes(e.toUpperCase()));
+// Catálogo de exámenes por categoría con unidades
+const EXAM_CAT={
+  'QUÍMICA SANGUÍNEA':[
+    {n:'Glucosa',u:'mg/dL'},{n:'Colesterol total',u:'mg/dL'},{n:'Triglicéridos',u:'mg/dL'},{n:'HDL',u:'mg/dL'},{n:'LDL',u:'mg/dL'},{n:'Urea',u:'mg/dL'},{n:'Creatinina',u:'mg/dL'},{n:'Ácido úrico',u:'mg/dL'},{n:'TGO/AST',u:'U/L'},{n:'TGP/ALT',u:'U/L'},{n:'Bilirrubina total',u:'mg/dL'},{n:'Bilirrubina directa',u:'mg/dL'},{n:'Proteínas totales',u:'g/dL'},{n:'Albúmina',u:'g/dL'},{n:'Fosfatasa alcalina',u:'U/L'},{n:'GGT',u:'U/L'},{n:'Amilasa',u:'U/L'},{n:'Lipasa',u:'U/L'}
+  ],
+  'BIOMETRÍA HEMÁTICA':[
+    {n:'Hemoglobina',u:'g/dL'},{n:'Hematocrito',u:'%'},{n:'Glóbulos rojos',u:'mill/mm³'},{n:'Glóbulos blancos',u:'/mm³'},{n:'Plaquetas',u:'/mm³'},{n:'Neutrófilos',u:'%'},{n:'Linfocitos',u:'%'},{n:'Monocitos',u:'%'},{n:'Eosinófilos',u:'%'},{n:'Basófilos',u:'%'},{n:'VCM',u:'fL'},{n:'HCM',u:'pg'},{n:'CHCM',u:'g/dL'},{n:'VSG',u:'mm/h'}
+  ],
+  'EMO':[
+    {n:'Color',u:''},{n:'Aspecto',u:''},{n:'Densidad',u:''},{n:'pH',u:''},{n:'Proteínas',u:''},{n:'Glucosa',u:''},{n:'Cetonas',u:''},{n:'Bilirrubina',u:''},{n:'Sangre',u:''},{n:'Nitritos',u:''},{n:'Leucocitos',u:'/campo'},{n:'Eritrocitos',u:'/campo'},{n:'Bacterias',u:''}
+  ],
+  'COPROPARASITARIO':[
+    {n:'Color',u:''},{n:'Consistencia',u:''},{n:'Parásitos',u:''},{n:'Leucocitos',u:'/campo'},{n:'Eritrocitos',u:'/campo'},{n:'Sangre oculta',u:''}
+  ],
+  'SEROLOGÍA':[
+    {n:'VDRL/RPR',u:''},{n:'VIH',u:''},{n:'Hepatitis B (HBsAg)',u:''},{n:'Hepatitis C',u:''}
+  ],
+  'PERFIL LIPÍDICO':[
+    {n:'Colesterol total',u:'mg/dL'},{n:'Triglicéridos',u:'mg/dL'},{n:'HDL',u:'mg/dL'},{n:'LDL',u:'mg/dL'},{n:'VLDL',u:'mg/dL'}
+  ],
+  'PERFIL HEPÁTICO':[
+    {n:'TGO/AST',u:'U/L'},{n:'TGP/ALT',u:'U/L'},{n:'Bilirrubina total',u:'mg/dL'},{n:'Bilirrubina directa',u:'mg/dL'},{n:'Fosfatasa alcalina',u:'U/L'},{n:'GGT',u:'U/L'},{n:'Proteínas totales',u:'g/dL'},{n:'Albúmina',u:'g/dL'}
+  ],
+  'PERFIL RENAL':[
+    {n:'Urea',u:'mg/dL'},{n:'Creatinina',u:'mg/dL'},{n:'Ácido úrico',u:'mg/dL'},{n:'BUN',u:'mg/dL'},{n:'Depuración de creatinina',u:'mL/min'}
+  ],
+  'ESPECIALES':[
+    {n:'Hemoglobina glicosilada',u:'%'},{n:'PSA',u:'ng/mL'},{n:'TSH',u:'mUI/L'},{n:'T3',u:'ng/dL'},{n:'T4 libre',u:'ng/dL'},{n:'Insulina',u:'µUI/mL'},{n:'Vitamina D',u:'ng/mL'},{n:'Ferritina',u:'ng/mL'},{n:'Hierro sérico',u:'µg/dL'}
+  ],
+  'IMAGENOLOGÍA':[
+    {n:'Rx estándar de tórax',u:''},{n:'Rx lumbar AP y lateral',u:''},{n:'Rx columna cervical',u:''},{n:'Ecografía abdominal',u:''},{n:'Electrocardiograma',u:''}
+  ],
+  'AUDIOMETRÍA Y ESPIROMETRÍA':[
+    {n:'Audiometría',u:''},{n:'Espirometría',u:''},{n:'Optometría',u:''}
+  ]
+};
 
-  return`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;margin-bottom:6px">Exámenes frecuentes <span style="font-weight:400;color:var(--tm)">(clic para agregar)</span></div>
-  <div style="display:flex;flex-wrap:wrap;gap:4px">${disponibles.slice(0,25).map(e=>`<button class="btn bsm bg" onclick="addExamFicha('${e.replace(/'/g,"\\'")}')" style="font-size:9px;padding:3px 8px">+ ${e}</button>`).join('')}</div></div>
-  <table style="width:100%;font-size:11px"><thead><tr><th>NOMBRE DEL EXAMEN</th><th style="width:120px">FECHA</th><th>RESULTADOS</th><th style="width:30px"></th></tr></thead><tbody>
-  ${(j.examenes||[]).map((x,i)=>`<tr>
-    <td><input class="fi" value="${x.nombre||''}" onchange="FO.data.j.examenes[${i}].nombre=this.value" placeholder="Nombre del examen" style="font-size:11px;font-weight:600"></td>
-    <td><input class="fi" type="date" value="${x.fecha||''}" onchange="FO.data.j.examenes[${i}].fecha=this.value" style="font-size:11px"></td>
-    <td><input class="fi" value="${x.resultado||''}" onchange="FO.data.j.examenes[${i}].resultado=this.value" placeholder="Valores/Hallazgos" style="font-size:11px"></td>
-    <td><button class="btn bsm bd" onclick="FO.data.j.examenes.splice(${i},1);render()" style="font-size:10px">✕</button></td>
-  </tr>`).join('')}
-  </tbody></table>
-  <button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="FO.data.j.examenes.push({nombre:'',fecha:'',resultado:''});render()">+ Agregar examen</button>
+function getExamUnits(){
+  const saved=localStorage.getItem('vw_exam_units');
+  if(saved){try{return JSON.parse(saved);}catch(e){}}
+  return {};
+}
+function saveExamUnit(nombre,unidad){
+  const units=getExamUnits();
+  units[nombre]=unidad;
+  localStorage.setItem('vw_exam_units',JSON.stringify(units));
+}
+function getUnit(nombre,defUnit){
+  const saved=getExamUnits();
+  return saved[nombre]!==undefined?saved[nombre]:defUnit;
+}
+
+function fichaSecJ(j){
+  if(!j.categorias)j.categorias=[];
+  const catKeys=Object.keys(EXAM_CAT);
+  const usadas=j.categorias.map(c=>c.nombre);
+  const ordCats=getOrdenCats();
+  const disponibles=[...new Set([...ordCats,...catKeys])].filter(c=>!usadas.includes(c));
+
+  return`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;margin-bottom:6px">Categorías de exámenes <span style="font-weight:400;color:var(--tm)">(clic para agregar)</span></div>
+  <div style="display:flex;flex-wrap:wrap;gap:4px">${disponibles.map(c=>`<button class="btn bsm bg" onclick="addCatExam('${c}')" style="font-size:9px;padding:3px 8px">+ ${c}</button>`).join('')}</div></div>
+  ${j.categorias.map((cat,ci)=>{
+    const catExams=EXAM_CAT[cat.nombre]||[];
+    const usedExams=(cat.items||[]).map(x=>x.nombre);
+    const availExams=catExams.filter(e=>!usedExams.includes(e.n));
+    return`<div style="background:var(--bg);border-radius:8px;padding:10px;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="font-weight:700;font-size:12px;flex:1">📋 ${cat.nombre}</span>
+      <label style="font-size:10px;color:var(--tm)">Fecha:</label><input class="fi" type="date" value="${cat.fecha||''}" onchange="FO.data.j.categorias[${ci}].fecha=this.value" style="font-size:11px;width:130px">
+      <button class="btn bsm bd" onclick="FO.data.j.categorias.splice(${ci},1);rerenderJ()" style="font-size:10px">✕</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">${availExams.slice(0,20).map(e=>`<button class="btn bsm" style="font-size:9px;padding:2px 6px;background:#e6fffa;color:#319795;border:1px dashed #319795" onclick="addExamItem(${ci},'${e.n.replace(/'/g,"\\'")}','${e.u}')">+ ${e.n}</button>`).join('')}</div>
+    ${(cat.items||[]).map((item,ii)=>`<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
+      <span style="font-size:10px;font-weight:600;min-width:130px">${item.nombre}:</span>
+      <input class="fi" value="${item.valor||''}" onchange="FO.data.j.categorias[${ci}].items[${ii}].valor=this.value" placeholder="Valor" style="font-size:11px;width:80px;text-align:center" onkeydown="if(event.key==='Enter'){event.preventDefault();const next=this.parentElement.nextElementSibling?.querySelector('input');if(next)next.focus();}">
+      <input class="fi" value="${item.unidad||''}" onchange="FO.data.j.categorias[${ci}].items[${ii}].unidad=this.value;saveExamUnit('${item.nombre.replace(/'/g,"\\'")}',this.value)" style="font-size:10px;width:60px;color:var(--tm)" title="Unidad de medida (editable)">
+      <button class="btn bsm bd" onclick="FO.data.j.categorias[${ci}].items.splice(${ii},1);rerenderJ()" style="font-size:9px;padding:1px 4px">✕</button>
+    </div>`).join('')}
+    <input class="fi" placeholder="+ Agregar examen manual..." onkeydown="if(event.key==='Enter'&&this.value){addExamItemManual(${ci},this.value);this.value='';}" style="font-size:10px;margin-top:4px;border-style:dashed">
+    </div>`;
+  }).join('')}
+  <button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="addCatExamManual()">+ Agregar categoría manual</button>
   <div class="fg" style="margin-top:10px"><label>Observaciones</label><textarea class="fi" id="fo_j_obs" rows="2" placeholder="Observaciones sobre los resultados de exámenes...">${j.observaciones||''}</textarea></div>`;
 }
-function addExamFicha(nombre){
-  if(!FO.data.j.examenes)FO.data.j.examenes=[];
-  if(FO.data.j.examenes.find(x=>x.nombre?.toUpperCase()===nombre.toUpperCase()))return;
-  FO.data.j.examenes.push({nombre,fecha:TD,resultado:''});render();
+
+function addCatExam(nombre){
+  if(!FO.data.j.categorias)FO.data.j.categorias=[];
+  if(FO.data.j.categorias.find(c=>c.nombre===nombre))return;
+  FO.data.j.categorias.push({nombre,fecha:TD,items:[]});
+  rerenderJ();
 }
-function getOrdenExams(){
-  const p=gP(FO.pid);if(!p)return[];
+function addCatExamManual(){
+  const nombre=prompt('Nombre de la categoría:');
+  if(nombre){addCatExam(nombre.toUpperCase());}
+}
+function addExamItem(ci,nombre,defUnit){
+  if(!FO.data.j.categorias[ci].items)FO.data.j.categorias[ci].items=[];
+  if(FO.data.j.categorias[ci].items.find(x=>x.nombre===nombre))return;
+  const u=getUnit(nombre,defUnit);
+  FO.data.j.categorias[ci].items.push({nombre,valor:'',unidad:u});
+  rerenderJ();
+}
+function addExamItemManual(ci,nombre){
+  if(!FO.data.j.categorias[ci].items)FO.data.j.categorias[ci].items=[];
+  FO.data.j.categorias[ci].items.push({nombre:nombre.toUpperCase(),valor:'',unidad:''});
+  rerenderJ();
+}
+function rerenderJ(){
+  const el=document.getElementById('ficha_sec_body');
+  if(el)el.innerHTML=fichaSecJ(FO.data.j);
+}
+function getOrdenCats(){
   const ords=(S.ord||[]).filter(o=>o.pid===FO.pid);
-  let exams=[];
-  ords.forEach(o=>{if(o.exams&&Array.isArray(o.exams))o.exams.forEach(e=>{if(typeof e==='string')exams.push(e);else if(e.nombre)exams.push(e.nombre);});});
-  return[...new Set(exams)];
+  let cats=[];
+  ords.forEach(o=>{if(o.cat)cats.push(o.cat.toUpperCase());});
+  return[...new Set(cats)];
 }
 
 // ── SECCIÓN K: Diagnóstico ──
 function fichaSecK(k){
   return`<table style="width:100%;font-size:11px"><thead><tr><th style="width:120px">CÓDIGO CIE-10</th><th>DESCRIPCIÓN DEL DIAGNÓSTICO</th><th style="width:100px">TIPO</th><th></th></tr></thead><tbody>
   ${(k.diagnosticos||[]).map((dx,i)=>`<tr>
-    <td><div><input class="fi" value="${dx.codigo||''}" onchange="FO.data.k.diagnosticos[${i}].codigo=this.value;autoFillCie(${i},'cod')" oninput="searchCIE10(this,'cie_res_c${i}')" placeholder="Código..." style="font-size:11px" autocomplete="off"><div id="cie_res_c${i}"></div></div></td>
-    <td><div><input class="fi" value="${dx.descripcion||''}" onchange="FO.data.k.diagnosticos[${i}].descripcion=this.value;autoFillCie(${i},'desc')" oninput="searchCIE10Desc(this,'cie_res_d${i}')" placeholder="Descripción..." style="font-size:11px" autocomplete="off"><div id="cie_res_d${i}"></div></div></td>
+    <td><div><input class="fi" value="${dx.codigo||''}" onchange="FO.data.k.diagnosticos[${i}].codigo=this.value;autoFillCie(${i},'cod')" oninput="searchCIE10(this,'cie_res_c${i}')" onblur="FO.data.k.diagnosticos[${i}].codigo=this.value;autoFillCie(${i},'cod')" placeholder="Código..." style="font-size:11px;text-transform:uppercase" autocomplete="new-password"><div id="cie_res_c${i}"></div></div></td>
+    <td><div><input class="fi" value="${dx.descripcion||''}" onchange="FO.data.k.diagnosticos[${i}].descripcion=this.value;autoFillCie(${i},'desc')" oninput="searchCIE10Desc(this,'cie_res_d${i}')" placeholder="Descripción..." style="font-size:11px" autocomplete="new-password"><div id="cie_res_d${i}"></div></div></td>
     <td><select class="fi" onchange="FO.data.k.diagnosticos[${i}].tipo=this.value" style="font-size:11px"><option value="">-</option><option ${dx.tipo==='PRE'?'selected':''}>PRE</option><option ${dx.tipo==='DEF'?'selected':''}>DEF</option></select></td>
     <td><button class="btn bsm bd" onclick="FO.data.k.diagnosticos.splice(${i},1);render()" style="font-size:10px">✕</button></td>
   </tr>`).join('')}
