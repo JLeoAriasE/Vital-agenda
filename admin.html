@@ -2388,7 +2388,7 @@ function fichaSecA(a){
   <div class="fg"><label>Primer Nombre</label><input class="fi" id="fo_n1" value="${a.n1||''}"></div>
   <div class="fg"><label>Segundo Nombre</label><input class="fi" id="fo_n2" value="${a.n2||''}"></div></div>
   <div class="fr"><div class="fg"><label>Sexo</label><select class="fi" id="fo_sexo"><option value="M" ${a.sexo==='M'?'selected':''}>M</option><option value="F" ${a.sexo==='F'?'selected':''}>F</option></select></div>
-  <div class="fg" style="flex:2"><label>Puesto de Trabajo (CIUO)</label><input class="fi" id="fo_cargo" name="xciuo_a_nocache" value="${a.cargo||''}" oninput="searchCIUO('fo_cargo','ciuo_res_a')" placeholder="Escriba para buscar..." autocomplete="off"><div id="ciuo_res_a"></div></div></div>
+  <div class="fg" style="flex:2"><label>Puesto de Trabajo (CIUO)</label><input class="fi" id="fo_cargo" value="${a.cargo||''}" oninput="searchCIUO('fo_cargo','ciuo_res_a')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox"><div id="ciuo_res_a"></div></div></div>
   <div class="fr"><div class="fg"><label>Grupo Sanguíneo</label><select class="fi" id="fo_gsang"><option value="">--</option>${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g=>`<option ${a.grupo_sang===g?'selected':''}>${g}</option>`).join('')}</select></div>
   <div class="fg"><label>Lateralidad</label><div style="display:flex;gap:6px;margin-top:4px">${['Diestro','Zurdo','Ambidiestro'].map(l=>`<button class="btn bsm ${a.lateralidad===l?'bp':'bg'}" onclick="FO.data.a.lateralidad='${l}';render()" style="font-size:11px">${l}</button>`).join('')}</div></div></div>
   <div class="fg" style="margin-top:8px"><label>Atención prioritaria</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${['Persona con discapacidad','Enfermedad catastrófica','Adulto mayor'].map(t=>`<button class="btn bsm ${(a.atencion_prioritaria||[]).includes(t)?'bp':'bg'}" onclick="toggleAP('${t}')" style="font-size:11px">${t}</button>`).join('')}</div></div>`;
@@ -2398,7 +2398,7 @@ function toggleAP(t){if(!FO.data.a.atencion_prioritaria)FO.data.a.atencion_prior
 
 // ── SECCIÓN B: Motivo Consulta ──
 function fichaSecB(b){
-  return`<div class="fr"><div class="fg" style="flex:2"><label>Puesto de trabajo (CIUO)</label><input class="fi" id="fo_puesto" name="xciuo_b_nocache" value="${b.puesto_ciuo||''}" oninput="searchCIUO('fo_puesto','ciuo_res_b')" placeholder="Escriba para buscar..." autocomplete="off"><div id="ciuo_res_b"></div></div>
+  return`<div class="fr"><div class="fg" style="flex:2"><label>Puesto de trabajo (CIUO)</label><input class="fi" id="fo_puesto" value="${b.puesto_ciuo||''}" oninput="searchCIUO('fo_puesto','ciuo_res_b')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox"><div id="ciuo_res_b"></div></div>
   <div class="fg"><label>Fecha de atención</label><input class="fi" type="date" id="fo_fecha_at" value="${b.fecha_atencion||TD}"></div></div>
   <div class="fg" style="margin:10px 0"><label>Tipo de evaluación</label><div style="display:flex;gap:8px;margin-top:6px">${['INGRESO','PERIÓDICO','REINTEGRO','RETIRO'].map(t=>`<button class="btn ${b.tipo_eval===t?'bp':'bg'}" onclick="FO.data.b.tipo_eval='${t}';render()" style="flex:1;font-size:12px">${t.charAt(0)+t.slice(1).toLowerCase()}</button>`).join('')}</div></div>
   <div class="fg"><label>Fecha de ingreso</label><input class="fi" type="date" id="fo_fingreso" value="${b.fecha_ingreso||''}"></div>
