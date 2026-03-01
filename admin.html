@@ -125,9 +125,10 @@ function ic(n,s=16){return `<span style="display:inline-flex;width:${s}px;height
 // ═══ SUPABASE API ═══
 const SB={
   url:CFG.SUPABASE_URL,key:CFG.SUPABASE_KEY,
-  async q(table,method,body,filters){
+  async q(table,method,body,filters,range){
     let u=`${this.url}/rest/v1/${table}`;
     const h={'apikey':this.key,'Authorization':`Bearer ${this.key}`,'Content-Type':'application/json','Prefer':'return=representation'};
+    if(range)h['Range']=range;
     if(filters)u+=`?${filters}`;
     if(method==='GET')delete h['Prefer'];
     try{
@@ -139,7 +140,7 @@ const SB={
       const text=await r.text();return text?JSON.parse(text):[];
     }catch(e){console.warn('SB offline:',e.message);return null;}
   },
-  get(t,f){return this.q(t,'GET',null,f);},
+  get(t,f,range){return this.q(t,'GET',null,f,range);},
   post(t,d){return this.q(t,'POST',d);},
   patch(t,d,f){return this.q(t,'PATCH',d,f);},
   del(t,f){return this.q(t,'DELETE',null,f);},
@@ -209,8 +210,8 @@ async function loadAll(){
     SB.get('citas','select=*&order=created_at'),
     SB.get('ordenes','select=*&order=created_at'),
     SB.get('empresas','select=*&order=nombre'),
-    SB.get('cargos_ciuo','select=*&order=nombre&limit=2000'),
-    SB.get('cie10','select=*&order=codigo&limit=2000'),
+    SB.get('cargos_ciuo','select=*&order=nombre','0-4999'),
+    SB.get('cie10','select=*&order=codigo','0-4999'),
   ]);
   if(usrs!==null){
     DB_OK=true;
