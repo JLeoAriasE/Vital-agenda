@@ -209,8 +209,8 @@ async function loadAll(){
     SB.get('citas','select=*&order=created_at'),
     SB.get('ordenes','select=*&order=created_at'),
     SB.get('empresas','select=*&order=nombre'),
-    SB.get('cargos_ciuo','select=*&order=nombre'),
-    SB.get('cie10','select=*&order=codigo'),
+    SB.get('cargos_ciuo','select=*&order=nombre&limit=2000'),
+    SB.get('cie10','select=*&order=codigo&limit=2000'),
   ]);
   if(usrs!==null){
     DB_OK=true;
@@ -221,6 +221,7 @@ async function loadAll(){
     S.empresas_cli=emps?emps.map(e=>({id:e.id,nombre:e.nombre,ruc:e.ruc||'',ciiu:e.ciiu||'',direccion:e.direccion||'',telefono:e.telefono||'',contacto:e.contacto||''})):[];
     S.cargos_ciuo=cargos?cargos.map(c=>({id:c.id,codigo:c.codigo,nombre:c.nombre})):[];
     S.cie10=cie?cie.map(c=>({id:c.id,codigo:c.codigo,descripcion:c.descripcion})):[];
+    console.log('📦 Cargados:',S.cargos_ciuo.length,'cargos CIUO,',S.cie10.length,'CIE-10');
     // Load config
     const cfg=await SB.get('configuracion','select=*');
     if(cfg){cfg.forEach(c=>{
