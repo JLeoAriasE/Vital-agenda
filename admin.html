@@ -175,7 +175,7 @@ const PROY=['AP','Lateral','Oblicua','AP + Lateral','AP + Lat + Oblicua'];
 const allRX=Object.values(RXZ).flat();
 
 // ═══ STATE ═══
-let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],sel:null,q:'',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
+let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],cie10:[],sel:null,q:'',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
 const TD=new Date().toISOString().split('T')[0];
 
 // ═══ HELPERS ═══
@@ -203,13 +203,14 @@ function canAssign(){return isA()||isE();}
 // ═══ LOAD DATA FROM SUPABASE ═══
 async function loadAll(){
   S.loading=true;render();
-  const [usrs,pts,apt,ord,emps,cargos]=await Promise.all([
+  const [usrs,pts,apt,ord,emps,cargos,cie]=await Promise.all([
     SB.get('usuarios','select=*&order=created_at'),
     SB.get('pacientes','select=*&order=created_at'),
     SB.get('citas','select=*&order=created_at'),
     SB.get('ordenes','select=*&order=created_at'),
     SB.get('empresas','select=*&order=nombre'),
     SB.get('cargos_ciuo','select=*&order=nombre'),
+    SB.get('cie10','select=*&order=codigo'),
   ]);
   if(usrs!==null){
     DB_OK=true;
@@ -219,6 +220,7 @@ async function loadAll(){
     S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado})):[];
     S.empresas_cli=emps?emps.map(e=>({id:e.id,nombre:e.nombre,ruc:e.ruc||'',ciiu:e.ciiu||'',direccion:e.direccion||'',telefono:e.telefono||'',contacto:e.contacto||''})):[];
     S.cargos_ciuo=cargos?cargos.map(c=>({id:c.id,codigo:c.codigo,nombre:c.nombre})):[];
+    S.cie10=cie?cie.map(c=>({id:c.id,codigo:c.codigo,descripcion:c.descripcion})):[];
     // Load config
     const cfg=await SB.get('configuracion','select=*');
     if(cfg){cfg.forEach(c=>{
@@ -748,7 +750,11 @@ function rSide(){
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
-    <div class="ni ${S.v==='cargos'?'on':''}" onclick="nav('cargos')">💼 Cargos CIUO</div>
+    <div class="ni" onclick="document.getElementById('csub1').style.display=document.getElementById('csub1').style.display==='none'?'block':'none'" style="cursor:pointer">📂 Códigos de Salud <span style="font-size:9px;opacity:.6">▼</span></div>
+    <div id="csub1" style="display:${['cargos','cie10'].includes(S.v)?'block':'none'}">
+      <div class="ni ${S.v==='cargos'?'on':''}" onclick="nav('cargos')" style="padding-left:28px;font-size:12px">💼 Cargos CIUO</div>
+      <div class="ni ${S.v==='cie10'?'on':''}" onclick="nav('cie10')" style="padding-left:28px;font-size:12px">🏥 Diagnósticos CIE-10</div>
+    </div>
     <div class="ni ${S.v==='umg'?'on':''}" onclick="nav('umg')">${ic('up')} Usuarios</div>
     <div class="ni ${S.v==='aord'?'on':''}" onclick="nav('aord')">${ic('clp')} Todas las Órdenes ${pO?`<span class="nbg">${pO}</span>`:''}</div>
     <div class="ni ${S.v==='bkp'?'on':''}" onclick="nav('bkp')">${ic('stg')} Configuración</div>
@@ -767,7 +773,6 @@ function rSide(){
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
-    <div class="ni ${S.v==='cargos'?'on':''}" onclick="nav('cargos')">💼 Cargos CIUO</div>
     <div class="ni ${S.v==='umg'?'on':''}" onclick="nav('umg')">${ic('up')} Usuarios</div>
     <div class="ni ${S.v==='aord'?'on':''}" onclick="nav('aord')">${ic('clp')} Todas las Órdenes ${pO?`<span class="nbg">${pO}</span>`:''}</div>
     <div class="ni ${S.v==='bkp'?'on':''}" onclick="nav('bkp')">${ic('stg')} Configuración</div>
@@ -794,7 +799,7 @@ function rView(){
   if(S.v==='umg'&&!(isA()||isE())){return rDash();}
   switch(S.v){
     case'dash':return rDash();case'cal':return rCal();case'pts':return rPts();case'apt':return rApt();case'det':return rDet();
-    case'nrs':return rNrs();case'lord':return rLabO();case'rxord':return rRxO();case'medord':return rMedO();case'psiord':return rPsiO();case'empcli':return rEmpCli();case'cargos':return rCargos();case'aord':return rAllO();case'umg':return rUsr();case'bkp':return rBkp();default:return(isA()||isE())?rDash():isL()?rLabO():isR()?rRxO():isM()?rMedO():isPsi()?rPsiO():rDash();
+    case'nrs':return rNrs();case'lord':return rLabO();case'rxord':return rRxO();case'medord':return rMedO();case'psiord':return rPsiO();case'empcli':return rEmpCli();case'cargos':return rCargos();case'cie10':return rCie10();case'aord':return rAllO();case'umg':return rUsr();case'bkp':return rBkp();default:return(isA()||isE())?rDash():isL()?rLabO():isR()?rRxO():isM()?rMedO():isPsi()?rPsiO():rDash();
   }
 }
 
@@ -1213,6 +1218,77 @@ async function delCargo(cid){
   render();
 }
 
+// ═══ DIAGNÓSTICOS CIE-10 ═══
+function rCie10(){
+  const dx=S.cie10||[];
+  return`<div class="ph"><div><h2>🏥 Diagnósticos CIE-10</h2><p class="ph-s">${dx.length} diagnóstico${dx.length!==1?'s':''} registrado${dx.length!==1?'s':''}</p></div>
+  <button class="btn bp" onclick="cie10Mod()">➕ Nuevo Diagnóstico</button></div>
+  <div style="margin-bottom:10px"><input class="fi" id="buscar_cie" placeholder="🔍 Buscar por código o descripción..." oninput="filterCie(this.value)" style="max-width:400px"></div>
+  <div class="cd">${dx.length===0?'<div class="es"><h4>No hay diagnósticos registrados</h4><p style="color:var(--tm)">El médico irá agregando los códigos CIE-10 conforme los necesite</p></div>':`<div class="tw" style="max-height:65vh;overflow-y:auto"><table><thead><tr><th style="width:90px">Código</th><th>Descripción</th><th style="text-align:center;width:90px">Acc.</th></tr></thead><tbody>
+  ${dx.map(c=>`<tr class="cie_row" data-search="${(c.codigo+' '+c.descripcion).toLowerCase()}">
+    <td class="mono" style="font-weight:600;color:var(--tl)">${c.codigo}</td>
+    <td>${c.descripcion}</td>
+    <td style="text-align:center;white-space:nowrap">
+      <button class="btn bsm bg" onclick="cie10Mod('${c.id}')">✏️</button>
+      <button class="btn bsm bd" onclick="delCie10('${c.id}')">🗑️</button>
+    </td>
+  </tr>`).join('')}
+  </tbody></table></div>`}</div>
+  <div style="padding:8px;font-size:11px;color:var(--tm)">💡 El médico agrega los códigos CIE-10 que necesite. Se guardan para futuras consultas con autocompletado.</div>`;
+}
+
+function filterCie(q){
+  const rows=document.querySelectorAll('.cie_row');
+  const s=q.toLowerCase();
+  rows.forEach(r=>{r.style.display=r.dataset.search.includes(s)?'':'none';});
+}
+
+function cie10Mod(cid){
+  const c=cid?(S.cie10||[]).find(x=>x.id===cid):null;
+  const d=c||{};
+  openModal(`<div class="mhd"><h3>${c?'✏️ Editar':'➕ Nuevo'} Diagnóstico CIE-10</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
+  <div class="mbd">
+    <div class="fr">
+      <div class="fg" style="max-width:130px"><label>Código CIE-10 *</label><input class="fi" id="dx_cod" value="${d.codigo||''}" placeholder="Ej: Z10.0" style="text-transform:uppercase"></div>
+      <div class="fg" style="flex:1"><label>Descripción *</label><input class="fi" id="dx_desc" value="${d.descripcion||''}" placeholder="Ej: Examen de salud ocupacional"></div>
+    </div>
+  </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svCie10('${d.id||''}')">${c?'Guardar':'Crear'}</button></div>`);
+}
+
+async function svCie10(cid){
+  const codigo=document.getElementById('dx_cod')?.value?.trim().toUpperCase();
+  const descripcion=document.getElementById('dx_desc')?.value?.trim();
+  if(!codigo||!descripcion){alert('Código y descripción son obligatorios');return;}
+  if(!S.cie10)S.cie10=[];
+  if(cid){
+    const i=S.cie10.findIndex(c=>c.id===cid);
+    if(i>-1){
+      S.cie10[i].codigo=codigo;S.cie10[i].descripcion=descripcion;
+      if(DB_OK)await SB.patch('cie10',{codigo,descripcion},`id=eq.${cid}`);
+    }
+  }else{
+    // Verificar si ya existe
+    const existe=S.cie10.find(c=>c.codigo===codigo);
+    if(existe){alert(`El código ${codigo} ya existe: ${existe.descripcion}`);return;}
+    if(DB_OK){
+      const r=await SB.post('cie10',{codigo,descripcion});
+      if(r&&r[0])S.cie10.push({id:r[0].id,codigo,descripcion});
+      else S.cie10.push({id:gid(),codigo,descripcion});
+    }else{S.cie10.push({id:gid(),codigo,descripcion});}
+  }
+  closeModal();render();
+  alert(`✅ Diagnóstico ${cid?'actualizado':'registrado'}: ${codigo} — ${descripcion}`);
+}
+
+async function delCie10(cid){
+  const c=(S.cie10||[]).find(x=>x.id===cid);
+  if(!c)return;
+  if(!confirm(`¿Eliminar ${c.codigo} — ${c.descripcion}?`))return;
+  S.cie10=S.cie10.filter(x=>x.id!==cid);
+  if(DB_OK)await SB.del('cie10',`id=eq.${cid}`);
+  render();
+}
+
 // ═══ PSICOLOGÍA ORDERS ═══
 function rPsiO(){
   const psiCats=['psico_ocupacional','psico_clinica'];
@@ -1267,13 +1343,15 @@ function rMedO(){
     </div></div>
   </div>
 
-  <div class="cd">${o.length===0?'<div class="es"><h4>Sin órdenes médicas</h4></div>':`<div class="tw"><table><thead><tr><th>Tipo</th><th>Paciente</th><th>Empresa</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
+  <div class="cd">${o.length===0?'<div class="es"><h4>Sin órdenes médicas</h4></div>':`<div class="tw"><table><thead><tr><th>Tipo</th><th>Paciente</th><th>Empresa</th><th>Estado</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
   ${o.map(x=>{const p=gP(x.pid);return`<tr>
   <td>${cI[x.cat]||'📋'} <span style="font-size:10px;font-weight:600">${x.cat==='ficha_ocupacional'?'Ficha Ocup.':x.cat==='espirometria'?'Espirometría':x.cat==='audiometria'?'Audiometría':'Atención Médica'}</span></td>
   <td style="font-weight:500">${p?.nombre||'—'}</td>
   <td style="font-size:11px">${p?.empresa||''}</td>
   <td><span class="ba ${EB[x.estado]}">${EL[x.estado]}</span></td>
-  <td>${x.estado!=='completado'?`<button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`}</div>`
+  <td style="text-align:center;white-space:nowrap">
+    ${(x.cat==='atencion_medica'||x.cat==='ficha_ocupacional')?`<button class="btn bsm" style="background:#7c3aed;color:#fff;font-size:9px" onclick="certAptMod('${x.pid}','${x.aid}')">📄 Certificado</button>`:''} 
+    ${x.estado!=='completado'?`<button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`}</div>`
 }
 
 // ═══ ALL ORDERS (admin/enfermería) ═══
@@ -1921,6 +1999,195 @@ async function saveLogoCfg(){
 }
 
 // ═══ THEME CONFIG ═══
+// ═══ CERTIFICADO DE APTITUD MÉDICA ═══
+function certAptMod(pid,aid){
+  const p=gP(pid);if(!p)return;
+  const emp=(S.empresas_cli||[]).find(e=>e.nombre?.toLowerCase()===p.empresa?.toLowerCase())||{};
+  const cargo=(S.cargos_ciuo||[]).find(c=>c.nombre?.toLowerCase()===p.cargo?.toLowerCase())||{};
+  const mc=getMedCfg();
+  const partes=(p.nombre||'').toUpperCase().split(' ');
+  let ap1='',ap2='',n1='',n2='';
+  if(partes.length>=4){ap1=partes[0];ap2=partes[1];n1=partes[2];n2=partes.slice(3).join(' ');}
+  else if(partes.length===3){ap1=partes[0];ap2='';n1=partes[1];n2=partes[2];}
+  else if(partes.length===2){ap1=partes[0];n1=partes[1];}
+  else{n1=p.nombre||'';}
+  const hoy=new Date();const yy=hoy.getFullYear(),mmm=String(hoy.getMonth()+1).padStart(2,'0'),ddd=String(hoy.getDate()).padStart(2,'0');
+  const sexo=p.genero==='masculino'?'M':p.genero==='femenino'?'F':'';
+
+  openModal(`<div class="mhd"><h3>📄 Certificado de Aptitud Médica</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
+  <div class="mbd" style="max-height:70vh;overflow-y:auto">
+    <p style="font-size:11px;color:var(--tm);margin-bottom:12px">Los datos del paciente y empresa se autocompletan. Completa la evaluación médica.</p>
+
+    <div style="font-size:11px;font-weight:700;color:var(--a);margin:10px 0 6px;border-bottom:1px solid var(--bd);padding-bottom:4px">A. DATOS DEL ESTABLECIMIENTO / USUARIO</div>
+    <div class="fr"><div class="fg" style="flex:2"><label>Institución / Empresa</label><input class="fi" id="ca_empresa" value="${emp.nombre||p.empresa||''}" list="dl_emps" onchange="certEmpChange()"><datalist id="dl_emps">${(S.empresas_cli||[]).map(e=>'<option value="'+e.nombre+'">').join('')}</datalist></div>
+    <div class="fg"><label>RUC</label><input class="fi" id="ca_ruc" value="${emp.ruc||''}"></div>
+    <div class="fg"><label>CIIU</label><input class="fi" id="ca_ciiu" value="${emp.ciiu||''}"></div></div>
+    <div class="fr"><div class="fg" style="flex:2"><label>Establecimiento / Centro de Trabajo</label><input class="fi" id="ca_centro" value="${emp.nombre||p.empresa||''}"></div>
+    <div class="fg"><label>N° Formulario</label><input class="fi" id="ca_nform" value="${p.cedula||''}"></div>
+    <div class="fg"><label>N° Archivo</label><input class="fi" id="ca_narch" value="${p.cedula||''}"></div></div>
+
+    <div class="fr"><div class="fg"><label>Primer Apellido</label><input class="fi" id="ca_ap1" value="${ap1}"></div>
+    <div class="fg"><label>Segundo Apellido</label><input class="fi" id="ca_ap2" value="${ap2}"></div>
+    <div class="fg"><label>Primer Nombre</label><input class="fi" id="ca_n1" value="${n1}"></div>
+    <div class="fg"><label>Segundo Nombre</label><input class="fi" id="ca_n2" value="${n2}"></div></div>
+    <div class="fr"><div class="fg"><label>Sexo</label><select class="fi" id="ca_sexo"><option value="M" ${sexo==='M'?'selected':''}>M - Masculino</option><option value="F" ${sexo==='F'?'selected':''}>F - Femenino</option></select></div>
+    <div class="fg" style="flex:2"><label>Puesto de Trabajo (CIUO)</label><input class="fi" id="ca_cargo" value="${cargo.codigo?'('+cargo.codigo+') ':''}${p.cargo||''}" list="dl_cargos"><datalist id="dl_cargos">${(S.cargos_ciuo||[]).map(c=>'<option value="('+c.codigo+') '+c.nombre+'">').join('')}</datalist></div></div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--a);margin:14px 0 6px;border-bottom:1px solid var(--bd);padding-bottom:4px">B. DATOS GENERALES</div>
+    <div class="fr"><div class="fg"><label>Fecha de Emisión</label><input class="fi" type="date" id="ca_fecha" value="${yy}-${mmm}-${ddd}"></div>
+    <div class="fg"><label>Tipo de Evaluación</label><select class="fi" id="ca_tipo"><option value="INGRESO">Ingreso</option><option value="PERIÓDICO">Periódico</option><option value="REINTEGRO">Reintegro</option><option value="RETIRO">Retiro</option></select></div></div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--a);margin:14px 0 6px;border-bottom:1px solid var(--bd);padding-bottom:4px">C. APTITUD MÉDICA PARA EL TRABAJO</div>
+    <div class="fg"><label>Calificación</label><select class="fi" id="ca_aptitud" style="font-weight:700"><option value="APTO">✅ APTO</option><option value="APTO EN OBSERVACIÓN">⚠️ APTO EN OBSERVACIÓN</option><option value="APTO CON LIMITACIONES">🔶 APTO CON LIMITACIONES</option><option value="NO APTO">❌ NO APTO</option></select></div>
+    <div class="fg"><label>Detalle de Observaciones</label><textarea class="fi" id="ca_obs" rows="3" style="text-transform:uppercase" placeholder="Ej: PACIENTE AL MOMENTO EN BUENAS CONDICIONES DE SALUD, APTO PARA LABORAR EN PUESTO DE TRABAJO"></textarea></div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--a);margin:14px 0 6px;border-bottom:1px solid var(--bd);padding-bottom:4px">D. RECOMENDACIONES / OBSERVACIONES</div>
+    <div class="fg"><label>Recomendaciones</label><textarea class="fi" id="ca_recom" rows="4" style="text-transform:uppercase" placeholder="Ej: ALIMENTACIÓN SALUDABLE, ACTIVIDAD FÍSICA, USO DE PRENDAS DE PREVENCIÓN..."></textarea></div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--a);margin:14px 0 6px;border-bottom:1px solid var(--bd);padding-bottom:4px">E. DATOS DEL PROFESIONAL</div>
+    <div class="fr"><div class="fg" style="flex:2"><label>Nombre del Médico</label><input class="fi" id="ca_medico" value="${mc.nombre||S.u?.nombre||''}"></div>
+    <div class="fg"><label>Código Médico</label><input class="fi" id="ca_codmed" value="${mc.codigo||''}"></div></div>
+  </div>
+  <div class="mft">
+    <button class="btn bg" onclick="closeModal()">Cancelar</button>
+    <button class="btn" style="background:#7c3aed;color:#fff" onclick="saveMedCfgFromCert();printCertApt()">🖨️ Imprimir Certificado</button>
+  </div>`);
+}
+
+function certEmpChange(){
+  const v=document.getElementById('ca_empresa')?.value;
+  const e=(S.empresas_cli||[]).find(x=>x.nombre===v);
+  if(e){
+    document.getElementById('ca_ruc').value=e.ruc||'';
+    document.getElementById('ca_ciiu').value=e.ciiu||'';
+    document.getElementById('ca_centro').value=e.nombre||'';
+  }
+}
+
+function saveMedCfgFromCert(){
+  const nombre=document.getElementById('ca_medico')?.value?.trim()||'';
+  const codigo=document.getElementById('ca_codmed')?.value?.trim()||'';
+  if(nombre||codigo){localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));}
+}
+
+function printCertApt(){
+  const v=id=>document.getElementById(id)?.value||'';
+  const fecha=v('ca_fecha').split('-');const yy=fecha[0]||'',mm=fecha[1]||'',dd=fecha[2]||'';
+  const tipo=v('ca_tipo');
+  const aptitud=v('ca_aptitud');
+  const ec=getEmpCfg();
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificado de Aptitud - ${v('ca_ap1')} ${v('ca_n1')}</title>
+  <style>
+    @page{size:A4;margin:12mm 10mm}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:Arial,Helvetica,sans-serif;font-size:8pt;color:#000}
+    table{border-collapse:collapse;width:100%}
+    td,th{border:1px solid #000;padding:3px 5px;font-size:8pt;vertical-align:middle}
+    .sec{background:#c5d9f1;font-weight:bold;font-size:8.5pt;padding:4px 6px}
+    .tit{text-align:center;font-size:13pt;font-weight:bold;padding:10px;background:#dce6f1}
+    .val{font-weight:bold}
+    .chk{font-size:11pt}
+    .obs{min-height:45px;padding:4px 6px;font-size:8pt;vertical-align:top}
+    .nb{border:none}
+    .firma-row td{height:60px;vertical-align:bottom;text-align:center;font-size:7.5pt}
+    .logo-c{text-align:center;margin-bottom:2px}
+    .logo-c img{max-height:55px;object-fit:contain}
+    .legal{border:none;padding:6px;font-size:7pt;line-height:1.5;font-style:italic}
+  </style></head><body onload="window.print()">
+
+  ${ec.logo?`<div class="logo-c"><img src="${ec.logo}"></div>`:''}
+  <table>
+    <tr><td colspan="12" class="tit">CERTIFICADO - EVALUACIÓN MÉDICA OCUPACIONAL</td></tr>
+
+    <tr><td colspan="12" class="sec">A. DATOS DEL ESTABLECIMIENTO - DATOS DEL USUARIO</td></tr>
+    <tr>
+      <td colspan="3" style="font-size:6.5pt;color:#333">INSTITUCIÓN DEL SISTEMA</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333">RUC</td>
+      <td style="font-size:6.5pt;color:#333">CIIU</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333">ESTABLECIMIENTO / CENTRO DE TRABAJO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333">N° DE FORMULARIO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333">N° DE ARCHIVO</td>
+    </tr>
+    <tr>
+      <td colspan="3" class="val">${v('ca_empresa').toUpperCase()}</td>
+      <td colspan="2" class="val">${v('ca_ruc')}</td>
+      <td class="val">${v('ca_ciiu')}</td>
+      <td colspan="2" class="val">${v('ca_centro').toUpperCase()}</td>
+      <td colspan="2" class="val">${v('ca_nform')}</td>
+      <td colspan="2" class="val">${v('ca_narch')}</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="font-size:6.5pt;color:#333">PRIMER APELLIDO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333">SEGUNDO APELLIDO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333">PRIMER NOMBRE</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333">SEGUNDO NOMBRE</td>
+      <td style="font-size:6.5pt;color:#333">SEXO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333">PUESTO DE TRABAJO (CIUO)</td>
+    </tr>
+    <tr>
+      <td colspan="3" class="val">${v('ca_ap1')}</td>
+      <td colspan="2" class="val">${v('ca_ap2')}</td>
+      <td colspan="2" class="val">${v('ca_n1')}</td>
+      <td colspan="2" class="val">${v('ca_n2')}</td>
+      <td class="val" style="text-align:center">${v('ca_sexo')}</td>
+      <td colspan="2" class="val" style="font-size:7pt">${v('ca_cargo').toUpperCase()}</td>
+    </tr>
+
+    <tr><td colspan="12" class="sec">B. DATOS GENERALES</td></tr>
+    <tr>
+      <td colspan="2">FECHA DE EMISIÓN:</td>
+      <td class="val" style="text-align:center">${yy}</td>
+      <td class="val" style="text-align:center">${mm}</td>
+      <td class="val" style="text-align:center">${dd}</td>
+      <td style="font-size:6.5pt;text-align:center;color:#666">aaaa / mm / dd</td>
+      <td colspan="6"></td>
+    </tr>
+    <tr>
+      <td colspan="2">EVALUACIÓN:</td>
+      <td colspan="2" style="text-align:center">INGRESO <span class="chk">${tipo==='INGRESO'?'☒':'☐'}</span></td>
+      <td colspan="3" style="text-align:center">PERIÓDICO <span class="chk">${tipo==='PERIÓDICO'?'☒':'☐'}</span></td>
+      <td colspan="2" style="text-align:center">REINTEGRO <span class="chk">${tipo==='REINTEGRO'?'☒':'☐'}</span></td>
+      <td colspan="3" style="text-align:center">RETIRO <span class="chk">${tipo==='RETIRO'?'☒':'☐'}</span></td>
+    </tr>
+
+    <tr><td colspan="12" class="sec">C. APTITUD MÉDICA PARA EL TRABAJO</td></tr>
+    <tr><td colspan="12" style="font-size:7pt;font-style:italic">Después de la valoración médica ocupacional se certifica que la persona en mención, es calificada como:</td></tr>
+    <tr>
+      <td colspan="3" style="text-align:center;font-weight:600">APTO <span class="chk">${aptitud==='APTO'?'☒':'☐'}</span></td>
+      <td colspan="3" style="text-align:center;font-weight:600;font-size:7pt">APTO EN OBSERVACIÓN <span class="chk">${aptitud==='APTO EN OBSERVACIÓN'?'☒':'☐'}</span></td>
+      <td colspan="3" style="text-align:center;font-weight:600;font-size:7pt">APTO CON LIMITACIONES <span class="chk">${aptitud==='APTO CON LIMITACIONES'?'☒':'☐'}</span></td>
+      <td colspan="3" style="text-align:center;font-weight:600">NO APTO <span class="chk">${aptitud==='NO APTO'?'☒':'☐'}</span></td>
+    </tr>
+    <tr><td colspan="12" style="font-size:7pt;color:#333">DETALLE DE OBSERVACIONES:</td></tr>
+    <tr><td colspan="12" class="obs">${v('ca_obs').toUpperCase()}</td></tr>
+
+    <tr><td colspan="12" class="sec">D. RECOMENDACIONES / OBSERVACIONES</td></tr>
+    <tr><td colspan="12" style="font-size:7pt;color:#333">Descripción</td></tr>
+    <tr><td colspan="12" class="obs" style="min-height:65px">${v('ca_recom').toUpperCase()}</td></tr>
+
+    <tr><td colspan="12" class="legal">
+      Con este documento certifico que el trabajador se ha sometido a la evaluación médica requerida para (el ingreso / la ejecución / el reingreso y retiro) al puesto laboral y se le ha informado sobre los riesgos relacionados con el trabajo emitiendo recomendaciones relacionadas con su estado de salud.<br><br>
+      La presente certificación se expide con base en el formulario de Evaluación Ocupacional, el cual tiene carácter de confidencial.
+    </td></tr>
+
+    <tr><td colspan="6" class="sec">E. DATOS DEL PROFESIONAL</td><td colspan="6" class="sec">F. FIRMA DEL USUARIO</td></tr>
+    <tr class="firma-row">
+      <td colspan="2" style="font-size:7pt;vertical-align:middle">NOMBRE Y APELLIDO</td>
+      <td colspan="2" class="val">${v('ca_medico').toUpperCase()}</td>
+      <td style="font-size:7pt;vertical-align:middle">CÓDIGO MÉDICO</td>
+      <td class="val">${v('ca_codmed')}</td>
+      <td colspan="3" style="vertical-align:middle;font-size:7pt">FIRMA Y SELLO</td>
+      <td colspan="3" style="height:60px"></td>
+    </tr>
+  </table>
+  </body></html>`;
+
+  const win=window.open('','_blank','width=900,height=700');
+  win.document.write(html);
+  win.document.close();
+}
+
 // ═══ EMPRESAS CLIENTES (catálogo) ═══
 function filterEmps(q){
   const rows=document.querySelectorAll('.emp_row');
