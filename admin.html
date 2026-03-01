@@ -2791,9 +2791,9 @@ function searchCIE10(input,resId){
   const idx=resId.replace(/\D/g,'');
   const rect=input.getBoundingClientRect();
   box.style.cssText=`position:fixed;z-index:9999;background:#fff;border:2px solid #2b6cb0;border-radius:8px;max-height:180px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,.3);left:${rect.left}px;top:${rect.bottom+2}px;width:${Math.max(rect.width,300)}px`;
-  box.innerHTML=matches.map(c=>`<div style="padding:7px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid #e2e8f0;color:#1a202c" onmouseover="this.style.background='#ebf4ff'" onmouseout="this.style.background='#fff'" onmousedown="FO.data.k.diagnosticos[${idx}].codigo='${c.codigo}';FO.data.k.diagnosticos[${idx}].descripcion='${c.descripcion.replace(/'/g,"\\'")}';render()"><span style="color:#2b6cb0;font-weight:700;margin-right:6px">${c.codigo}</span>${c.descripcion}</div>`).join('');
+  box.innerHTML=matches.map(c=>`<div style="padding:7px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid #e2e8f0;color:#1a202c" onmouseover="this.style.background='#ebf4ff'" onmouseout="this.style.background='#fff'" onmousedown="event.preventDefault();selectCIE(${idx},'${c.codigo}','${c.descripcion.replace(/'/g,"\\'")}')"><span style="color:#2b6cb0;font-weight:700;margin-right:6px">${c.codigo}</span>${c.descripcion}</div>`).join('');
   box.style.display='block';
-  input.onblur=()=>setTimeout(()=>box.style.display='none',200);
+  input.onblur=()=>setTimeout(()=>box.style.display='none',250);
 }
 
 // Búsqueda dinámica CIE-10 por descripción
@@ -2806,9 +2806,19 @@ function searchCIE10Desc(input,resId){
   const idx=resId.replace(/\D/g,'');
   const rect=input.getBoundingClientRect();
   box.style.cssText=`position:fixed;z-index:9999;background:#fff;border:2px solid #2b6cb0;border-radius:8px;max-height:180px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,.3);left:${rect.left}px;top:${rect.bottom+2}px;width:${Math.max(rect.width,350)}px`;
-  box.innerHTML=matches.map(c=>`<div style="padding:7px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid #e2e8f0;color:#1a202c" onmouseover="this.style.background='#ebf4ff'" onmouseout="this.style.background='#fff'" onmousedown="FO.data.k.diagnosticos[${idx}].codigo='${c.codigo}';FO.data.k.diagnosticos[${idx}].descripcion='${c.descripcion.replace(/'/g,"\\'")}';render()"><span style="color:#2b6cb0;font-weight:700;margin-right:6px">${c.codigo}</span>${c.descripcion}</div>`).join('');
+  box.innerHTML=matches.map(c=>`<div style="padding:7px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid #e2e8f0;color:#1a202c" onmouseover="this.style.background='#ebf4ff'" onmouseout="this.style.background='#fff'" onmousedown="event.preventDefault();selectCIE(${idx},'${c.codigo}','${c.descripcion.replace(/'/g,"\\'")}')"><span style="color:#2b6cb0;font-weight:700;margin-right:6px">${c.codigo}</span>${c.descripcion}</div>`).join('');
   box.style.display='block';
-  input.onblur=()=>setTimeout(()=>box.style.display='none',200);
+  input.onblur=()=>setTimeout(()=>box.style.display='none',250);
+}
+
+function selectCIE(idx,codigo,descripcion){
+  FO.data.k.diagnosticos[idx].codigo=codigo;
+  FO.data.k.diagnosticos[idx].descripcion=descripcion;
+  // Cerrar dropdowns
+  document.querySelectorAll('[id^="cie_res_"]').forEach(el=>el.style.display='none');
+  // Re-render solo la sección K
+  const el=document.getElementById('ficha_sec_body');
+  if(el)el.innerHTML=fichaSecK(FO.data.k);
 }
 
 // ── SECCIÓN N: Datos Profesional ──
