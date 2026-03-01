@@ -2827,8 +2827,8 @@ function fichaSecN(n){
   <div class="fg"><label>Código médico</label><input class="fi" id="fo_codmed" value="${n.codigo||''}" placeholder="MSP-12345"></div></div>
   <p style="font-size:11px;color:var(--tm);margin:10px 0;background:var(--bg);padding:8px;border-radius:6px">ℹ️ La firma digital se agregará en la versión de producción.</p>
   <div style="display:flex;gap:8px;margin-top:16px">
-    <button class="btn" style="background:#2b6cb0;color:#fff" onclick="saveFichaSection();saveMedCfgFromCert2();printCertAptFromFicha()">📄 Certificado</button>
-    <button class="btn" style="background:#2b6cb0;color:#fff" onclick="saveFichaSection();alert('🚧 Formulario de impresión en desarrollo')">📋 Formulario</button>
+    <button class="btn" style="background:#2b6cb0;color:#fff" onclick="saveFichaSection();saveMedCfgFromCert2();printCertOficial()">📄 Certificado</button>
+    <button class="btn" style="background:#2b6cb0;color:#fff" onclick="saveFichaSection();printFichaOficial()">📋 Formulario</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="saveFichaSection();alert('🚧 Consentimiento en desarrollo')">✅ Consentimiento</button>
     <button class="btn" style="background:#718096;color:#fff" onclick="saveFichaSection();alert('🚧 Confidencialidad en desarrollo')">🔒 Confidencialidad</button>
   </div>`;
@@ -2875,6 +2875,294 @@ function printCertAptFromFicha(){
 }
 
 // ── GUARDAR FICHA EN SUPABASE ──
+
+// ═══ IMPRESIÓN OFICIAL MSP ═══
+function printStyles(){
+  return`@page{size:A4;margin:8mm 6mm}*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:7.5pt;color:#000}
+  table{border-collapse:collapse;width:100%}td,th{border:.5pt solid #000;padding:2px 3px;font-size:7.5pt;vertical-align:middle}
+  .sec{background:#c5d9f1;font-weight:bold;font-size:8pt;padding:3px 5px}
+  .tit{text-align:center;font-size:11pt;font-weight:bold;padding:6px;background:#dce6f1}
+  .v{font-weight:bold}.c{text-align:center}.s{font-size:6.5pt;color:#444}
+  .chk{font-size:10pt}.obs{min-height:35px;vertical-align:top;padding:3px}
+  .nb{border:none}.pbreak{page-break-before:always}
+  .logo-c{text-align:center;margin-bottom:2px}.logo-c img{max-height:50px;object-fit:contain}`;
+}
+function ck(val,match){return val===match?'☒':'☐';}
+function printOpen(html){const w=window.open('','_blank','width=900,height=700');w.document.write(html);w.document.close();}
+
+function printCertOficial(){
+  const d=FO.data,a=d.a||{},b=d.b||{},l=d.l||{},m=d.m||{},n=d.n||{},ec=getEmpCfg();
+  const f=(b.fecha_atencion||TD).split('-'),apt=l.aptitud||'',tipo=b.tipo_eval||'INGRESO';
+  const recs=((m.estandar||[]).join(' - ')+(m.medicas?' - '+m.medicas:'')).toUpperCase();
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificado Aptitud</title><style>${printStyles()}</style></head><body onload="window.print()">
+  ${ec.logo?`<div class="logo-c"><img src="${ec.logo}"></div>`:''}
+  <table>
+  <tr><td colspan="35" class="tit">CERTIFICADO  - EVALUACIÓN MÉDICA  OCUPACIONAL</td></tr>
+  <tr><td colspan="35" class="sec">A. DATOS DEL ESTABLECIMIENTO - DATOS DEL  USUARIO</td></tr>
+  <tr><td colspan="11" class="s">INSTITUCIÓN DEL SISTEMA</td><td colspan="6" class="s">RUC</td><td colspan="4" class="s">CIIU</td><td colspan="7" class="s">ESTABLECIMIENTO /CENTRO DE TRABAJO</td><td colspan="4" class="s">NÚMERO DE FORMULARIO</td><td colspan="3" class="s">NÚMERO DE ARCHIVO</td></tr>
+  <tr><td colspan="11" class="v">${(a.empresa||'').toUpperCase()}</td><td colspan="6" class="v">${a.ruc||''}</td><td colspan="4" class="v">${a.ciiu||''}</td><td colspan="7" class="v">${(a.centro||a.empresa||'').toUpperCase()}</td><td colspan="4" class="v">${a.nform||''}</td><td colspan="3" class="v">${a.narch||''}</td></tr>
+  <tr><td colspan="9" class="s">PRIMER APELLIDO</td><td colspan="7" class="s">SEGUNDO APELLIDO</td><td colspan="7" class="s">PRIMER NOMBRE</td><td colspan="6" class="s">SEGUNDO NOMBRE</td><td colspan="3" class="s">SEXO</td><td colspan="3" class="s">PUESTO DE TRABAJO (CIUO)</td></tr>
+  <tr><td colspan="9" class="v">${(a.ap1||'').toUpperCase()}</td><td colspan="7" class="v">${(a.ap2||'').toUpperCase()}</td><td colspan="7" class="v">${(a.n1||'').toUpperCase()}</td><td colspan="6" class="v">${(a.n2||'').toUpperCase()}</td><td colspan="3" class="v c">${(a.sexo||'M').charAt(0)}</td><td colspan="3" class="v" style="font-size:6.5pt">${(b.puesto_ciuo||a.cargo||'').toUpperCase()}</td></tr>
+  <tr><td colspan="35" class="sec">B. DATOS GENERALES</td></tr>
+  <tr><td colspan="8"></td><td colspan="2" class="s c">aaaa</td><td colspan="2" class="s c">mm</td><td colspan="2" class="s c">dd</td><td colspan="21"></td></tr>
+  <tr><td colspan="8">FECHA DE EMISIÓN:</td><td colspan="2" class="v c">${f[0]||''}</td><td colspan="2" class="v c">${f[1]||''}</td><td colspan="2" class="v c">${f[2]||''}</td><td colspan="21"></td></tr>
+  <tr><td colspan="8">EVALUACIÓN:</td><td colspan="7" class="c">INGRESO <span class="chk">${ck(tipo,'INGRESO')}</span></td><td colspan="7" class="c">PERIÓDICO <span class="chk">${ck(tipo,'PERIÓDICO')}</span></td><td colspan="7" class="c">REINTEGRO <span class="chk">${ck(tipo,'REINTEGRO')}</span></td><td colspan="6" class="c">RETIRO <span class="chk">${ck(tipo,'RETIRO')}</span></td></tr>
+  <tr><td colspan="35" class="sec">C. APTITUD MÉDICA PARA EL TRABAJO</td></tr>
+  <tr><td colspan="35" style="font-size:6.5pt;font-style:italic">Después de la valoración médica ocupacional se certifica que la persona en mención, es calificada como:</td></tr>
+  <tr><td colspan="9" class="c v">APTO <span class="chk">${ck(apt,'APTO')}</span></td><td colspan="9" class="c v" style="font-size:7pt">APTO EN OBSERVACIÓN <span class="chk">${ck(apt,'APTO EN OBSERVACIÓN')}</span></td><td colspan="9" class="c v" style="font-size:7pt">APTO CON LIMITACIONES <span class="chk">${ck(apt,'APTO CON LIMITACIONES')}</span></td><td colspan="8" class="c v">NO APTO <span class="chk">${ck(apt,'NO APTO')}</span></td></tr>
+  <tr><td colspan="35" class="s">DETALLE DE OBSERVACIONES:</td></tr>
+  <tr><td colspan="35" class="obs" style="min-height:50px">${(l.observaciones||'').toUpperCase()}</td></tr>
+  <tr><td colspan="35" class="sec">D. RECOMENDACIONES/OBSERVACIONES</td></tr>
+  <tr><td colspan="35" class="obs" style="min-height:60px">${recs}</td></tr>
+  <tr><td colspan="35" class="nb" style="font-size:6.5pt;font-style:italic;padding:5px;line-height:1.6">Con este documento certifico que el trabajador se ha sometido a la evaluación médica requerida para el ingreso / la ejecución / el reingreso y retiro al puesto laboral y se le ha informado sobre los riesgos relacionados con el trabajo emitiendo recomendaciones relacionadas con su estado de salud.<br><br>La presente certificación se expide con base en el formulario de Evaluación Ocupacional, el cual tiene carácter de confidencial.</td></tr>
+  <tr><td colspan="18" class="sec">E. DATOS DEL PROFESIONAL</td><td colspan="17" class="sec">F. FIRMA DEL USUARIO</td></tr>
+  <tr style="height:50px"><td colspan="6" class="s" style="vertical-align:middle">NOMBRE Y APELLIDO</td><td colspan="6" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="3" class="s" style="vertical-align:middle">CÓDIGO MEDICO</td><td colspan="3" class="v">${n.codigo||''}</td><td colspan="9" class="c s">FIRMA Y SELLO</td><td colspan="8"></td></tr>
+  </table></body></html>`;
+  printOpen(html);
+}
+
+function printFichaOficial(){
+  const d=FO.data,a=d.a||{},b=d.b||{},c=d.c||{},dd2=d.d||{},e=d.e||{},f=d.f||{},g=d.g||{},h=d.h||{},ii2=d.i||{},j=d.j||{},k=d.k||{},l=d.l||{},m=d.m||{},n=d.n||{};
+  const ec=getEmpCfg(),p=gP(FO.pid)||{};
+  const fa=(b.fecha_atencion||TD).split('-');
+  const fi=(b.fecha_ingreso||'').split('-');
+  const tipo=b.tipo_eval||'INGRESO',apt=l.aptitud||'';
+  const edad=p.fecha_nacimiento?Math.floor((new Date()-new Date(p.fecha_nacimiento))/31557600000):'';
+  const fn=(p.fecha_nacimiento||'').split('-');
+  const hall=f.hallazgos||{};
+  const lits='abcdefghij';
+
+  // Regiones examen físico
+  const regiones=[
+    {n:1,t:'Piel',items:['Cicatrices','Piel y faneras']},
+    {n:2,t:'Ojos',items:['Párpados','Conjuntivas','Pupilas','Córnea','Motilidad']},
+    {n:3,t:'Oído',items:['C. auditivo ext.','Pabellón','Tímpanos']},
+    {n:4,t:'Orofaringe',items:['Labios','Lengua','Faringe','Amígdalas','Dentadura']},
+    {n:5,t:'Nariz',items:['Tabique','Cornetes','Mucosas','Senos paranasales']},
+    {n:6,t:'Cuello',items:['Tiroides/masas','Movilidad']},
+    {n:7,t:'Tórax',items:['Mamas']},
+    {n:8,t:'Tórax Órganos',items:['Pulmones','Corazón','Parrilla costal']},
+    {n:9,t:'Abdomen',items:['Vísceras','Pared abdominal']},
+    {n:10,t:'Columna',items:['Flexibilidad','Desviación','Dolor']},
+    {n:11,t:'Pelvis',items:['Pelvis','Genitales']},
+    {n:12,t:'Extremidades',items:['Vascular','M. Superiores','M. Inferiores']},
+    {n:13,t:'Neurológico',items:['Fuerza','Sensibilidad','Marcha','Reflejos']}
+  ];
+  function xMark(rn,idx){const key=rn+lits[idx];return hall[key]?'X':'';}
+
+  // Riesgos
+  const riesgos=g.riesgos||{};
+  const hrs=[1,2,3,4,5,6,7];
+  const riskCats=[
+    {k:'fisicos',t:'FÍSICO',items:['Temperaturas altas','Temperaturas bajas','Radiación Ionizante','Radiación No Ionizante','Ruido','Vibración','Iluminación','Ventilación','Fluido eléctrico']},
+    {k:'seguridad_loc',t:'LOCATIVOS',items:['Falta de señalización, aseo, desorden']},
+    {k:'seguridad_mec',t:'MECÁNICOS',items:['Atrapamiento entre máquinas y/o superficies','Atrapamiento entre objetos','Caída de objetos','Caídas al mismo nivel','Caídas a diferente nivel','Pinchazos','Cortes','Choques/colisión vehicular','Atropellamientos por vehículos','Proyección de fluidos','Proyección de partículas/fragmentos','Contacto con superficies de trabajo']},
+    {k:'seguridad_ele',t:'ELÉCTRICOS',items:['Contacto eléctrico']},
+    {k:'quimicos',t:'QUÍMICO',items:['Polvos','Sólidos','Humos','Líquidos','Vapores','Aerosoles','Neblinas','Gaseosos']},
+    {k:'biologicos',t:'BIOLÓGICO',items:['Virus','Hongos','Bacterias','Parásitos','Exposición a vectores','Exposición a animales selváticos']},
+    {k:'ergonomicos',t:'ERGONÓMICO',items:['Manejo manual de cargas','Movimientos repetitivos','Posturas forzadas','Trabajos con PVD','Diseño inadecuado del puesto']},
+    {k:'psicosociales',t:'PSICOSOCIAL',items:['Monotonía del trabajo','Sobrecarga laboral','Minuciosidad de la tarea','Alta responsabilidad','Autonomía en la toma de decisiones','Supervisión y estilos de dirección deficiente','Conflicto de rol','Falta de claridad en las funciones','Incorrecta distribución del trabajo','Turnos rotativos','Relaciones interpersonales','Inestabilidad laboral','Amenaza delincuencial']}
+  ];
+  function riskX(cat,item,hr){const rk=cat+'_'+item.replace(/[^a-zA-Z0-9]/g,'').toLowerCase()+'_h'+hr;return riesgos[rk]?'X':'';}
+
+  // HOJA 1/3
+  let pg1=`${ec.logo?`<div class="logo-c"><img src="${ec.logo}"></div>`:''}
+  <table>
+  <tr><td colspan="57" class="tit">FORMULARIO DE EVALUACIÓN MÉDICA OCUPACIONAL</td></tr>
+  <tr><td colspan="57" class="sec">A. DATOS DEL ESTABLECIMIENTO - DATOS DEL USUARIO</td></tr>
+  <tr><td colspan="15" class="s">INSTITUCIÓN DEL SISTEMA</td><td colspan="9" class="s">RUC</td><td colspan="3" class="s">CIIU</td><td colspan="13" class="s">ESTABLECIMIENTO /CENTRO DE TRABAJO</td><td colspan="10" class="s">NUMERO DE HISTORIA CLINICA</td><td colspan="7" class="s">NÚMERO DE ARCHIVO</td></tr>
+  <tr><td colspan="15" class="v">${(a.empresa||'').toUpperCase()}</td><td colspan="9" class="v">${a.ruc||''}</td><td colspan="3" class="v">${a.ciiu||''}</td><td colspan="13" class="v">${(a.centro||a.empresa||'').toUpperCase()}</td><td colspan="10" class="v">${a.nform||''}</td><td colspan="7" class="v">${a.narch||''}</td></tr>
+  <tr><td colspan="17" class="s">PRIMER APELLIDO</td><td colspan="15" class="s">SEGUNDO APELLIDO</td><td colspan="10" class="s">PRIMER NOMBRE</td><td colspan="15" class="s">SEGUNDO NOMBRE</td></tr>
+  <tr><td colspan="17" class="v">${(a.ap1||'').toUpperCase()}</td><td colspan="15" class="v">${(a.ap2||'').toUpperCase()}</td><td colspan="10" class="v">${(a.n1||'').toUpperCase()}</td><td colspan="15" class="v">${(a.n2||'').toUpperCase()}</td></tr>
+  <tr><td colspan="19" class="s">ATENCIÓN PRIORITARIA</td><td colspan="5" class="s">SEXO</td><td colspan="6" class="s">FECHA DE NACIMIENTO</td><td colspan="4" class="s">Edad</td><td colspan="8" class="s">GRUPO SANGUÍNEO</td><td colspan="15" class="s">LATERALIDAD</td></tr>
+  <tr><td colspan="19" class="v" style="font-size:6.5pt">${(a.atencion_prioritaria||[]).join(', ')||'Ninguna'}</td><td colspan="5" class="v c">${(a.sexo||'').charAt(0)}</td><td colspan="2" class="v c">${fn[0]||''}</td><td colspan="2" class="v c">${fn[1]||''}</td><td colspan="2" class="v c">${fn[2]||''}</td><td colspan="4" class="v c">${edad}</td><td colspan="8" class="v c">${a.grupo_sang||''}</td><td colspan="15" class="v">${a.lateralidad||'Diestro'}</td></tr>
+
+  <tr><td colspan="57" class="sec">B. MOTIVO DE CONSULTA</td></tr>
+  <tr><td colspan="23" class="s">Puesto de Trabajo CIUO</td><td colspan="15" class="s">Fecha de Atención aaaa/mm/dd</td><td colspan="19"></td></tr>
+  <tr><td colspan="23" class="v">${(b.puesto_ciuo||a.cargo||'').toUpperCase()}</td><td colspan="5" class="v c">${fa[0]||''}</td><td colspan="5" class="v c">${fa[1]||''}</td><td colspan="5" class="v c">${fa[2]||''}</td><td colspan="14"></td></tr>
+  <tr><td colspan="13">INGRESO <span class="chk">${ck(tipo,'INGRESO')}</span></td><td colspan="15" class="c">PERIÓDICO <span class="chk">${ck(tipo,'PERIÓDICO')}</span></td><td colspan="14" class="c">REINTEGRO <span class="chk">${ck(tipo,'REINTEGRO')}</span></td><td colspan="15" class="c">RETIRO <span class="chk">${ck(tipo,'RETIRO')}</span></td></tr>
+  <tr><td colspan="57" class="s">Observación</td></tr>
+  <tr><td colspan="57" class="obs">${(b.observacion||'').toUpperCase()}</td></tr>
+
+  <tr><td colspan="57" class="sec">C. ANTECEDENTES PERSONALES</td></tr>
+  <tr><td colspan="57" class="s">ANTECEDENTES CLÍNICOS Y QUIRÚRGICOS</td></tr>
+  <tr><td colspan="57" class="obs">${(c.ant_clinicos||'').toUpperCase().replace(/\n/g,'<br>')}</td></tr>
+  <tr><td colspan="57" class="s">ANTECEDENTES FAMILIARES</td></tr>
+  <tr><td colspan="57" class="obs">${(c.ant_familiares||'').toUpperCase()}</td></tr>
+  <tr><td colspan="57" class="s">Condición especial para las atenciones de urgencia</td></tr>
+  <tr><td colspan="14">Autoriza transfusiones:</td><td colspan="4" class="c">SI <span class="chk">${ck(c.aut_transfusion,'Sí')}</span></td><td colspan="4" class="c">NO <span class="chk">${ck(c.aut_transfusion,'No')}</span></td><td colspan="12">Tratamiento hormonal:</td><td colspan="4" class="c">SI <span class="chk">${ck(c.trat_hormonal,'Sí')}</span></td><td colspan="12" class="v">${c.trat_hormonal==='Sí'?'¿Cuál? '+(c.trat_hormonal_detalle||''):''}</td><td colspan="7" class="c">NO <span class="chk">${ck(c.trat_hormonal,'No')}</span></td></tr>
+
+  <tr><td colspan="57" class="s">CONSUMO DE SUSTANCIAS</td></tr>
+  <tr><td colspan="12" class="s">SUSTANCIA</td><td colspan="6" class="s c">TIEMPO CONSUMO (meses)</td><td colspan="6" class="s c">EX CONSUMIDOR</td><td colspan="6" class="s c">ABSTINENCIA (meses)</td><td colspan="6" class="s c">NO CONSUME</td><td colspan="21"></td></tr>
+  ${(c.sustancias||[]).map(s=>`<tr><td colspan="12" class="v">${(s.nombre||'').toUpperCase()}</td><td colspan="6" class="c">${s.estado==='Activo'?s.consumo||'':''}</td><td colspan="6" class="c">${s.estado==='Pasivo'?'X':''}</td><td colspan="6" class="c">${s.estado==='Pasivo'?s.abstinencia||'':''}</td><td colspan="6" class="c">${s.estado==='Nunca'?'X':''}</td><td colspan="21"></td></tr>`).join('')}
+
+  <tr><td colspan="57" class="s">MEDICACIÓN HABITUAL</td></tr>
+  <tr><td colspan="57" class="obs">${(c.medicacion||'').toUpperCase()}</td></tr>
+
+  <tr><td colspan="57" class="sec">D. ENFERMEDAD O PROBLEMA ACTUAL</td></tr>
+  <tr><td colspan="57" class="obs" style="min-height:30px">${(dd2.descripcion||'').toUpperCase()}</td></tr>
+
+  <tr><td colspan="57" class="sec">E. CONSTANTES VITALES Y ANTROPOMETRÍA</td></tr>
+  <tr><td colspan="7" class="s c">TEMPERATURA (°C)</td><td colspan="7" class="s c">PRESIÓN ARTERIAL (mmHg)</td><td colspan="7" class="s c">FREC. CARDIACA (Lat/min)</td><td colspan="7" class="s c">FREC. RESPIRATORIA (fr/min)</td><td colspan="6" class="s c">SAT O2 (%)</td><td colspan="5" class="s c">PESO (Kg)</td><td colspan="5" class="s c">TALLA (cm)</td><td colspan="7" class="s c">IMC (kg/m²)</td><td colspan="6" class="s c">PERÍMETRO ABD. (cm)</td></tr>
+  <tr><td colspan="7" class="v c">${e.temp||''}</td><td colspan="7" class="v c">${e.pa_s||''}/${e.pa_d||''}</td><td colspan="7" class="v c">${e.fc||''}</td><td colspan="7" class="v c">${e.fr||''}</td><td colspan="6" class="v c">${e.sat||''}</td><td colspan="5" class="v c">${e.peso||''}</td><td colspan="5" class="v c">${e.talla||''}</td><td colspan="7" class="v c">${e.imc||''} ${e.clasif_imc?'('+e.clasif_imc+')':''}</td><td colspan="6" class="v c">${e.perim_abd||''}</td></tr>
+
+  <tr><td colspan="57" class="sec">F. EXAMEN FÍSICO REGIONAL</td></tr>
+  <tr><td colspan="57" class="s">SI EXISTE EVIDENCIA DE PATOLOGÍA MARCAR CON "X" Y DESCRIBIR EN OBSERVACIONES</td></tr>`;
+
+  // Examen físico en formato de columnas como el formulario oficial
+  const col1=regiones.filter(r=>[1,2].includes(r.n));
+  const col2=regiones.filter(r=>[3,4].includes(r.n));
+  const col3=regiones.filter(r=>[5,6,7].includes(r.n));
+  const col4=regiones.filter(r=>[8,9,10].includes(r.n));
+  const col5=regiones.filter(r=>[11,12,13].includes(r.n));
+  const maxRows=Math.max(...[col1,col2,col3,col4,col5].map(c=>{let n=0;c.forEach(r=>{n++;n+=r.items.length;});return n;}));
+
+  function flatCol(cols){
+    let rows=[];
+    cols.forEach(r=>{
+      rows.push({type:'header',n:r.n,t:r.t});
+      r.items.forEach((it,idx)=>rows.push({type:'item',rn:r.n,idx,t:lits[idx]+'. '+it}));
+    });
+    return rows;
+  }
+  const fc=[flatCol(col1),flatCol(col2),flatCol(col3),flatCol(col4),flatCol(col5)];
+  const mr=Math.max(...fc.map(c=>c.length));
+  for(let i=0;i<mr;i++){
+    pg1+=`<tr>`;
+    fc.forEach(col=>{
+      const r=col[i];
+      if(!r){pg1+=`<td colspan="2" class="s"></td><td colspan="9"></td>`;return;}
+      if(r.type==='header'){pg1+=`<td colspan="2" class="v" style="font-size:6.5pt">${r.n}. ${r.t}</td><td colspan="9"></td>`;}
+      else{pg1+=`<td colspan="2" class="s" style="padding-left:8px">${r.t}</td><td colspan="9" class="c v">${xMark(r.rn,r.idx)}</td>`;}
+    });
+    pg1+=`</tr>`;
+  }
+
+  pg1+=`<tr><td colspan="57" class="s">Observación:</td></tr>
+  <tr><td colspan="57" class="obs" style="min-height:40px">${(f.observaciones||'').toUpperCase().replace(/\n/g,'<br>')}</td></tr>
+  </table>`;
+
+  // HOJA 2/3 - FACTORES DE RIESGO
+  let pg2=`<table>
+  <tr><td colspan="16" class="sec">G. FACTORES DE RIESGO DEL TRABAJO ACTUAL</td></tr>
+  <tr><td colspan="6" class="s">PUESTO DE TRABAJO</td><td colspan="10" class="v">${(b.puesto_ciuo||a.cargo||'').toUpperCase()}</td></tr>
+  <tr><td colspan="6" class="s">ACTIVIDADES IMPORTANTES</td>${hrs.map(h=>`<td class="s c" style="width:5%">${h}</td>`).join('')}<td colspan="3" class="s c">OBSERV.</td></tr>`;
+
+  const mainCats=['FÍSICO','DE SEGURIDAD','QUÍMICO','BIOLÓGICO','ERGONÓMICO','PSICOSOCIAL'];
+  let currentMain='';
+  riskCats.forEach(rc=>{
+    const isMain=mainCats.includes(rc.t);
+    const isSub=['LOCATIVOS','MECÁNICOS','ELÉCTRICOS'].includes(rc.t);
+    if(isMain||rc.t==='LOCATIVOS'){
+      if(rc.t==='LOCATIVOS')pg2+=`<tr><td rowspan="${14+rc.items.length}" class="v" style="writing-mode:vertical-lr;text-align:center;font-size:7pt;width:12px">DE SEGURIDAD</td>`;
+    }
+    if(isMain&&rc.t!=='FÍSICO'){
+      // Main category row
+    }
+    if(isSub){
+      pg2+=`<td class="v" style="font-size:6.5pt;writing-mode:vertical-lr;text-align:center;width:10px">${rc.t}</td>`;
+    }
+    rc.items.forEach((item,idx)=>{
+      const isFirst=idx===0;
+      if(isMain&&!isSub&&isFirst){
+        pg2+=`<tr><td rowspan="${rc.items.length}" class="v" style="writing-mode:vertical-lr;text-align:center;font-size:7pt;width:12px">${rc.t}</td>`;
+      }else if(!isFirst||isSub){
+        pg2+=`<tr>`;
+      }
+      pg2+=`<td colspan="5" style="font-size:6.5pt">${item}</td>`;
+      hrs.forEach(hr=>{
+        pg2+=`<td class="c v">${riskX(rc.k,item,hr)}</td>`;
+      });
+      pg2+=`<td colspan="3"></td></tr>`;
+    });
+    // Otros
+    pg2+=`<tr><td colspan="5" style="font-size:6.5pt">Otros: ${g[rc.k+'_otros']||''}</td>${hrs.map(()=>`<td></td>`).join('')}<td colspan="3"></td></tr>`;
+  });
+
+  pg2+=`<tr><td colspan="16" class="sec">MEDIDAS PREVENTIVAS</td></tr>
+  <tr><td colspan="16" class="obs" style="min-height:30px">${(g.medidas||'').toUpperCase().replace(/\n/g,'<br>')}</td></tr>
+  </table>`;
+
+  // HOJA 3/3
+  let pg3=`<table>
+  <tr><td colspan="62" class="sec">H. ACTIVIDAD LABORAL/ INCIDENTES/ACCIDENTES / ENFERMEDADES OCUPACIONALES</td></tr>
+  <tr><td colspan="62" class="s">ANTECEDENTES DE EMPLEOS ANTERIORES Y/O TRABAJO ACTUAL</td></tr>
+  <tr><td colspan="8" class="s">CENTRO DE TRABAJO</td><td colspan="13" class="s">ACTIVIDADES QUE DESEMPEÑABA</td><td colspan="2" class="s c">ANT.</td><td colspan="2" class="s c">ACT.</td><td colspan="3" class="s c">TIEMPO</td><td colspan="2" class="s c">INCID.</td><td colspan="3" class="s c">ACCID.</td><td colspan="4" class="s c">ENF. PROF.</td><td colspan="2" class="s c">SI</td><td colspan="2" class="s c">NO</td><td colspan="5" class="s">FECHA</td><td colspan="8" class="s">ESPECIFICAR</td><td colspan="8" class="s">OBSERVACIONES</td></tr>`;
+
+  const empleos=h.empleos||[];
+  for(let i=0;i<Math.max(empleos.length,5);i++){
+    const emp=empleos[i]||{};
+    const inc=emp.inc_data||{};
+    const hasInc=inc.incidente?.marcado;
+    const hasAcc=inc.accidente?.marcado;
+    const hasEnf=inc.enfermedad_profesional?.marcado;
+    const calSI=(hasInc&&inc.incidente?.iess==='SI')||(hasAcc&&inc.accidente?.iess==='SI')||(hasEnf&&inc.enfermedad_profesional?.iess==='SI');
+    const calNO=!calSI&&(hasInc||hasAcc||hasEnf);
+    const desc=[inc.incidente?.descripcion,inc.accidente?.descripcion,inc.enfermedad_profesional?.descripcion].filter(Boolean).join('; ');
+    const fCal=inc.incidente?.fecha_calif||inc.accidente?.fecha_calif||inc.enfermedad_profesional?.fecha_calif||'';
+    const obsCal=inc.incidente?.obs_calif||inc.accidente?.obs_calif||inc.enfermedad_profesional?.obs_calif||'';
+    pg3+=`<tr style="height:18px"><td colspan="8" style="font-size:6.5pt">${(emp.centro||'').toUpperCase()}</td><td colspan="13" style="font-size:6.5pt">${(emp.cargo||'').toUpperCase()}</td><td colspan="2" class="c">${emp.estado==='ANTERIOR'?'X':''}</td><td colspan="2" class="c">${emp.estado==='ACTUAL'?'X':''}</td><td colspan="3" class="c" style="font-size:6.5pt">${emp.tiempo||''}</td><td colspan="2" class="c">${hasInc?'X':''}</td><td colspan="3" class="c">${hasAcc?'X':''}</td><td colspan="4" class="c">${hasEnf?'X':''}</td><td colspan="2" class="c">${calSI?'X':''}</td><td colspan="2" class="c">${calNO?'X':''}</td><td colspan="5" style="font-size:6pt">${fCal}</td><td colspan="8" style="font-size:6pt">${desc}</td><td colspan="8" style="font-size:6pt">${obsCal}</td></tr>`;
+  }
+
+  // I. Actividades extra laborales
+  pg3+=`<tr><td colspan="62" class="sec">I. ACTIVIDADES EXTRA LABORALES</td></tr>
+  <tr><td colspan="20" class="s">TIPO DE ACTIVIDAD</td><td colspan="32" class="s">DESCRIPCIÓN</td><td colspan="10" class="s">FECHA aaaa/mm/dd</td></tr>`;
+  const extras=ii2.actividades||[];
+  for(let i=0;i<Math.max(extras.length,2);i++){
+    const ex=extras[i]||{};
+    pg3+=`<tr><td colspan="20" style="font-size:6.5pt">${(ex.tipo||'').toUpperCase()}</td><td colspan="32" style="font-size:6.5pt">${(ex.descripcion||'').toUpperCase()}</td><td colspan="10" style="font-size:6.5pt">${ex.fecha||''}</td></tr>`;
+  }
+
+  // J. Resultados de exámenes
+  pg3+=`<tr><td colspan="62" class="sec">J. RESULTADOS DE EXÁMENES GENERALES Y ESPECÍFICOS</td></tr>
+  <tr><td colspan="15" class="s">NOMBRE DEL EXAMEN</td><td colspan="10" class="s">FECHA aaaa/mm/dd</td><td colspan="37" class="s">RESULTADOS</td></tr>`;
+  const cats=j.categorias||[];
+  cats.forEach(cat=>{
+    const items=cat.items||[];
+    const resultStr=items.filter(x=>x.valor).map(x=>`${x.nombre}: ${x.valor} ${x.unidad||''}`).join(' - ');
+    pg3+=`<tr><td colspan="15" class="v" style="font-size:6.5pt">${cat.nombre.toUpperCase()}</td><td colspan="10" class="c" style="font-size:6.5pt">${cat.fecha||''}</td><td colspan="37" style="font-size:6.5pt">${resultStr}</td></tr>`;
+  });
+  if(cats.length<4)for(let i=cats.length;i<4;i++)pg3+=`<tr><td colspan="15"></td><td colspan="10"></td><td colspan="37"></td></tr>`;
+  pg3+=`<tr><td colspan="62" class="s">OBSERVACIONES:</td></tr>
+  <tr><td colspan="62" class="obs">${(j.observaciones||'').toUpperCase()}</td></tr>`;
+
+  // K. Diagnóstico
+  pg3+=`<tr><td colspan="62" class="sec">K. DIAGNÓSTICO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRE: Presuntivo &nbsp;&nbsp; DEF: Definitivo</td></tr>
+  <tr><td colspan="5" class="s">CIE-10</td><td colspan="49" class="s">Descripción</td><td colspan="4" class="s c">PRE</td><td colspan="4" class="s c">DEF</td></tr>`;
+  const dxs=k.diagnosticos||[];
+  for(let i=0;i<Math.max(dxs.length,6);i++){
+    const dx=dxs[i]||{};
+    pg3+=`<tr><td colspan="5" class="v">${dx.codigo||''}</td><td colspan="49" style="font-size:6.5pt">${(dx.descripcion||'').toUpperCase()}</td><td colspan="4" class="c">${dx.tipo==='PRE'?'X':''}</td><td colspan="4" class="c">${dx.tipo==='DEF'?'X':''}</td></tr>`;
+  }
+
+  // L. Aptitud
+  pg3+=`<tr><td colspan="62" class="sec">L. APTITUD MÉDICA PARA EL TRABAJO</td></tr>
+  <tr><td colspan="15" class="c v">APTO <span class="chk">${ck(apt,'APTO')}</span></td><td colspan="15" class="c v" style="font-size:7pt">APTO EN OBSERVACIÓN <span class="chk">${ck(apt,'APTO EN OBSERVACIÓN')}</span></td><td colspan="16" class="c v" style="font-size:7pt">APTO CON LIMITACIONES <span class="chk">${ck(apt,'APTO CON LIMITACIONES')}</span></td><td colspan="16" class="c v">NO APTO <span class="chk">${ck(apt,'NO APTO')}</span></td></tr>
+  <tr><td colspan="62" class="s">OBSERVACIONES:</td></tr>
+  <tr><td colspan="62" class="obs">${(l.observaciones||'').toUpperCase()}</td></tr>`;
+
+  // M. Recomendaciones
+  const recs=((m.estandar||[]).join(' - ')+(m.medicas?' - '+m.medicas:'')).toUpperCase();
+  pg3+=`<tr><td colspan="62" class="sec">M. RECOMENDACIONES Y/O TRATAMIENTO</td></tr>
+  <tr><td colspan="62" class="obs" style="min-height:40px">${recs}</td></tr>`;
+
+  // O. Datos profesional
+  pg3+=`<tr><td colspan="33" class="sec">O. DATOS DEL PROFESIONAL</td><td colspan="29" class="sec">P. FIRMA DEL TRABAJADOR</td></tr>
+  <tr style="height:50px"><td colspan="12" class="s">NOMBRES Y APELLIDOS</td><td colspan="8" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="6" class="s">CÓDIGO MEDICO</td><td colspan="7" class="v">${n.codigo||''}</td><td colspan="15" class="c s">FIRMA Y SELLO</td><td colspan="14"></td></tr>
+  </table>`;
+
+  // Unir todo
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ficha Ocupacional</title>
+  <style>${printStyles()}</style></head><body onload="window.print()">
+  ${pg1}
+  <div class="pbreak"></div>
+  ${pg2}
+  <div class="pbreak"></div>
+  ${pg3}
+  </body></html>`;
+  printOpen(html);
+}
+
 async function saveFicha(){
   saveFichaSection();
   const d=FO.data;
