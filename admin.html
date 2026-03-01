@@ -227,6 +227,9 @@ async function loadAll(){
     S.cargos_ciuo=cargos?cargos.map(c=>({id:c.id,codigo:c.codigo,nombre:c.nombre})):[];
     S.cie10=cie?cie.map(c=>({id:c.id,codigo:c.codigo,descripcion:c.descripcion})):[];
     console.log('📦 Cargados:',S.cargos_ciuo.length,'cargos CIUO,',S.cie10.length,'CIE-10');
+    // Load recomendaciones personalizadas
+    S.recs_custom=[];S.recs_retiro=[];
+    await loadRecsCustom();
     // Load config
     const cfg=await SB.get('configuracion','select=*');
     if(cfg){cfg.forEach(c=>{
@@ -2207,7 +2210,7 @@ function openFicha(pid,aid){
   // Buscar ficha existente del paciente
   if(DB_OK){
     SB.get('fichas_ocupacionales',`select=*&paciente_id=eq.${pid}&order=created_at.desc&limit=1`).then(r=>{
-      if(r&&r[0]){FO.fid=r[0].id;FO.data={a:r[0].seccion_a||{},b:r[0].seccion_b||{},c:r[0].seccion_c||{},d:r[0].seccion_d||{},e:r[0].seccion_e||{},f:r[0].seccion_f||{},g:r[0].seccion_g||{},h:r[0].seccion_h||{},i:r[0].seccion_i||{},j:r[0].seccion_j||{},k:r[0].seccion_k||{},l:r[0].seccion_l||{},m:r[0].seccion_m||{},n:r[0].seccion_n||{}};}
+      if(r&&r[0]){FO.fid=r[0].id;FO.data={a:r[0].seccion_a||{},b:r[0].seccion_b||{},c:r[0].seccion_c||{},d:r[0].seccion_d||{},e:r[0].seccion_e||{},f:r[0].seccion_f||{},g:r[0].seccion_g||{},h:r[0].seccion_h||{},i:r[0].seccion_i||{},j:r[0].seccion_j||{},k:r[0].seccion_k||{},l:r[0].seccion_l||{},m:r[0].seccion_m||{},n:r[0].seccion_n||{},r:r[0].seccion_r||{}};}
       else{preloadFichaData(p);}
       S.v='ficha';render();
     });
@@ -2237,13 +2240,14 @@ function preloadFichaData(p){
     k:{diagnosticos:[]},
     l:{aptitud:'',observaciones:''},
     m:{estandar:[],medicas:''},
-    n:{medico:mc.nombre||S.u?.nombre||'',codigo:mc.codigo||''}
+    n:{medico:mc.nombre||S.u?.nombre||'',codigo:mc.codigo||''},r:{se_realiza:'SÍ',condicion_trabajo:'NO',observacion:'NINGUNA'}
   };
 }
 
 function rFichaOcup(){
   const p=gP(FO.pid);if(!p)return'<div class="es">Paciente no encontrado</div>';
   const emp=(S.empresas_cli||[]).find(e=>e.nombre?.toLowerCase()===p.empresa?.toLowerCase())||{};
+  const isRetiro=(FO.data.b||{}).tipo_eval==='RETIRO';
   const secs=[
     {k:'A',t:'Datos del Paciente',i:'👤'},
     {k:'B',t:'Motivo Consulta',i:'📋'},
@@ -2258,6 +2262,7 @@ function rFichaOcup(){
     {k:'K',t:'Diagnóstico',i:'📊'},
     {k:'L',t:'Aptitud Médica',i:'✅'},
     {k:'M',t:'Recomendaciones',i:'💡'},
+    ...(isRetiro?[{k:'R',t:'Retiro (Evaluación)',i:'🚪'}]:[]),
     {k:'N',t:'Datos Profesional',i:'👨‍⚕️'}
   ];
   const prog=calcFichaProgress();
@@ -2296,7 +2301,7 @@ function rFichaOcup(){
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:10px">
         <button class="btn bg" onclick="fichaNav(-1)" ${FO.sec==='A'?'disabled':''}>← Anterior</button>
-        <button class="btn bp" onclick="fichaNav(1)" ${FO.sec==='N'?'disabled':''}>Siguiente →</button>
+        <button class="btn bp" onclick="fichaNav(1)" ${FO.sec===secs[secs.length-1].k?'disabled':''}>Siguiente →</button>
       </div>
     </div>
 
@@ -2311,7 +2316,8 @@ function rFichaOcup(){
 
 function calcFichaProgress(){
   const d=FO.data;if(!d||!d.a)return 0;
-  let filled=0,total=14;
+  const isRetiro=(d.b||{}).tipo_eval==='RETIRO';
+  let filled=0,total=isRetiro?15:14;
   if(d.a?.empresa)filled++;
   if(d.b?.tipo_eval)filled++;
   if(d.c?.ant_clinicos||d.c?.ant_familiares)filled++;
@@ -2325,13 +2331,15 @@ function calcFichaProgress(){
   if((d.k?.diagnosticos||[]).length)filled++;
   if(d.l?.aptitud)filled++;
   if(d.m?.medicas||(d.m?.estandar||[]).length)filled++;
+  if(isRetiro&&d.r?.se_realiza)filled++;
   if(d.n?.medico)filled++;
   return Math.round(filled/total*100);
 }
 
 function fichaNav(dir){
   saveFichaSection();
-  const keys='ABCDEFGHIJKLMN';
+  const isRetiro=(FO.data.b||{}).tipo_eval==='RETIRO';
+  const keys=isRetiro?['A','B','C','D','E','F','G','H','I','J','K','L','M','R','N']:['A','B','C','D','E','F','G','H','I','J','K','L','M','N'];
   const i=keys.indexOf(FO.sec)+dir;
   if(i>=0&&i<keys.length){FO.sec=keys[i];render();}
 }
@@ -2359,6 +2367,8 @@ function saveFichaSection(){
     d.l={...d.l,observaciones:gv('fo_l_obs')};
   }else if(s==='M'){
     d.m={...d.m,medicas:gv('fo_m_med')};
+  }else if(s==='R'){
+    d.r={...d.r,se_realiza:d.r?.se_realiza||'',condicion_trabajo:d.r?.condicion_trabajo||'',observacion:gv('fo_r_obs')};
   }else if(s==='N'){
     d.n={medico:gv('fo_medico'),codigo:gv('fo_codmed')};
   }
@@ -2381,6 +2391,7 @@ function fichaSecContent(s){
   if(s==='K') return fichaSecK(k);
   if(s==='L') return fichaSecL(l);
   if(s==='M') return fichaSecM(m);
+  if(s==='R') return fichaSecRetiro(d.r||{});
   if(s==='N') return fichaSecN(n);
   return '';
 }
@@ -2710,7 +2721,10 @@ function fichaSecL(l){
 
 // ── SECCIÓN M: Recomendaciones ──
 function fichaSecM(m){
-  const recs=[
+  const tipoEval=(FO.data.b||{}).tipo_eval||'INGRESO';
+  const isRetiro=tipoEval==='RETIRO';
+
+  const recsNormales=[
     'ALIMENTACIÓN SALUDABLE HIPOGRASA, BAJA EN AZÚCARES Y HARINAS REFINADAS.',
     'ACTIVIDAD FÍSICA DE BAJO IMPACTO, AL MENOS 30 MINUTOS AL DÍA.',
     'HIDRATACIÓN CORPORAL ADECUADA.',
@@ -2726,14 +2740,35 @@ function fichaSecM(m){
     'REUBICACIÓN LABORAL TEMPORAL.',
     'USO OBLIGATORIO DE EPP DURANTE LA JORNADA LABORAL.'
   ];
+
+  const recsRetiro=[
+    'ALIMENTACIÓN SALUDABLE, BAJA EN AZÚCARES Y HARINAS REFINADAS.',
+    'ACTIVIDAD FÍSICA AL MENOS 30 MINUTOS DIARIOS.',
+    'USO DE PRENDAS DE PREVENCIÓN.',
+    'MEDIDAS HIGIÉNICO DIETÉTICAS.',
+    'LAVADO FRECUENTE DE MANOS.'
+  ];
+
+  const recs=isRetiro?recsRetiro:recsNormales;
+  // Agregar recomendaciones personalizadas guardadas
+  const customKey=isRetiro?'recs_retiro':'recs_custom';
+  const customRecs=(S[customKey]||[]).filter(r=>!recs.includes(r));
+  const allRecs=[...recs,...customRecs];
   const sel=m.estandar||[];
-  return`<div style="font-weight:600;font-size:12px;margin-bottom:8px">Recomendaciones predefinidas <span style="font-size:10px;color:var(--tm);font-weight:400">(clic para agregar)</span></div>
-  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+  const tipoLabel=isRetiro?'Recomendaciones de egreso':'Recomendaciones predefinidas';
+
+  return`${isRetiro?'<div style="background:#fff3cd;border-left:4px solid #f6ad55;padding:8px 12px;border-radius:6px;margin-bottom:12px;font-size:11px;color:#744210">🚪 <strong>Evaluación de RETIRO</strong> — Se muestran recomendaciones específicas para egreso laboral.</div>':''}
+  <div style="font-weight:600;font-size:12px;margin-bottom:8px">${tipoLabel} <span style="font-size:10px;color:var(--tm);font-weight:400">(clic para agregar)</span></div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
   ${recs.filter(r=>!sel.includes(r)).map(r=>`<button class="btn bsm bg" onclick="addRecFicha(this.dataset.r)" data-r="${r.replace(/"/g,'&quot;')}" style="font-size:10px;max-width:100%;white-space:normal;text-align:left;line-height:1.3;padding:4px 8px">+ ${r}</button>`).join('')}
   </div>
+  ${customRecs.length?`<div style="font-weight:600;font-size:11px;margin:8px 0 4px;color:#805ad5">Tus recomendaciones guardadas</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+  ${customRecs.filter(r=>!sel.includes(r)).map((r,i)=>`<span style="display:inline-flex;align-items:center;gap:4px"><button class="btn bsm" onclick="addRecFicha(this.dataset.r)" data-r="${r.replace(/"/g,'&quot;')}" style="font-size:10px;max-width:100%;white-space:normal;text-align:left;line-height:1.3;padding:4px 8px;background:#faf5ff;color:#805ad5;border:1px solid #d6bcfa">+ ${r}</button><button onclick="if(confirm('¿Eliminar esta recomendación guardada?')){removeRecCustom('${customKey}',${(S[customKey]||[]).indexOf(r)})}" style="background:none;border:none;cursor:pointer;font-size:10px;color:#e53e3e;padding:0" title="Eliminar del catálogo">🗑</button></span>`).join('')}
+  </div>`:''}
   ${sel.length?`<div style="font-weight:600;font-size:12px;margin-bottom:6px">Recomendaciones seleccionadas (${sel.length})</div>
   <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
-  ${sel.map((r,i)=>`<div style="display:flex;align-items:flex-start;gap:6px;background:var(--bg);border-radius:6px;padding:6px 10px;border-left:3px solid var(--a)">
+  ${sel.map((r,i)=>`<div style="display:flex;align-items:flex-start;gap:6px;background:var(--bg);border-radius:6px;padding:6px 10px;border-left:3px solid ${isRetiro?'#f6ad55':'var(--a)'}">
     <span style="font-size:11px;flex:1;line-height:1.4">${r}</span>
     <button class="btn bsm bd" onclick="FO.data.m.estandar.splice(${i},1);render()" style="font-size:10px;flex-shrink:0;padding:2px 6px">✕</button>
   </div>`).join('')}
@@ -2747,7 +2782,73 @@ function fichaSecM(m){
 }
 
 function addRecFicha(r){if(!FO.data.m.estandar)FO.data.m.estandar=[];if(!FO.data.m.estandar.includes(r)){FO.data.m.estandar.push(r);}render();}
-function addRecCustom(){const v=document.getElementById('fo_rec_nueva')?.value?.trim().toUpperCase();if(!v){alert('Escribe una recomendación');return;}if(!FO.data.m.estandar)FO.data.m.estandar=[];FO.data.m.estandar.push(v);render();}
+function addRecCustom(){
+  const v=document.getElementById('fo_rec_nueva')?.value?.trim().toUpperCase();
+  if(!v){alert('Escribe una recomendación');return;}
+  if(!FO.data.m.estandar)FO.data.m.estandar=[];
+  FO.data.m.estandar.push(v);
+  // Guardar en catálogo persistente
+  const isRetiro=(FO.data.b||{}).tipo_eval==='RETIRO';
+  const key=isRetiro?'recs_retiro':'recs_custom';
+  if(!S[key])S[key]=[];
+  if(!S[key].includes(v)){S[key].push(v);saveRecsCustom(key,S[key]);}
+  render();
+}
+async function saveRecsCustom(key,arr){
+  try{
+    const existing=await SB.get('configuracion',`select=*&clave=eq.${key}`);
+    if(existing&&existing.length){await SB.patch('configuracion',{valor:JSON.stringify(arr)},`clave=eq.${key}`);}
+    else{await SB.post('configuracion',{clave:key,valor:JSON.stringify(arr)});}
+  }catch(e){console.error('Error guardando recs:',e);}
+}
+async function loadRecsCustom(){
+  try{
+    const r1=await SB.get('configuracion',`select=*&clave=eq.recs_custom`);
+    if(r1&&r1[0])S.recs_custom=JSON.parse(r1[0].valor)||[];
+    const r2=await SB.get('configuracion',`select=*&clave=eq.recs_retiro`);
+    if(r2&&r2[0])S.recs_retiro=JSON.parse(r2[0].valor)||[];
+  }catch(e){console.error('Error cargando recs:',e);}
+}
+function removeRecCustom(key,idx){
+  if(S[key]){S[key].splice(idx,1);saveRecsCustom(key,S[key]);render();}
+}
+
+// ── SECCIÓN R: Retiro (Evaluación de egreso) ──
+function fichaSecRetiro(r){
+  if(!FO.data.r) FO.data.r={se_realiza:'SÍ',condicion_trabajo:'NO',observacion:'NINGUNA'};
+  const rr=FO.data.r;
+  if(!rr.observacion && rr.observacion!=='') rr.observacion='NINGUNA';
+  return`<div style="background:#fff3cd;border-left:4px solid #f6ad55;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:12px;color:#744210">
+    🚪 <strong>N. RETIRO</strong> — Esta sección aplica únicamente cuando el tipo de evaluación es <strong>RETIRO</strong>.
+  </div>
+
+  <div class="fr" style="gap:16px">
+    <div class="fg" style="flex:1">
+      <label style="font-weight:600">SE REALIZÓ EVALUACIÓN MÉDICA DE RETIRO</label>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        ${['SÍ','NO'].map(v=>`<button class="btn ${rr.se_realiza===v?'bp':'bg'}" onclick="FO.data.r.se_realiza='${v}';render()" style="flex:1;font-size:12px">${v}</button>`).join('')}
+      </div>
+    </div>
+    <div class="fg" style="flex:1">
+      <label style="font-weight:600">LA CONDICIÓN DE SALUD ESTÁ RELACIONADA CON EL TRABAJO</label>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        ${['SÍ','NO'].map(v=>`<button class="btn ${rr.condicion_trabajo===v?'bp':'bg'}" onclick="FO.data.r.condicion_trabajo='${v}';render()" style="flex:1;font-size:12px">${v}</button>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="fg" style="margin-top:14px">
+    <label style="font-weight:600">Observación</label>
+    <textarea class="fi" id="fo_r_obs" rows="3" style="text-transform:uppercase">${rr.observacion||'NINGUNA'}</textarea>
+  </div>
+
+  <div style="background:var(--bg);border-radius:8px;padding:12px;margin-top:14px">
+    <p style="font-size:11px;color:var(--tm);margin:0;line-height:1.5">
+      ℹ️ Esta información se incluirá en la <strong>sección N del formulario oficial</strong> del MSP.
+    </p>
+  </div>`;
+}
+
 
 function autoFillCie(i,from){
   const dx=FO.data.k.diagnosticos[i];if(!dx)return;
@@ -2836,7 +2937,10 @@ function fichaSecN(n){
 function saveMedCfgFromCert2(){const nombre=gv('fo_medico'),codigo=gv('fo_codmed');if(nombre||codigo)localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));}
 
 function setAptitud(k){
-  const txts={'APTO':'PACIENTE AL MOMENTO EN BUENAS CONDICIONES DE SALUD, APTO PARA LABORAR EN EL PUESTO DE TRABAJO','APTO EN OBSERVACIÓN':'PACIENTE AL MOMENTO EN BUENAS CONDICIONES DE SALUD, APTO EN OBSERVACIÓN PARA LABORAR EN EL PUESTO DE TRABAJO','APTO CON LIMITACIONES':'PACIENTE AL MOMENTO EN BUENAS CONDICIONES DE SALUD, APTO CON LIMITACIONES PARA LABORAR EN EL PUESTO DE TRABAJO','NO APTO':'PACIENTE AL MOMENTO NO APTO PARA LABORAR EN EL PUESTO DE TRABAJO'};
+  const isRetiro=(FO.data.b||{}).tipo_eval==='RETIRO';
+  const txtsNormal={'APTO':'PACIENTE AL MOMENTO EN BUENAS CONDICIONES DE SALUD, APTO PARA LABORAR EN EL PUESTO DE TRABAJO','APTO EN OBSERVACIÓN':'PACIENTE AL MOMENTO EN BUENAS CONDICIONES DE SALUD, APTO EN OBSERVACIÓN PARA LABORAR EN EL PUESTO DE TRABAJO','APTO CON LIMITACIONES':'PACIENTE AL MOMENTO EN BUENAS CONDICIONES DE SALUD, APTO CON LIMITACIONES PARA LABORAR EN EL PUESTO DE TRABAJO','NO APTO':'PACIENTE AL MOMENTO NO APTO PARA LABORAR EN EL PUESTO DE TRABAJO'};
+  const txtsRetiro={'APTO':'PACIENTE AL MOMENTO EN BUENAS CONDICIONES DE SALUD, APTA PARA EGRESO DEL PUESTO DE TRABAJO','APTO EN OBSERVACIÓN':'PACIENTE AL MOMENTO EN BUENAS CONDICIONES DE SALUD, APTO EN OBSERVACIÓN PARA EGRESO DEL PUESTO DE TRABAJO','APTO CON LIMITACIONES':'PACIENTE AL MOMENTO EN BUENAS CONDICIONES DE SALUD, APTO CON LIMITACIONES PARA EGRESO DEL PUESTO DE TRABAJO','NO APTO':'PACIENTE AL MOMENTO NO APTO PARA EGRESO DEL PUESTO DE TRABAJO'};
+  const txts=isRetiro?txtsRetiro:txtsNormal;
   FO.data.l.aptitud=k;
   FO.data.l.observaciones=txts[k]||'';
   render();
@@ -3169,7 +3273,7 @@ async function saveFicha(){
   const d=FO.data;
   const payload={
     paciente_id:FO.pid,medico_id:S.u?.id,fecha:d.b?.fecha_atencion||TD,tipo_eval:d.b?.tipo_eval||'INGRESO',
-    seccion_a:d.a||{},seccion_b:d.b||{},seccion_c:d.c||{},seccion_d:d.d||{},seccion_e:d.e||{},seccion_f:d.f||{},seccion_g:d.g||{},seccion_h:d.h||{},seccion_i:d.i||{},seccion_j:d.j||{},seccion_k:d.k||{},seccion_l:d.l||{},seccion_m:d.m||{},seccion_n:d.n||{},
+    seccion_a:d.a||{},seccion_b:d.b||{},seccion_c:d.c||{},seccion_d:d.d||{},seccion_e:d.e||{},seccion_f:d.f||{},seccion_g:d.g||{},seccion_h:d.h||{},seccion_i:d.i||{},seccion_j:d.j||{},seccion_k:d.k||{},seccion_l:d.l||{},seccion_m:d.m||{},seccion_n:d.n||{},seccion_r:d.r||{},
     aptitud:d.l?.aptitud||'',estado:'guardado',updated_at:new Date().toISOString()
   };
   if(DB_OK){
