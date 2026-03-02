@@ -2344,12 +2344,6 @@ function validateFichaRequired(){
   if(!a.n1 || a.n1.length===0) missing.push('Primer Nombre');
   if(!a.n2 || a.n2.length===0) missing.push('Segundo Nombre');
   if(!a.sexo || a.sexo==='' || a.sexo==='--') missing.push('Sexo');
-  // Cédula y fecha nacimiento vienen del paciente
-  const p=gP(FO.pid);
-  if(p){
-    if(!p.cedula?.trim()) missing.push('Cédula (editar en datos del paciente)');
-    if(!p.fecha_nacimiento) missing.push('Fecha de Nacimiento (editar en datos del paciente)');
-  }
   return missing;
 }
 
@@ -2407,6 +2401,13 @@ function saveFichaSection(){
   const s=FO.sec;const d=FO.data;
   if(s==='A'){
     d.a={...d.a,empresa:gv('fo_empresa'),ruc:gv('fo_ruc'),ciiu:gv('fo_ciiu'),centro:gv('fo_centro'),nform:gv('fo_nform'),narch:gv('fo_narch'),ap1:gv('fo_ap1'),ap2:gv('fo_ap2'),n1:gv('fo_n1'),n2:gv('fo_n2'),sexo:gv('fo_sexo'),cargo:gv('fo_cargo'),grupo_sang:gv('fo_gsang'),lateralidad:d.a?.lateralidad||'Diestro',atencion_prioritaria:d.a?.atencion_prioritaria||[]};
+    // Actualizar datos del paciente si se editaron
+    const p=gP(FO.pid);
+    if(p){
+      const newCed=gv('fo_cedula');const newFn=gv('fo_fnac');
+      if(newCed)p.cedula=newCed;
+      if(newFn)p.fecha_nacimiento=newFn;
+    }
   }else if(s==='B'){
     d.b={puesto_ciuo:gv('fo_puesto'),fecha_atencion:gv('fo_fecha_at'),tipo_eval:d.b?.tipo_eval||'INGRESO',fecha_ingreso:gv('fo_fingreso'),observacion:gv('fo_b_obs')};
   }else if(s==='C'){
@@ -2469,7 +2470,9 @@ function fichaSecA(a){
   <div class="fg"><label>Segundo Nombre <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_n2" value="${a.n2||''}" required autocomplete="off"></div></div>
   <div class="fr"><div class="fg"><label>Sexo <b style="color:red;font-size:14px">*</b></label><select class="fi" id="fo_sexo" autocomplete="off"><option value="">--</option><option value="M" ${a.sexo==='M'?'selected':''}>M</option><option value="F" ${a.sexo==='F'?'selected':''}>F</option></select></div>
   <div class="fg" style="flex:2"><label>Puesto de Trabajo (CIUO)</label><input class="fi" id="fo_cargo" value="${a.cargo||''}" oninput="searchCIUO('fo_cargo','ciuo_res_a')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox" autocomplete="off"><div id="ciuo_res_a"></div></div></div>
-  <div class="fr"><div class="fg"><label>Grupo Sanguíneo</label><select class="fi" id="fo_gsang" autocomplete="off"><option value="">--</option>${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g=>`<option ${a.grupo_sang===g?'selected':''}>${g}</option>`).join('')}</select></div>
+  <div class="fr"><div class="fg"><label>Cédula</label><input class="fi" id="fo_cedula" value="${(gP(FO.pid)||{}).cedula||''}" autocomplete="off"></div>
+  <div class="fg"><label>Fecha de Nacimiento</label><input type="date" class="fi" id="fo_fnac" value="${(gP(FO.pid)||{}).fecha_nacimiento||''}" autocomplete="off"></div>
+  <div class="fg"><label>Grupo Sanguíneo</label><select class="fi" id="fo_gsang" autocomplete="off"><option value="">--</option>${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g=>`<option ${a.grupo_sang===g?'selected':''}>${g}</option>`).join('')}</select></div>
   <div class="fg"><label>Lateralidad</label><div style="display:flex;gap:6px;margin-top:4px">${['Diestro','Zurdo','Ambidiestro'].map(l=>`<button class="btn bsm ${a.lateralidad===l?'bp':'bg'}" onclick="saveFichaSection();FO.data.a.lateralidad='${l}';fichaSecA()" style="font-size:11px">${l}</button>`).join('')}</div></div></div>
   <div class="fg" style="margin-top:8px"><label>Atención prioritaria</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${['Embarazada','Persona con discapacidad','Enfermedad catastrófica','Lactancia','Adulto mayor'].map(t=>`<button class="btn bsm ${(a.atencion_prioritaria||[]).includes(t)?'bp':'bg'}" onclick="toggleAP('${t}')" style="font-size:11px">${t}</button>`).join('')}</div></div>`;
 }
