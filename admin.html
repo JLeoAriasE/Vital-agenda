@@ -3006,8 +3006,8 @@ function fichaSecN(n){
   ${medicos.length?`<div style="margin-top:6px"><button class="btn bsm" onclick="if(confirm('¿Eliminar todos los médicos guardados?')){localStorage.removeItem('vw_medicos_list');render()}" style="font-size:10px;color:#e53e3e;background:none;border:none;cursor:pointer">🗑 Limpiar lista de médicos</button></div>`:''}
   <p style="font-size:11px;color:var(--tm);margin:10px 0;background:var(--bg);padding:8px;border-radius:6px">ℹ️ Haz clic en "💾 Guardar médico" para agregar un profesional a la lista. El seleccionado se mantiene hasta que elijas otro.</p>
   <div style="display:flex;gap:8px;margin-top:16px">
-    <button class="btn" style="background:#2b6cb0;color:#fff" onclick="saveFichaSection();saveMedCfgFromCert2();printCertOficial()">📄 Certificado</button>
-    <button class="btn" style="background:#38a169;color:#fff" onclick="generarPDFOficial()">📋 Formulario PDF</button>
+    <button class="btn" style="background:#7c3aed;color:#fff" onclick="generarPDFOficial('certificado')">📄 Certificado</button>
+    <button class="btn" style="background:#38a169;color:#fff" onclick="generarPDFOficial('formulario')">📋 Formulario PDF</button>
     <button class="btn" style="background:#718096;color:#fff;font-size:10px" onclick="saveFichaSection();printFichaOficial()">🖨️ Vista previa</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="saveFichaSection();alert('🚧 Consentimiento en desarrollo')">✅ Consentimiento</button>
     <button class="btn" style="background:#718096;color:#fff" onclick="saveFichaSection();alert('🚧 Confidencialidad en desarrollo')">🔒 Confidencialidad</button>
@@ -3115,12 +3115,13 @@ function printCertOficial(){
   printOpen(html);
 }
 
-async function generarPDFOficial(){
+async function generarPDFOficial(modo='formulario'){
   saveFichaSection();
   const d=FO.data,p=gP(FO.pid)||{},mc=getMedCfg();
   const edad=p.fecha_nacimiento?Math.floor((new Date()-new Date(p.fecha_nacimiento))/31557600000):'';
   
   const payload={
+    _modo:modo,
     _paciente:{cedula:p.cedula||'',fecha_nacimiento:p.fecha_nacimiento||'',edad:String(edad)},
     _empresa:{nombre:(d.a||{}).empresa||'',ruc:(d.a||{}).ruc||'',ciiu:(d.a||{}).ciiu||''},
     a:d.a||{},
