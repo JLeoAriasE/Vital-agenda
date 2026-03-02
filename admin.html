@@ -47,7 +47,7 @@ tr:hover td{background:rgba(59,130,246,.02)}tr:last-child td{border-bottom:none}
 .ba{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600}
 .ba-ok{background:var(--oks);color:var(--ok)}.ba-w{background:var(--ws);color:var(--w)}.ba-er{background:var(--ers);color:var(--er)}.ba-i{background:var(--as);color:var(--a)}.ba-p{background:var(--ps);color:var(--p)}.ba-t{background:var(--tls);color:var(--tl)}.ba-o{background:var(--ors);color:var(--or)}
 .fg{margin-bottom:10px}.fg label{display:block;font-size:10px;font-weight:600;color:var(--tm);margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}
-.fi{width:100%;padding:8px 11px;background:var(--ci);border:1px solid var(--bd);border-radius:var(--rs);color:var(--t);font-size:12px;font-family:inherit;outline:none;transition:border .15s}
+.fi{width:100%;padding:8px 11px;background:var(--ci);border:1px solid var(--bd);border-radius:var(--rs);color:var(--t);font-size:12px;font-family:inherit;outline:none;transition:border .15s;text-transform:uppercase}
 .fi:focus{border-color:var(--a)}.fi::placeholder{color:var(--td)}
 select.fi{cursor:pointer;appearance:auto}textarea.fi{min-height:60px;resize:vertical}
 .sb{position:relative;max-width:260px}.sb input{padding-left:30px}
@@ -2469,7 +2469,7 @@ function fichaSecA(a){
   <div class="fg"><label>Primer Nombre <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_n1" value="${a.n1||''}" required autocomplete="off"></div>
   <div class="fg"><label>Segundo Nombre <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_n2" value="${a.n2||''}" required autocomplete="off"></div></div>
   <div class="fr"><div class="fg"><label>Sexo <b style="color:red;font-size:14px">*</b></label><select class="fi" id="fo_sexo" autocomplete="off"><option value="">--</option><option value="M" ${a.sexo==='M'?'selected':''}>M</option><option value="F" ${a.sexo==='F'?'selected':''}>F</option></select></div>
-  <div class="fg" style="flex:2"><label>Puesto de Trabajo (CIUO)</label><input class="fi" id="fo_cargo" value="${a.cargo||''}" oninput="searchCIUO('fo_cargo','ciuo_res_a')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox" autocomplete="off"><div id="ciuo_res_a"></div></div></div>
+  <div class="fg" style="flex:2"><label>Puesto de Trabajo</label><input class="fi" id="fo_cargo" value="${a.cargo||''}" readonly style="background:#f0f0f0;cursor:default" autocomplete="off"></div></div>
   <div class="fr"><div class="fg"><label>Cédula</label><input class="fi" id="fo_cedula" value="${(gP(FO.pid)||{}).cedula||''}" autocomplete="off"></div>
   <div class="fg"><label>Fecha de Nacimiento</label><input type="date" class="fi" id="fo_fnac" value="${(gP(FO.pid)||{}).fecha_nacimiento||''}" autocomplete="off"></div>
   <div class="fg"><label>Grupo Sanguíneo</label><select class="fi" id="fo_gsang" autocomplete="off"><option value="">--</option>${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g=>`<option ${a.grupo_sang===g?'selected':''}>${g}</option>`).join('')}</select></div>
