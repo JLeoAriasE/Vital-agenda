@@ -2469,7 +2469,7 @@ function fichaSecA(a){
   <div class="fr"><div class="fg"><label>Sexo <b style="color:red;font-size:14px">*</b></label><select class="fi" id="fo_sexo" autocomplete="off"><option value="">--</option><option value="M" ${a.sexo==='M'?'selected':''}>M</option><option value="F" ${a.sexo==='F'?'selected':''}>F</option></select></div>
   <div class="fg" style="flex:2"><label>Puesto de Trabajo (CIUO)</label><input class="fi" id="fo_cargo" value="${a.cargo||''}" oninput="searchCIUO('fo_cargo','ciuo_res_a')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox" autocomplete="off"><div id="ciuo_res_a"></div></div></div>
   <div class="fr"><div class="fg"><label>Grupo Sanguíneo</label><select class="fi" id="fo_gsang" autocomplete="off"><option value="">--</option>${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g=>`<option ${a.grupo_sang===g?'selected':''}>${g}</option>`).join('')}</select></div>
-  <div class="fg"><label>Lateralidad</label><div style="display:flex;gap:6px;margin-top:4px">${['Diestro','Zurdo','Ambidiestro'].map(l=>`<button class="btn bsm ${a.lateralidad===l?'bp':'bg'}" onclick="FO.data.a.lateralidad='${l}';render()" style="font-size:11px">${l}</button>`).join('')}</div></div></div>
+  <div class="fg"><label>Lateralidad</label><div style="display:flex;gap:6px;margin-top:4px">${['Diestro','Zurdo','Ambidiestro'].map(l=>`<button class="btn bsm ${a.lateralidad===l?'bp':'bg'}" onclick="saveFichaSection();FO.data.a.lateralidad='${l}';fichaSecA()" style="font-size:11px">${l}</button>`).join('')}</div></div></div>
   <div class="fg" style="margin-top:8px"><label>Atención prioritaria</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${['Persona con discapacidad','Enfermedad catastrófica','Adulto mayor'].map(t=>`<button class="btn bsm ${(a.atencion_prioritaria||[]).includes(t)?'bp':'bg'}" onclick="toggleAP('${t}')" style="font-size:11px">${t}</button>`).join('')}</div></div>`;
 }
 function fichaEmpChange(){const v=document.getElementById('fo_empresa')?.value;const e=(S.empresas_cli||[]).find(x=>x.nombre===v);if(e){document.getElementById('fo_ruc').value=e.ruc||'';document.getElementById('fo_ciiu').value=e.ciiu||'';document.getElementById('fo_centro').value=e.nombre||'';}}
@@ -2479,7 +2479,7 @@ function toggleAP(t){if(!FO.data.a.atencion_prioritaria)FO.data.a.atencion_prior
 function fichaSecB(b){
   return`<div class="fr"><div class="fg" style="flex:2"><label>Puesto de trabajo (CIUO)</label><input class="fi" id="fo_puesto" value="${b.puesto_ciuo||''}" oninput="searchCIUO('fo_puesto','ciuo_res_b')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox" autocomplete="off"><div id="ciuo_res_b"></div></div>
   <div class="fg"><label>Fecha de atención</label><input class="fi" type="date" id="fo_fecha_at" value="${b.fecha_atencion||TD}"></div></div>
-  <div class="fg" style="margin:10px 0"><label>Tipo de evaluación</label><div style="display:flex;gap:8px;margin-top:6px">${['INGRESO','PERIÓDICO','REINTEGRO','RETIRO'].map(t=>`<button class="btn ${b.tipo_eval===t?'bp':'bg'}" onclick="FO.data.b.tipo_eval='${t}';render()" style="flex:1;font-size:12px">${t.charAt(0)+t.slice(1).toLowerCase()}</button>`).join('')}</div></div>
+  <div class="fg" style="margin:10px 0"><label>Tipo de evaluación</label><div style="display:flex;gap:8px;margin-top:6px">${['INGRESO','PERIÓDICO','REINTEGRO','RETIRO'].map(t=>`<button class="btn ${b.tipo_eval===t?'bp':'bg'}" onclick="saveFichaSection();FO.data.b.tipo_eval='${t}';fichaSecB()" style="flex:1;font-size:12px">${t.charAt(0)+t.slice(1).toLowerCase()}</button>`).join('')}</div></div>
   <div class="fg"><label>Fecha de ingreso</label><input class="fi" type="date" id="fo_fingreso" value="${b.fecha_ingreso||''}"></div>
   <div class="fg" style="margin-top:8px"><label>Observación</label><textarea class="fi" id="fo_b_obs" rows="3" placeholder="Observaciones adicionales sobre el motivo de consulta..." autocomplete="off">${b.observacion||''}</textarea></div>`;
 }
@@ -2489,8 +2489,8 @@ function fichaSecC(c){
   return`<div class="fr" style="gap:14px"><div class="fg" style="flex:1"><label style="font-weight:600">Antecedentes Clínicos y Quirúrgicos</label><textarea class="fi" id="fo_antclin" rows="5" style="text-transform:uppercase" autocomplete="off">${c.ant_clinicos||''}</textarea></div>
   <div class="fg" style="flex:1"><label style="font-weight:600">Antecedentes Familiares</label><textarea class="fi" id="fo_antfam" rows="5" style="text-transform:uppercase" autocomplete="off">${c.ant_familiares||''}</textarea></div></div>
   <div style="background:var(--bg);border-radius:8px;padding:12px;margin:10px 0"><div style="font-weight:600;font-size:12px;margin-bottom:8px">Condición Especial</div>
-  <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap"><div class="fg"><label>Autorización transfusión</label><div style="display:flex;gap:6px;margin-top:4px">${['Sí','No'].map(v=>`<button class="btn bsm ${c.aut_transfusion===v?'bp':'bg'}" onclick="FO.data.c.aut_transfusion='${v}';render()" style="font-size:11px;min-width:50px">${v}</button>`).join('')}</div></div>
-  <div class="fg"><label>Tratamiento hormonal</label><div style="display:flex;gap:6px;align-items:center;margin-top:4px">${['Sí','No'].map(v=>`<button class="btn bsm ${c.trat_hormonal===v?'bp':'bg'}" onclick="FO.data.c.trat_hormonal='${v}';render()" style="font-size:11px;min-width:50px">${v}</button>`).join('')}${c.trat_hormonal==='Sí'?`<input class="fi" value="${c.trat_hormonal_detalle||''}" onchange="FO.data.c.trat_hormonal_detalle=this.value" placeholder="¿Cuál tratamiento?" style="font-size:11px;margin-left:8px;width:220px">`:''}</div></div></div></div>
+  <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap"><div class="fg"><label>Autorización transfusión</label><div style="display:flex;gap:6px;margin-top:4px">${['Sí','No'].map(v=>`<button class="btn bsm ${c.aut_transfusion===v?'bp':'bg'}" onclick="saveFichaSection();FO.data.c.aut_transfusion='${v}';fichaSecC()" style="font-size:11px;min-width:50px">${v}</button>`).join('')}</div></div>
+  <div class="fg"><label>Tratamiento hormonal</label><div style="display:flex;gap:6px;align-items:center;margin-top:4px">${['Sí','No'].map(v=>`<button class="btn bsm ${c.trat_hormonal===v?'bp':'bg'}" onclick="saveFichaSection();FO.data.c.trat_hormonal='${v}';fichaSecC()" style="font-size:11px;min-width:50px">${v}</button>`).join('')}${c.trat_hormonal==='Sí'?`<input class="fi" value="${c.trat_hormonal_detalle||''}" onchange="FO.data.c.trat_hormonal_detalle=this.value" placeholder="¿Cuál tratamiento?" style="font-size:11px;margin-left:8px;width:220px">`:''}</div></div></div></div>
   <div style="background:var(--bg);border-radius:8px;padding:12px;margin:10px 0"><div style="font-weight:600;font-size:12px;margin-bottom:8px">Estilo de Vida y Hábitos</div>
   <table style="width:100%;font-size:11px"><thead><tr><th>SUSTANCIA</th><th>ESTADO</th><th>CONSUMO (MESES)</th><th>ABSTINENCIA (MESES)</th><th></th></tr></thead><tbody>
   ${(c.sustancias||[]).map((s,i)=>`<tr>
@@ -2498,10 +2498,10 @@ function fichaSecC(c){
     <td><select class="fi" onchange="FO.data.c.sustancias[${i}].estado=this.value" style="font-size:11px"><option value="">--</option><option ${s.estado==='Activo'?'selected':''}>Activo</option><option ${s.estado==='Pasivo'?'selected':''}>Pasivo</option><option ${s.estado==='Nunca'?'selected':''}>Nunca</option></select></td>
     <td><input class="fi" value="${s.consumo||''}" onchange="FO.data.c.sustancias[${i}].consumo=this.value" placeholder="Meses" style="font-size:11px"></td>
     <td><input class="fi" value="${s.abstinencia||''}" onchange="FO.data.c.sustancias[${i}].abstinencia=this.value" placeholder="Meses" style="font-size:11px"></td>
-    <td><button class="btn bsm bd" onclick="FO.data.c.sustancias.splice(${i},1);render()" style="font-size:10px">✕</button></td>
+    <td><button class="btn bsm bd" onclick="saveFichaSection();FO.data.c.sustancias.splice(${i},1);fichaSecC()" style="font-size:10px">✕</button></td>
   </tr>`).join('')}
   </tbody></table>
-  <button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="FO.data.c.sustancias.push({nombre:'',estado:'',consumo:'',abstinencia:''});render()">+ Agregar sustancia</button></div>
+  <button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="saveFichaSection();FO.data.c.sustancias.push({nombre:'',estado:'',consumo:'',abstinencia:''});fichaSecC()">+ Agregar sustancia</button></div>
   <div class="fg"><label style="font-weight:600">Medicación Habitual</label><textarea class="fi" id="fo_medic" rows="2" placeholder="Medicamentos que consume regularmente..." style="text-transform:uppercase" autocomplete="off">${c.medicacion||''}</textarea></div>`;
 }
 
@@ -2659,10 +2659,10 @@ function fichaSecI(data){
     <td><input class="fi" value="${a.tipo||''}" onchange="FO.data.i.actividades[${i}].tipo=this.value" placeholder="Ej: Deporte, Hobby" style="font-size:11px"></td>
     <td><input class="fi" type="date" value="${a.fecha||''}" onchange="FO.data.i.actividades[${i}].fecha=this.value" style="font-size:11px"></td>
     <td><input class="fi" value="${a.desc||''}" onchange="FO.data.i.actividades[${i}].desc=this.value" placeholder="Detalles de la actividad" style="font-size:11px"></td>
-    <td><button class="btn bsm bd" onclick="FO.data.i.actividades.splice(${i},1);render()" style="font-size:10px">✕</button></td>
+    <td><button class="btn bsm bd" onclick="saveFichaSection();FO.data.i.actividades.splice(${i},1);fichaSecI()" style="font-size:10px">✕</button></td>
   </tr>`).join('')}
   </tbody></table>
-  <button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="if(!FO.data.i.actividades)FO.data.i.actividades=[];FO.data.i.actividades.push({tipo:'',fecha:'',desc:''});render()">+ Agregar actividad extra laboral</button>`;
+  <button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="if(!FO.data.i.actividades)FO.data.i.actividades=[];saveFichaSection();FO.data.i.actividades.push({tipo:'',fecha:'',desc:''});fichaSecI()">+ Agregar actividad extra laboral</button>`;
 }
 
 // ── SECCIÓN J: Resultados de Exámenes ──
@@ -2758,10 +2758,10 @@ function fichaSecK(k){
     <td><div><input class="fi" value="${dx.codigo||''}" onchange="FO.data.k.diagnosticos[${i}].codigo=this.value;autoFillCie(${i},'cod')" oninput="searchCIE10(this,'cie_res_c${i}')" onblur="FO.data.k.diagnosticos[${i}].codigo=this.value;autoFillCie(${i},'cod')" placeholder="Código..." style="font-size:11px;text-transform:uppercase" autocomplete="new-password"><div id="cie_res_c${i}"></div></div></td>
     <td><div><input class="fi" value="${dx.descripcion||''}" onchange="FO.data.k.diagnosticos[${i}].descripcion=this.value;autoFillCie(${i},'desc')" oninput="searchCIE10Desc(this,'cie_res_d${i}')" placeholder="Descripción..." style="font-size:11px" autocomplete="new-password"><div id="cie_res_d${i}"></div></div></td>
     <td><select class="fi" onchange="FO.data.k.diagnosticos[${i}].tipo=this.value" style="font-size:11px"><option value="">-</option><option ${dx.tipo==='PRE'?'selected':''}>PRE</option><option ${dx.tipo==='DEF'?'selected':''}>DEF</option></select></td>
-    <td><button class="btn bsm bd" onclick="FO.data.k.diagnosticos.splice(${i},1);render()" style="font-size:10px">✕</button></td>
+    <td><button class="btn bsm bd" onclick="saveFichaSection();FO.data.k.diagnosticos.splice(${i},1);fichaSecK()" style="font-size:10px">✕</button></td>
   </tr>`).join('')}
   </tbody></table>
-  <button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="if(!FO.data.k.diagnosticos)FO.data.k.diagnosticos=[];FO.data.k.diagnosticos.push({codigo:'',descripcion:'',tipo:''});render()">+ Agregar diagnóstico</button>`;
+  <button class="btn bsm" style="background:#e6fffa;color:#319795;border:1px dashed #319795;width:100%;margin-top:6px;font-size:11px" onclick="if(!FO.data.k.diagnosticos)FO.data.k.diagnosticos=[];saveFichaSection();FO.data.k.diagnosticos.push({codigo:'',descripcion:'',tipo:''});fichaSecK()">+ Agregar diagnóstico</button>`;
 }
 
 // ── SECCIÓN L: Aptitud Médica ──
@@ -2828,7 +2828,7 @@ function fichaSecM(m){
   <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
   ${sel.map((r,i)=>`<div style="display:flex;align-items:flex-start;gap:6px;background:var(--bg);border-radius:6px;padding:6px 10px;border-left:3px solid ${isRetiro?'#f6ad55':'var(--a)'}">
     <span style="font-size:11px;flex:1;line-height:1.4">${r}</span>
-    <button class="btn bsm bd" onclick="FO.data.m.estandar.splice(${i},1);render()" style="font-size:10px;flex-shrink:0;padding:2px 6px">✕</button>
+    <button class="btn bsm bd" onclick="saveFichaSection();FO.data.m.estandar.splice(${i},1);fichaSecM()" style="font-size:10px;flex-shrink:0;padding:2px 6px">✕</button>
   </div>`).join('')}
   </div>`:''}
   <div style="background:var(--bg);border-radius:8px;padding:12px;margin-top:10px">
