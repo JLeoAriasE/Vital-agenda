@@ -2456,6 +2456,7 @@ function fichaSecContent(s){
 
 // ── SECCIÓN A: Datos del Paciente ──
 function fichaSecA(a){
+  if(!a){a=FO.data.a||{};const el=document.getElementById('ficha_sec_body');if(el){el.innerHTML=fichaSecA(a);return;}}
   return`<div class="fr"><div class="fg" style="flex:2"><label>Institución / Empresa</label><input class="fi" id="fo_empresa" value="${a.empresa||''}" list="dl_emps2" onchange="fichaEmpChange()" autocomplete="off"><datalist id="dl_emps2">${(S.empresas_cli||[]).map(e=>'<option value="'+e.nombre+'">').join('')}</datalist></div>
   <div class="fg"><label>RUC</label><input class="fi" id="fo_ruc" value="${a.ruc||''}" autocomplete="off"></div>
   <div class="fg"><label>CIIU</label><input class="fi" id="fo_ciiu" value="${a.ciiu||''}" autocomplete="off"></div></div>
@@ -2477,6 +2478,7 @@ function toggleAP(t){if(!FO.data.a.atencion_prioritaria)FO.data.a.atencion_prior
 
 // ── SECCIÓN B: Motivo Consulta ──
 function fichaSecB(b){
+  if(!b){b=FO.data.b||{};const el=document.getElementById('ficha_sec_body');if(el){el.innerHTML=fichaSecB(b);return;}}
   return`<div class="fr"><div class="fg" style="flex:2"><label>Puesto de trabajo (CIUO)</label><input class="fi" id="fo_puesto" value="${b.puesto_ciuo||''}" oninput="searchCIUO('fo_puesto','ciuo_res_b')" placeholder="Escriba para buscar..." autocomplete="new-password" role="combobox" autocomplete="off"><div id="ciuo_res_b"></div></div>
   <div class="fg"><label>Fecha de atención</label><input class="fi" type="date" id="fo_fecha_at" value="${b.fecha_atencion||TD}"></div></div>
   <div class="fg" style="margin:10px 0"><label>Tipo de evaluación</label><div style="display:flex;gap:8px;margin-top:6px">${['INGRESO','PERIÓDICO','REINTEGRO','RETIRO'].map(t=>`<button class="btn ${b.tipo_eval===t?'bp':'bg'}" onclick="saveFichaSection();FO.data.b.tipo_eval='${t}';fichaSecB()" style="flex:1;font-size:12px">${t.charAt(0)+t.slice(1).toLowerCase()}</button>`).join('')}</div></div>
@@ -2486,6 +2488,7 @@ function fichaSecB(b){
 
 // ── SECCIÓN C: Antecedentes ──
 function fichaSecC(c){
+  if(!c){c=FO.data.c||{};const el=document.getElementById('ficha_sec_body');if(el){el.innerHTML=fichaSecC(c);return;}}
   return`<div class="fr" style="gap:14px"><div class="fg" style="flex:1"><label style="font-weight:600">Antecedentes Clínicos y Quirúrgicos</label><textarea class="fi" id="fo_antclin" rows="5" style="text-transform:uppercase" autocomplete="off">${c.ant_clinicos||''}</textarea></div>
   <div class="fg" style="flex:1"><label style="font-weight:600">Antecedentes Familiares</label><textarea class="fi" id="fo_antfam" rows="5" style="text-transform:uppercase" autocomplete="off">${c.ant_familiares||''}</textarea></div></div>
   <div style="background:var(--bg);border-radius:8px;padding:12px;margin:10px 0"><div style="font-weight:600;font-size:12px;margin-bottom:8px">Condición Especial</div>
@@ -2654,6 +2657,7 @@ function rerenderH(){
 
 // ── SECCIÓN I: Actividades Extra ──
 function fichaSecI(data){
+  if(!data){data=FO.data.i||{};const el=document.getElementById('ficha_sec_body');if(el){el.innerHTML=fichaSecI(data);return;}}
   return`<table style="width:100%;font-size:11px"><thead><tr><th>TIPO DE ACTIVIDAD</th><th>FECHA</th><th>DESCRIPCIÓN</th><th></th></tr></thead><tbody>
   ${(data.actividades||[]).map((a,i)=>`<tr>
     <td><input class="fi" value="${a.tipo||''}" onchange="FO.data.i.actividades[${i}].tipo=this.value" placeholder="Ej: Deporte, Hobby" style="font-size:11px"></td>
@@ -2753,6 +2757,7 @@ function getOrdenCatsJ(){
 
 // ── SECCIÓN K: Diagnóstico ──
 function fichaSecK(k){
+  if(!k){k=FO.data.k||{};const el=document.getElementById('ficha_sec_body');if(el){el.innerHTML=fichaSecK(k);return;}}
   return`<table style="width:100%;font-size:11px"><thead><tr><th style="width:120px">CÓDIGO CIE-10</th><th>DESCRIPCIÓN DEL DIAGNÓSTICO</th><th style="width:100px">TIPO</th><th></th></tr></thead><tbody>
   ${(k.diagnosticos||[]).map((dx,i)=>`<tr>
     <td><div><input class="fi" value="${dx.codigo||''}" onchange="FO.data.k.diagnosticos[${i}].codigo=this.value;autoFillCie(${i},'cod')" oninput="searchCIE10(this,'cie_res_c${i}')" onblur="FO.data.k.diagnosticos[${i}].codigo=this.value;autoFillCie(${i},'cod')" placeholder="Código..." style="font-size:11px;text-transform:uppercase" autocomplete="new-password"><div id="cie_res_c${i}"></div></div></td>
@@ -2779,6 +2784,7 @@ function fichaSecL(l){
 
 // ── SECCIÓN M: Recomendaciones ──
 function fichaSecM(m){
+  if(!m){m=FO.data.m||{};const el=document.getElementById('ficha_sec_body');if(el){el.innerHTML=fichaSecM(m);return;}}
   const tipoEval=(FO.data.b||{}).tipo_eval||'INGRESO';
   const isRetiro=tipoEval==='RETIRO';
 
