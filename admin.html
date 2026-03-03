@@ -2226,6 +2226,10 @@ function preloadFichaData(p){
   else if(partes.length===3){ap1=partes[0];ap2='';n1=partes[1];n2=partes[2];}
   else if(partes.length===2){ap1=partes[0];n1=partes[1];}else{n1=p.nombre||'';}
   const mc=getMedCfg();
+  // Buscar médico: primero de getMedCfg, luego de la lista guardada
+  const medList=JSON.parse(localStorage.getItem('vw_medicos_list')||'[]');
+  const medNombre=mc.nombre||( medList.length?medList[0].nombre:'')||S.u?.nombre||'';
+  const medCodigo=mc.codigo||(medList.length?medList[0].codigo:'')||'';
   FO.data={
     a:{empresa:emp.nombre||p.empresa||'',ruc:emp.ruc||'',ciiu:emp.ciiu||'',centro:emp.nombre||p.empresa||'',nform:p.cedula||'',narch:p.cedula||'',ap1,ap2,n1,n2,sexo:p.genero==='masculino'?'M':p.genero==='femenino'?'F':'',cargo:cargo.codigo?`(${cargo.codigo}) ${p.cargo||''}`:(p.cargo||''),grupo_sang:'',lateralidad:'Diestro',atencion_prioritaria:[]},
     b:{puesto_ciuo:p.cargo||'',fecha_atencion:TD,tipo_eval:'INGRESO',fecha_ingreso:'',observacion:''},
@@ -2240,7 +2244,7 @@ function preloadFichaData(p){
     k:{diagnosticos:[]},
     l:{aptitud:'',observaciones:''},
     m:{estandar:[],medicas:''},
-    n:{medico:mc.nombre||S.u?.nombre||'',codigo:mc.codigo||''},r:{se_realiza:'SÍ',condicion_trabajo:'NO',observacion:'NINGUNA'}
+    n:{medico:medNombre,codigo:medCodigo},r:{se_realiza:'SÍ',condicion_trabajo:'NO',observacion:'NINGUNA'}
   };
 }
 
@@ -2996,7 +3000,7 @@ function fichaSecN(n){
   const selMed=medicos.length?`<div class="fg" style="margin-bottom:10px">
     <label style="font-weight:600">Seleccionar profesional guardado</label>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
-    ${medicos.map((m,i)=>`<button class="btn ${n.medico===m.nombre&&n.codigo===m.codigo?'bp':'bg'}" onclick="FO.data.n.medico='${m.nombre.replace(/'/g,"\\'")}';FO.data.n.codigo='${m.codigo}';render()" style="font-size:11px">👨‍⚕️ ${m.nombre} <span style="opacity:.6;font-size:10px">(${m.codigo})</span></button>`).join('')}
+    ${medicos.map((m,i)=>`<button class="btn ${n.medico===m.nombre&&n.codigo===m.codigo?'bp':'bg'}" onclick="FO.data.n.medico='${m.nombre.replace(/'/g,"\\'")}';FO.data.n.codigo='${m.codigo}';localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre:FO.data.n.medico,codigo:FO.data.n.codigo}));render()" style="font-size:11px">👨‍⚕️ ${m.nombre} <span style="opacity:.6;font-size:10px">(${m.codigo})</span></button>`).join('')}
     </div></div>`:'';
 
   return`${selMed}
@@ -3021,6 +3025,9 @@ function guardarMedico(){
   if(list.find(m=>m.nombre===nombre&&m.codigo===codigo)){alert('Este médico ya está guardado');return;}
   list.push({nombre,codigo});
   localStorage.setItem('vw_medicos_list',JSON.stringify(list));
+  // También guardar en med_cfg para que esté siempre disponible
+  localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));
+  FO.data.n={medico:nombre,codigo:codigo};
   render();
 }
 function saveMedCfgFromCert2(){const nombre=gv('fo_medico'),codigo=gv('fo_codmed');if(nombre||codigo)localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));}
