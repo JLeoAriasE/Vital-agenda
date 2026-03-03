@@ -3013,7 +3013,7 @@ function fichaSecN(n){
     <button class="btn" style="background:#7c3aed;color:#fff" onclick="generarPDFOficial('certificado')">📄 Certificado</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="generarPDFOficial('formulario')">📋 Formulario PDF</button>
     <button class="btn" style="background:#718096;color:#fff;font-size:10px" onclick="saveFichaSection();printFichaOficial()">🖨️ Vista previa</button>
-    <button class="btn" style="background:#38a169;color:#fff" onclick="saveFichaSection();alert('🚧 Consentimiento en desarrollo')">✅ Consentimiento</button>
+    <button class="btn" style="background:#38a169;color:#fff" onclick="generarConsentimiento()">✅ Consentimiento</button>
     <button class="btn" style="background:#718096;color:#fff" onclick="saveFichaSection();alert('🚧 Confidencialidad en desarrollo')">🔒 Confidencialidad</button>
   </div>`;
 }
@@ -3124,6 +3124,32 @@ function printCertOficial(){
   <tr style="height:50px"><td colspan="6" class="s" style="vertical-align:middle">NOMBRE Y APELLIDO</td><td colspan="6" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="3" class="s" style="vertical-align:middle">CÓDIGO MEDICO</td><td colspan="3" class="v">${n.codigo||''}</td><td colspan="9" class="c s">FIRMA Y SELLO</td><td colspan="8"></td></tr>
   </table></body></html>`;
   printOpen(html);
+}
+
+async function generarConsentimiento(){
+  saveFichaSection();
+  const d=FO.data,p=gP(FO.pid)||{},a=d.a||{},b=d.b||{};
+  const nombre=[a.ap1,a.ap2,a.n1,a.n2].filter(Boolean).join(' ').toUpperCase()||p.nombre||'';
+  const payload={
+    nombre: nombre,
+    cedula: p.cedula||'',
+    empresa: a.empresa||p.empresa||'',
+    proveedor: 'VitalWork S.A.S.',
+    ciudad: p.ciudad||'Machala',
+    fecha: b.fecha_atencion||TD
+  };
+  const btn=event?.target;
+  if(btn){btn.disabled=true;btn.textContent='⏳ Generando...';}
+  try{
+    const res=await fetch('https://vitalwork-pdf-service.onrender.com/generar-consentimiento',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok){const err=await res.json().catch(()=>({}));alert('❌ Error: '+(err.error||res.statusText));return;}
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;link.download=`CONSENTIMIENTO_${nombre.replace(/\s+/g,'_')}.docx`;
+    link.click();URL.revokeObjectURL(url);
+  }catch(e){alert('❌ Error de conexión: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='✅ Consentimiento';}}
 }
 
 async function generarPDFOficial(modo='formulario'){
