@@ -14,8 +14,8 @@
 <style>
 :root{--bg:#0f172a;--c1:#1e293b;--c2:#334155;--ci:#0f172a;--bd:#334155;--t:#f1f5f9;--tm:#94a3b8;--a:#3b82f6;--as:rgba(59,130,246,.12);--ok:#10b981;--oks:rgba(16,185,129,.12);--w:#f59e0b;--ws:rgba(245,158,11,.12);--er:#ef4444;--tl:#14b8a6;--r:14px;--rs:10px}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:10px;-webkit-tap-highlight-color:transparent}
-.wrap{width:100%;max-width:720px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);min-height:100vh;min-height:100dvh;-webkit-tap-highlight-color:transparent}
+.wrap{width:100%;max-width:720px;margin:0 auto;padding:12px}
 .header{text-align:center;margin-bottom:20px}
 .logo{width:60px;height:60px;background:linear-gradient(135deg,var(--tl),#06b6d4);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px}
 .header h1{font-size:22px;font-weight:700;margin-bottom:4px}
@@ -29,7 +29,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);min-he
 .fg{margin-bottom:14px}
 .fg label{display:block;font-size:11px;font-weight:600;color:var(--tm);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
 .fg .req{color:var(--er)}
-.fi{width:100%;padding:12px 14px;background:var(--ci);border:1px solid var(--bd);border-radius:var(--rs);color:var(--t);font-size:15px;font-family:inherit;outline:none;transition:border .15s;-webkit-appearance:none}
+.fi{width:100%;padding:14px 14px;background:var(--ci);border:1px solid var(--bd);border-radius:var(--rs);color:var(--t);font-size:16px;font-family:inherit;outline:none;transition:border .15s;-webkit-appearance:none}
 .fi:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(20,184,166,.15)}
 .fi::placeholder{color:#475569}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -62,7 +62,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);min-he
 .warn strong{color:#92400e}
 
 @media(max-width:480px){.fr{grid-template-columns:1fr}}
-@media(max-width:768px){body{padding:4px;align-items:flex-start}.wrap{max-width:100%}.card-b{padding:14px}}
+@media(max-width:768px){.wrap{max-width:100%;padding:6px}.card{border-radius:10px;margin-bottom:10px}.card-b{padding:12px}.header{margin-bottom:12px}.fg{margin-bottom:10px}}
 </style>
 </head>
 <body>
