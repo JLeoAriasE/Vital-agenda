@@ -173,6 +173,7 @@ function rForm(){
         </select>
       </div>
       <div class="fg"><label>Celular <span class="req">*</span></label><input class="fi" id="f_telefono" value="${formData.telefono||''}" placeholder="0999999999" maxlength="10" inputmode="numeric" pattern="[0-9]*" autocomplete="off"></div>
+      <div class="fg"><label>Fecha de Nacimiento <span class="req">*</span></label><input class="fi" id="f_fnac" value="${formData.fecha_nacimiento_display||''}" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric" autocomplete="off" oninput="let v=this.value.replace(/[^0-9]/g,'');if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5);if(v.length>10)v=v.slice(0,10);this.value=v;"></div>
     </div>
     <div class="fr">
       <div class="fg"><label>Ciudad <span class="req">*</span></label><input class="fi" id="f_ciudad" value="${formData.ciudad}" placeholder="Ej: Machala" autocomplete="off"></div>
@@ -204,7 +205,11 @@ async function buscarPaciente(doc){
     document.getElementById('f_ciudad').value=p.ciudad||'';
     document.getElementById('f_empresa').value=p.empresa||'';
     document.getElementById('f_email').value=p.email||'';
+    // Cargar fecha nacimiento: AAAA-MM-DD → DD/MM/AAAA
+    const fnDB=p.fecha_nacimiento||'';
+    if(fnDB){const fp=fnDB.split('-');if(fp.length===3)document.getElementById('f_fnac').value=fp[2]+'/'+fp[1]+'/'+fp[0];}
     formData.nombre=p.nombre||'';formData.ap1=ap1;formData.ap2=ap2;formData.n1=n1;formData.n2=n2;formData.genero=p.genero||'';formData.telefono=p.telefono||'';
+    formData.fecha_nacimiento=fnDB;formData.fecha_nacimiento_display=document.getElementById('f_fnac')?.value||'';
     formData.ciudad=p.ciudad||'';formData.empresa=p.empresa||'';formData.email=p.email||'';
   }else{
     box.style.display='none';
@@ -220,6 +225,15 @@ function validate(){
   formData.cedula=document.getElementById('f_cedula').value.trim();
   formData.genero=document.getElementById('f_genero').value;
   formData.telefono=document.getElementById('f_telefono').value.trim();
+  // Fecha nacimiento: convertir DD/MM/AAAA → AAAA-MM-DD para la base de datos
+  const fnacRaw=document.getElementById('f_fnac')?.value.trim()||'';
+  if(fnacRaw){
+    const pp=fnacRaw.split('/');
+    if(pp.length===3&&pp[0].length===2&&pp[1].length===2&&pp[2].length===4){
+      formData.fecha_nacimiento=pp[2]+'-'+pp[1]+'-'+pp[0];
+      formData.fecha_nacimiento_display=fnacRaw;
+    }else{formData.fecha_nacimiento='';formData.fecha_nacimiento_display=fnacRaw;}
+  }else{formData.fecha_nacimiento='';formData.fecha_nacimiento_display='';}
   formData.ciudad=document.getElementById('f_ciudad').value.trim();
   formData.empresa=document.getElementById('f_empresa').value.trim();
   formData.email=document.getElementById('f_email').value.trim();
@@ -235,6 +249,10 @@ function validate(){
   }
   if(!formData.genero){alert('Seleccione el género');return;}
   if(!formData.telefono||formData.telefono.length<7){alert('Ingrese el número de celular');return;}
+  if(!formData.fecha_nacimiento){alert('Ingrese la fecha de nacimiento (DD/MM/AAAA)');return;}
+  // Validar que la fecha sea real
+  const fnTest=new Date(formData.fecha_nacimiento);
+  if(isNaN(fnTest.getTime())||fnTest>new Date()||fnTest<new Date('1900-01-01')){alert('Fecha de nacimiento no válida');return;}
   if(!formData.ciudad){alert('Ingrese la ciudad');return;}
   if(!formData.empresa){alert('Ingrese la empresa');return;}
 
@@ -308,7 +326,7 @@ function confirmar(){
   const pid=crypto.randomUUID?crypto.randomUUID():'p_'+Math.random().toString(36).substr(2,9);
   let existing=pts.find(p=>p.cedula===formData.cedula);
   if(!existing){
-    existing={id:pid,nombre:formData.nombre,cedula:formData.cedula,telefono:formData.telefono||'',email:formData.email,genero:formData.genero||'',direccion:'',ciudad:formData.ciudad,empresa:formData.empresa,cargo:'',fecha_nacimiento:''};
+    existing={id:pid,nombre:formData.nombre,cedula:formData.cedula,telefono:formData.telefono||'',email:formData.email,genero:formData.genero||'',direccion:'',ciudad:formData.ciudad,empresa:formData.empresa,cargo:'',fecha_nacimiento:formData.fecha_nacimiento||''};
     pts.push(existing);
   }else{
     existing.nombre=formData.nombre;existing.ciudad=formData.ciudad;existing.empresa=formData.empresa;
@@ -349,7 +367,7 @@ function confirmar(){
         const res=await sbQuery('pacientes','POST',{
           id:pid,nombre:formData.nombre,cedula:formData.cedula,telefono:formData.telefono||'',
           email:formData.email,genero:formData.genero||'',direccion:'',ciudad:formData.ciudad,
-          empresa:formData.empresa,cargo:'',fecha_nacimiento:''
+          empresa:formData.empresa,cargo:'',fecha_nacimiento:formData.fecha_nacimiento||''
         });
         if(res&&res[0])patientId=res[0].id;
         console.log('👤 Paciente creado:',patientId);
