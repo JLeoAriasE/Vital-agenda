@@ -3085,6 +3085,10 @@ function ck(val,match){return val===match?'☒':'☐';}
 function printOpen(html){const w=window.open('','_blank','width=900,height=700');w.document.write(html);w.document.close();}
 
 function printCertOficial(){
+  saveFichaSection();
+  const medNom=document.getElementById('fo_medico')?.value;
+  const medCod=document.getElementById('fo_codmed')?.value;
+  if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
   const d=FO.data,a=d.a||{},b=d.b||{},l=d.l||{},m=d.m||{},n=d.n||{},ec=getEmpCfg();
   const f=(b.fecha_atencion||TD).split('-'),apt=l.aptitud||'',tipo=b.tipo_eval||'INGRESO';
   const recs=((m.estandar||[]).join(' - ')+(m.medicas?' - '+m.medicas:'')).toUpperCase();
@@ -3117,6 +3121,10 @@ function printCertOficial(){
 
 async function generarPDFOficial(modo='formulario'){
   saveFichaSection();
+  // Siempre guardar médico si los inputs existen
+  const medNom=document.getElementById('fo_medico')?.value;
+  const medCod=document.getElementById('fo_codmed')?.value;
+  if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
   const d=FO.data,p=gP(FO.pid)||{},mc=getMedCfg();
   const edad=p.fecha_nacimiento?Math.floor((new Date()-new Date(p.fecha_nacimiento))/31557600000):'';
   
@@ -3137,7 +3145,7 @@ async function generarPDFOficial(modo='formulario'){
     k:d.k||{},
     l:d.l||{},
     m:d.m||{},
-    n:{medico:mc.nombre||'',codigo:mc.codigo||''},
+    n:d.n||{medico:mc.nombre||'',codigo:mc.codigo||''},
     r:d.r||{},
   };
   
@@ -3168,6 +3176,10 @@ async function generarPDFOficial(modo='formulario'){
 }
 
 function printFichaOficial(){
+  saveFichaSection();
+  const medNom=document.getElementById('fo_medico')?.value;
+  const medCod=document.getElementById('fo_codmed')?.value;
+  if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
   const d=FO.data,a=d.a||{},b=d.b||{},c=d.c||{},dd2=d.d||{},e=d.e||{},f=d.f||{},g=d.g||{},h=d.h||{},ii2=d.i||{},j=d.j||{},k=d.k||{},l=d.l||{},m=d.m||{},n=d.n||{};
   const ec=getEmpCfg(),p=gP(FO.pid)||{};
   const fa=(b.fecha_atencion||TD).split('-');
