@@ -4020,7 +4020,7 @@ function downloadExcelAtendidos(periodo){
   if(citas.length===0){alert('No hay pacientes atendidos en ese período');return;}
 
   // Encabezado limpio con tabuladores
-  let csv='N°\tNOMBRE\tCÉDULA\tFECHA NAC.\tSEXO\tEMPRESA\tCIUDAD\tCARGO\tFECHA CITA\tHORA\tTIPO\tESTADO\n';
+  let csv='N°;NOMBRE;CÉDULA;FECHA NAC.;SEXO;EMPRESA;CIUDAD;CARGO;FECHA CITA;HORA;TIPO;ESTADO\n';
 
   // Filas
   citas.sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).forEach((a,idx)=>{
@@ -4031,16 +4031,16 @@ function downloadExcelAtendidos(periodo){
       const parts=p.fecha_nacimiento.split('-');
       if(parts.length===3) fnac=parts[2]+'/'+parts[1]+'/'+parts[0];
     }
-    csv+=`${idx+1}\t${(p.nombre||'').toUpperCase()}\t${p.cedula||''}\t${fnac}\t${sexo}\t${(p.empresa||'').toUpperCase()}\t${(p.ciudad||'').toUpperCase()}\t${(p.cargo||'').toUpperCase()}\t${a.fecha}\t${a.hora}\t${a.tipo||''}\t${a.estado||''}\n`;
+    csv+=`${idx+1};${(p.nombre||'').toUpperCase()};${p.cedula||''};${fnac};${sexo};${(p.empresa||'').toUpperCase()};${(p.ciudad||'').toUpperCase()};${(p.cargo||'').toUpperCase()};${a.fecha};${a.hora};${a.tipo||''};${a.estado||''}\n`;
   });
 
-  const blob=new Blob(['\uFEFF'+csv],{type:'application/vnd.ms-excel;charset=utf-8;'});
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const link=document.createElement('a');
   link.href=url;
-  link.download=`pacientes_${desde}_a_${hasta}.xls`;
+  link.download=`pacientes_${desde}_a_${hasta}.csv`;
   link.click();URL.revokeObjectURL(url);
-  alert(`✅ Descargado: ${citas.length} pacientes\nArchivo: pacientes_${desde}_a_${hasta}.xls`);
+  alert(`✅ Descargado: ${citas.length} pacientes\nArchivo: pacientes_${desde}_a_${hasta}.csv`);
 }
 
 // ═══ INIT ═══
