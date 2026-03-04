@@ -4020,46 +4020,59 @@ async function downloadExcelAtendidos(periodo){
   const citas=S.apt.filter(a=>a.fecha>=desde&&a.fecha<=hasta&&a.estado!=='cancelada');
   if(citas.length===0){alert('No hay pacientes atendidos en ese período');return;}
 
+  // Crear libro
   const wb=new ExcelJS.Workbook();
   const ws=wb.addWorksheet('Pacientes');
 
-  // Anchos de columna
+  // Columnas
   ws.columns=[
-    {key:'n',width:5},{key:'nombre',width:38},{key:'cedula',width:16},{key:'fnac',width:14},
-    {key:'sexo',width:7},{key:'empresa',width:35},{key:'ciudad',width:15},{key:'cargo',width:30},
-    {key:'fecha',width:14},{key:'hora',width:8},{key:'tipo',width:18},{key:'estado',width:14}
+    {header:'N°',key:'n',width:6},
+    {header:'NOMBRE',key:'nombre',width:38},
+    {header:'CÉDULA',key:'cedula',width:16},
+    {header:'CELULAR',key:'celular',width:14},
+    {header:'CIUDAD',key:'ciudad',width:16},
+    {header:'FECHA REGISTRO',key:'fregistro',width:16},
+    {header:'FECHA NAC.',key:'fnac',width:14},
+    {header:'EMPRESA',key:'empresa',width:35}
   ];
 
-  // Encabezado
-  const headerRow=ws.addRow(['N°','NOMBRE','CÉDULA','FECHA NAC.','SEXO','EMPRESA','CIUDAD','CARGO','FECHA CITA','HORA','TIPO','ESTADO']);
-  headerRow.eachCell(c=>{
+  // Estilo encabezado
+  const hr=ws.getRow(1);
+  hr.height=24;
+  hr.eachCell(c=>{
     c.font={name:'Arial',bold:true,size:11,color:{argb:'FFFFFFFF'}};
     c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2B6CB0'}};
-    c.alignment={horizontal:'center',vertical:'middle',wrapText:true};
-    c.border={top:{style:'thin',color:{argb:'FFD0D0D0'}},bottom:{style:'thin',color:{argb:'FFD0D0D0'}},left:{style:'thin',color:{argb:'FFD0D0D0'}},right:{style:'thin',color:{argb:'FFD0D0D0'}}};
+    c.alignment={horizontal:'center',vertical:'middle'};
+    c.border={top:{style:'thin',color:{argb:'FF2B6CB0'}},bottom:{style:'thin',color:{argb:'FF2B6CB0'}},left:{style:'thin',color:{argb:'FF2B6CB0'}},right:{style:'thin',color:{argb:'FF2B6CB0'}}};
   });
-  headerRow.height=22;
 
-  // Filas de datos
-  const centerCols=[1,4,5,9,10];
+  // Datos
   citas.sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).forEach((a,idx)=>{
     const p=gP(a.pid)||{};
-    const sexo=p.genero==='masculino'?'M':p.genero==='femenino'?'F':'';
     let fnac='';
     if(p.fecha_nacimiento){const pts=p.fecha_nacimiento.split('-');if(pts.length===3)fnac=pts[2]+'/'+pts[1]+'/'+pts[0];}
-    const row=ws.addRow([idx+1,(p.nombre||'').toUpperCase(),p.cedula||'',fnac,sexo,(p.empresa||'').toUpperCase(),(p.ciudad||'').toUpperCase(),(p.cargo||'').toUpperCase(),a.fecha,a.hora,a.tipo||'',a.estado||'']);
+    const row=ws.addRow({
+      n:idx+1,
+      nombre:(p.nombre||'').toUpperCase(),
+      cedula:p.cedula||'',
+      celular:p.telefono||'',
+      ciudad:(p.ciudad||'').toUpperCase(),
+      fregistro:a.fecha,
+      fnac:fnac,
+      empresa:(p.empresa||'').toUpperCase()
+    });
     const isEven=(idx%2===0);
-    row.eachCell({includeEmpty:true},(c,colNum)=>{
+    row.eachCell({includeEmpty:true},(c,col)=>{
       c.font={name:'Arial',size:10};
-      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:isEven?'FFF7FAFC':'FFFFFFFF'}};
-      c.border={top:{style:'thin',color:{argb:'FFD0D0D0'}},bottom:{style:'thin',color:{argb:'FFD0D0D0'}},left:{style:'thin',color:{argb:'FFD0D0D0'}},right:{style:'thin',color:{argb:'FFD0D0D0'}}};
-      c.alignment={vertical:'middle',horizontal:centerCols.includes(colNum)?'center':'left'};
+      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:isEven?'FFF0F4F8':'FFFFFFFF'}};
+      c.border={top:{style:'thin',color:{argb:'FFE2E8F0'}},bottom:{style:'thin',color:{argb:'FFE2E8F0'}},left:{style:'thin',color:{argb:'FFE2E8F0'}},right:{style:'thin',color:{argb:'FFE2E8F0'}}};
+      c.alignment={vertical:'middle',horizontal:(col===1||col===5||col===6||col===7)?'center':'left'};
     });
   });
 
   // Congelar encabezado + filtro
   ws.views=[{state:'frozen',ySplit:1}];
-  ws.autoFilter={from:'A1',to:`L${citas.length+1}`};
+  ws.autoFilter={from:'A1',to:`H${citas.length+1}`};
 
   // Descargar
   const buf=await wb.xlsx.writeBuffer();
@@ -4068,7 +4081,7 @@ async function downloadExcelAtendidos(periodo){
   const link=document.createElement('a');
   link.href=url;link.download=`pacientes_${desde}_a_${hasta}.xlsx`;
   link.click();URL.revokeObjectURL(url);
-  alert(`✅ Descargado: ${citas.length} pacientes\nArchivo: pacientes_${desde}_a_${hasta}.xlsx`);
+  alert('✅ Descargado: '+citas.length+' pacientes');
 }
 }
 // ═══ INIT ═══
