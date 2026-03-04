@@ -4019,61 +4019,28 @@ function downloadExcelAtendidos(periodo){
   const citas=S.apt.filter(a=>a.fecha>=desde&&a.fecha<=hasta&&a.estado!=='cancelada');
   if(citas.length===0){alert('No hay pacientes atendidos en ese período');return;}
 
-  // Collect ALL unique exam names across all orders
-  const allExams=new Set();
-  citas.forEach(a=>{
-    gAO(a.id).forEach(o=>{
-      if(o.cat==='laboratorio'){(o.exams||[]).forEach(e=>allExams.add('🧪 '+e));}
-      else if(o.cat==='radiologia'){allExams.add('🦴 RX: '+(o.parte||'')+(o.proy?' ('+o.proy+')':''));}
-      else{const label=(o.exams||[])[0]||o.cat;allExams.add((cI[o.cat]||'')+' '+label);}
-    });
-  });
-  const examCols=[...allExams].sort();
+  // Encabezado limpio con tabuladores
+  let csv='N°\tNOMBRE\tCÉDULA\tFECHA NAC.\tSEXO\tEMPRESA\tCIUDAD\tCARGO\tFECHA CITA\tHORA\tTIPO\tESTADO\n';
 
-  // Build CSV header
-  let csv='N°,Nombre,Cédula,Empresa,Ciudad,Fecha Cita,Hora,Tipo,Estado,Fecha Lab,Fecha Médica';
-  examCols.forEach(e=>csv+=',"'+e.replace(/"/g,"'")+'"');
-  csv+='\n';
-
-  // Build rows
+  // Filas
   citas.sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).forEach((a,idx)=>{
-    const p=gP(a.pid);
-    const ords=gAO(a.id);
-
-    // Find lab and medical dates (fecha of completion)
-    const labOrd=ords.find(o=>o.cat==='laboratorio');
-    const medOrd=ords.find(o=>o.cat==='atencion_medica');
-    const fechaLab=labOrd&&labOrd.estado==='completado'?a.fecha:'';
-    const fechaMed=medOrd&&medOrd.estado==='completado'?a.fecha:'';
-
-    // Build exam status map
-    const examStatus={};
-    ords.forEach(o=>{
-      if(o.cat==='laboratorio'){
-        (o.exams||[]).forEach(e=>{examStatus['🧪 '+e]=o.estado==='completado'?'✅':'❌';});
-      }else if(o.cat==='radiologia'){
-        const key='🦴 RX: '+(o.parte||'')+(o.proy?' ('+o.proy+')':'');
-        examStatus[key]=o.estado==='completado'?'✅':'❌';
-      }else{
-        const label=(o.exams||[])[0]||o.cat;
-        const key=(cI[o.cat]||'')+' '+label;
-        examStatus[key]=o.estado==='completado'?'✅':'❌';
-      }
-    });
-
-    csv+=`${idx+1},"${p?.nombre||''}","${p?.cedula||''}","${p?.empresa||''}","${p?.ciudad||''}","${a.fecha}","${a.hora}","${a.tipo}","${a.estado}","${fechaLab}","${fechaMed}"`;
-    examCols.forEach(e=>csv+=`,"${examStatus[e]||'—'}"`);
-    csv+='\n';
+    const p=gP(a.pid)||{};
+    const sexo=p.genero==='masculino'?'M':p.genero==='femenino'?'F':'';
+    let fnac='';
+    if(p.fecha_nacimiento){
+      const parts=p.fecha_nacimiento.split('-');
+      if(parts.length===3) fnac=parts[2]+'/'+parts[1]+'/'+parts[0];
+    }
+    csv+=`${idx+1}\t${(p.nombre||'').toUpperCase()}\t${p.cedula||''}\t${fnac}\t${sexo}\t${(p.empresa||'').toUpperCase()}\t${(p.ciudad||'').toUpperCase()}\t${(p.cargo||'').toUpperCase()}\t${a.fecha}\t${a.hora}\t${a.tipo||''}\t${a.estado||''}\n`;
   });
 
-  // Download
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const blob=new Blob(['\uFEFF'+csv],{type:'application/vnd.ms-excel;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
   const link=document.createElement('a');
   link.href=url;
-  link.download=`pacientes_${desde}_a_${hasta}.csv`;
+  link.download=`pacientes_${desde}_a_${hasta}.xls`;
   link.click();URL.revokeObjectURL(url);
-  alert(`✅ Descargado: ${citas.length} pacientes\n📊 ${examCols.length} columnas de exámenes\nArchivo: pacientes_${desde}_a_${hasta}.csv`);
+  alert(`✅ Descargado: ${citas.length} pacientes\nArchivo: pacientes_${desde}_a_${hasta}.xls`);
 }
 
 // ═══ INIT ═══
