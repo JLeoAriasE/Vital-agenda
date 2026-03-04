@@ -101,6 +101,7 @@ select.fi{cursor:pointer;appearance:auto}textarea.fi{min-height:60px;resize:vert
 .lp{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .lc{background:var(--c1);border:1px solid var(--bd);border-radius:14px;padding:36px;width:100%;max-width:380px}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -4019,8 +4020,8 @@ function downloadExcelAtendidos(periodo){
   const citas=S.apt.filter(a=>a.fecha>=desde&&a.fecha<=hasta&&a.estado!=='cancelada');
   if(citas.length===0){alert('No hay pacientes atendidos en ese período');return;}
 
-  // Encabezado limpio con tabuladores
-  let csv='N°;NOMBRE;CÉDULA;FECHA NAC.;SEXO;EMPRESA;CIUDAD;CARGO;FECHA CITA;HORA;TIPO;ESTADO\n';
+  // Encabezado
+  const rows=[['N°','NOMBRE','CÉDULA','FECHA NAC.','SEXO','EMPRESA','CIUDAD','CARGO','FECHA CITA','HORA','TIPO','ESTADO']];
 
   // Filas
   citas.sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).forEach((a,idx)=>{
@@ -4031,18 +4032,31 @@ function downloadExcelAtendidos(periodo){
       const parts=p.fecha_nacimiento.split('-');
       if(parts.length===3) fnac=parts[2]+'/'+parts[1]+'/'+parts[0];
     }
-    csv+=`${idx+1};${(p.nombre||'').toUpperCase()};${p.cedula||''};${fnac};${sexo};${(p.empresa||'').toUpperCase()};${(p.ciudad||'').toUpperCase()};${(p.cargo||'').toUpperCase()};${a.fecha};${a.hora};${a.tipo||''};${a.estado||''}\n`;
+    rows.push([
+      idx+1,
+      (p.nombre||'').toUpperCase(),
+      p.cedula||'',
+      fnac,
+      sexo,
+      (p.empresa||'').toUpperCase(),
+      (p.ciudad||'').toUpperCase(),
+      (p.cargo||'').toUpperCase(),
+      a.fecha,
+      a.hora,
+      a.tipo||'',
+      a.estado||''
+    ]);
   });
 
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob);
-  const link=document.createElement('a');
-  link.href=url;
-  link.download=`pacientes_${desde}_a_${hasta}.csv`;
-  link.click();URL.revokeObjectURL(url);
-  alert(`✅ Descargado: ${citas.length} pacientes\nArchivo: pacientes_${desde}_a_${hasta}.csv`);
+  // Generar Excel real con SheetJS
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  // Ancho de columnas
+  ws['!cols']=[{wch:4},{wch:35},{wch:14},{wch:12},{wch:6},{wch:30},{wch:15},{wch:25},{wch:12},{wch:6},{wch:16},{wch:12}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Pacientes');
+  XLSX.writeFile(wb,`pacientes_${desde}_a_${hasta}.xlsx`);
+  alert(`✅ Descargado: ${citas.length} pacientes\nArchivo: pacientes_${desde}_a_${hasta}.xlsx`);
 }
-
 // ═══ INIT ═══
 applyTheme();
 syncPublic();
