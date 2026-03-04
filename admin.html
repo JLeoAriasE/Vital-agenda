@@ -318,7 +318,10 @@ function canComplete(){return isA()||isE()||isL()||isR()||isPsi();}
 // ═══ WHATSAPP (Manual + API Ready) ═══
 function sWA(a){
   const p=gP(a.pid);if(!p?.telefono){alert('Este paciente no tiene teléfono registrado');return;}
-  const ph=p.telefono.replace(/[+\s-]/g,'');
+  let ph=p.telefono.replace(/[+\s-]/g,'');
+  // Agregar código Ecuador si falta
+  if(ph.startsWith('0'))ph='593'+ph.substring(1);
+  else if(!ph.startsWith('593'))ph='593'+ph;
   const exams=gAO(a.id);
   let exList='';
   if(exams.length>0){
@@ -348,7 +351,7 @@ ${exList}
 • Ayuno de 8-12 horas (si tiene exámenes de sangre)
 
 ¿Confirma su asistencia? ✅/❌`);
-  window.open(`https://wa.me/${ph}?text=${m}`);
+  window.open(`https://web.whatsapp.com/send?phone=${ph}&text=${m}`);
 }
 
 // WhatsApp Business API (para cuando tengas la cuenta Meta Business)
@@ -3980,7 +3983,7 @@ function sendWA(aid,tipo){
       +`¡Le esperamos mañana! 🙌`;
   }
 
-  const url=`https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+  const url=`https://web.whatsapp.com/send?phone=${num}&text=${encodeURIComponent(msg)}`;
   window.open(url,'_blank');
 }
 
