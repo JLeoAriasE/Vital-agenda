@@ -4076,13 +4076,25 @@ async function downloadExcelAtendidos(periodo){
       c.font={name:'Arial',size:10};
       c.fill={type:'pattern',pattern:'solid',fgColor:{argb:isEven?'FFF0F4F8':'FFFFFFFF'}};
       c.border={top:{style:'thin',color:{argb:'FFE2E8F0'}},bottom:{style:'thin',color:{argb:'FFE2E8F0'}},left:{style:'thin',color:{argb:'FFE2E8F0'}},right:{style:'thin',color:{argb:'FFE2E8F0'}}};
-      c.alignment={vertical:'middle',horizontal:(col===1||col===3||col===4||col===5||col===6||col===7)?'center':'left',wrapText:(col===2||col===8)?true:false};
+      c.alignment={vertical:'middle',horizontal:(col===1||col===3||col===4||col===5||col===6||col===7)?'center':'left'};
     });
   });
 
   // Congelar encabezado + filtro
   ws.views=[{state:'frozen',ySplit:1}];
   ws.autoFilter={from:'A1',to:`H${citas.length+1}`};
+
+  // Auto-ajustar ancho de NOMBRE (col 2) y EMPRESA (col 8)
+  let maxNombre=8,maxEmpresa=8;
+  ws.eachRow((row,rn)=>{
+    if(rn===1)return;
+    const n=String(row.getCell(2).value||'').length;
+    const e=String(row.getCell(8).value||'').length;
+    if(n>maxNombre)maxNombre=n;
+    if(e>maxEmpresa)maxEmpresa=e;
+  });
+  ws.getColumn(2).width=Math.min(maxNombre+3,60);
+  ws.getColumn(8).width=Math.min(maxEmpresa+3,60);
 
   // Descargar
   const buf=await wb.xlsx.writeBuffer();
