@@ -3014,7 +3014,7 @@ function fichaSecN(n){
     <button class="btn" style="background:#38a169;color:#fff" onclick="generarPDFOficial('formulario')">📋 Formulario PDF</button>
     <button class="btn" style="background:#718096;color:#fff;font-size:10px" onclick="saveFichaSection();printFichaOficial()">🖨️ Vista previa</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="generarConsentimiento()">✅ Consentimiento</button>
-    <button class="btn" style="background:#718096;color:#fff" onclick="saveFichaSection();alert('🚧 Confidencialidad en desarrollo')">🔒 Confidencialidad</button>
+    <button class="btn" style="background:#718096;color:#fff" onclick="generarConfidencialidad()">🔒 Confidencialidad</button>
   </div>`;
 }
 
@@ -3124,6 +3124,33 @@ function printCertOficial(){
   <tr style="height:50px"><td colspan="6" class="s" style="vertical-align:middle">NOMBRE Y APELLIDO</td><td colspan="6" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="3" class="s" style="vertical-align:middle">CÓDIGO MEDICO</td><td colspan="3" class="v">${n.codigo||''}</td><td colspan="9" class="c s">FIRMA Y SELLO</td><td colspan="8"></td></tr>
   </table></body></html>`;
   printOpen(html);
+}
+
+async function generarConfidencialidad(){
+  saveFichaSection();
+  const d=FO.data,p=gP(FO.pid)||{},a=d.a||{},b=d.b||{},n=d.n||{};
+  const medNom=document.getElementById('fo_medico')?.value||n.medico||'';
+  const medCod=document.getElementById('fo_codmed')?.value||n.codigo||'';
+  const payload={
+    medico: medNom,
+    cedula_medico: medCod,
+    cargo: 'Médico Ocupacional',
+    empresa: a.empresa||p.empresa||'',
+    ciudad: p.ciudad||'Machala',
+    fecha: b.fecha_atencion||TD
+  };
+  const btn=event?.target;
+  if(btn){btn.disabled=true;btn.textContent='⏳ Generando...';}
+  try{
+    const res=await fetch('https://vitalwork-pdf-service.onrender.com/generar-confidencialidad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok){const err=await res.json().catch(()=>({}));alert('❌ Error: '+(err.error||res.statusText));return;}
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;link.download=`CONFIDENCIALIDAD_${medNom.replace(/\s+/g,'_')}.docx`;
+    link.click();URL.revokeObjectURL(url);
+  }catch(e){alert('❌ Error de conexión: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='🔒 Confidencialidad';}}
 }
 
 async function generarConsentimiento(){
