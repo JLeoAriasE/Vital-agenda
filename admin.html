@@ -101,7 +101,6 @@ select.fi{cursor:pointer;appearance:auto}textarea.fi{min-height:60px;resize:vert
 .lp{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .lc{background:var(--c1);border:1px solid var(--bd);border-radius:14px;padding:36px;width:100%;max-width:380px}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -4000,6 +3999,17 @@ function sendWABulk(fecha){
 }
 
 async function downloadExcelAtendidos(periodo){
+  // Cargar ExcelJS si no está cargado
+  if(typeof ExcelJS==='undefined'){
+    try{
+      await new Promise((resolve,reject)=>{
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';
+        s.onload=resolve;s.onerror=reject;
+        document.head.appendChild(s);
+      });
+    }catch(e){alert('❌ No se pudo cargar la librería de Excel. Verifica tu conexión a internet.');return;}
+  }
   let desde='',hasta='';
   const hoy=new Date();
   if(periodo==='hoy'){
