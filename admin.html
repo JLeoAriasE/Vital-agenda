@@ -2441,7 +2441,18 @@ function showFichaError(missing){
 function saveFichaSection(){
   const s=FO.sec;const d=FO.data;
   if(s==='A'){
-    d.a={...d.a,empresa:gv('fo_empresa'),ruc:gv('fo_ruc'),ciiu:gv('fo_ciiu'),centro:gv('fo_centro'),nform:gv('fo_nform'),narch:gv('fo_narch'),ap1:gv('fo_ap1'),ap2:gv('fo_ap2'),n1:gv('fo_n1'),n2:gv('fo_n2'),sexo:gv('fo_sexo'),cargo:gv('fo_cargo'),grupo_sang:gv('fo_gsang'),lateralidad:d.a?.lateralidad||'Diestro',atencion_prioritaria:d.a?.atencion_prioritaria||[]};
+    // Si eligió "nueva empresa", tomar del input; si no, del select
+    const sel=document.getElementById('fo_empresa_sel');
+    const inp=document.getElementById('fo_empresa');
+    const empNombre=(sel&&sel.value==='_nuevo')?(inp?.value?.trim()||''):(sel?.value||inp?.value||'');
+    d.a={...d.a,empresa:empNombre,ruc:gv('fo_ruc'),ciiu:gv('fo_ciiu'),centro:gv('fo_centro'),nform:gv('fo_nform'),narch:gv('fo_narch'),ap1:gv('fo_ap1'),ap2:gv('fo_ap2'),n1:gv('fo_n1'),n2:gv('fo_n2'),sexo:gv('fo_sexo'),cargo:gv('fo_cargo'),grupo_sang:gv('fo_gsang'),lateralidad:d.a?.lateralidad||'Diestro',atencion_prioritaria:d.a?.atencion_prioritaria||[]};
+    // Si es empresa nueva, guardarla en el catálogo
+    if(empNombre&&!(S.empresas_cli||[]).find(e=>e.nombre===empNombre)){
+      const newEmp={nombre:empNombre,ruc:'',ciiu:'',direccion:'',telefono:'',contacto:''};
+      if(!S.empresas_cli)S.empresas_cli=[];
+      if(DB_OK){SB.post('empresas',newEmp).then(r=>{if(r&&r[0])S.empresas_cli.push({id:r[0].id,...newEmp});else S.empresas_cli.push({id:gid(),...newEmp});});}
+      else{S.empresas_cli.push({id:gid(),...newEmp});}
+    }
     // Actualizar datos del paciente si se editaron
     const p=gP(FO.pid);
     if(p){
@@ -2500,14 +2511,15 @@ function fichaSecContent(s){
 function fichaSecA(a){
   if(!a){a=FO.data.a||{};const el=document.getElementById('ficha_sec_body');if(el){el.innerHTML=fichaSecA(a);return;}}
   const empOpts=(S.empresas_cli||[]).map(e=>`<option value="${e.nombre}" ${a.empresa===e.nombre?'selected':''}>${e.nombre}</option>`).join('');
+  const esNueva=a.empresa&&!(S.empresas_cli||[]).find(e=>e.nombre===a.empresa);
   return`<div class="fr"><div class="fg" style="flex:2"><label>Institución / Empresa</label>
-  <select class="fi" id="fo_empresa_sel" onchange="document.getElementById('fo_empresa').value=this.value;fichaEmpChange()" style="margin-bottom:6px">
+  <select class="fi" id="fo_empresa_sel" onchange="fichaEmpChange()">
     <option value="">— Seleccionar empresa —</option>${empOpts}
-    <option value="_otro" ${a.empresa&&!(S.empresas_cli||[]).find(e=>e.nombre===a.empresa)?'selected':''}>✏️ Escribir otra...</option>
+    <option value="_nuevo">➕ Escribir nueva empresa...</option>
   </select>
-  <input class="fi" id="fo_empresa" value="${a.empresa||''}" placeholder="Nombre de la empresa" onchange="fichaEmpChange()" autocomplete="off" style="${a.empresa&&!(S.empresas_cli||[]).find(e=>e.nombre===a.empresa)?'':'display:none'}"></div>
-  <div class="fg"><label>RUC</label><input class="fi" id="fo_ruc" value="${a.ruc||''}" autocomplete="off"></div>
-  <div class="fg"><label>CIIU</label><input class="fi" id="fo_ciiu" value="${a.ciiu||''}" autocomplete="off"></div></div>
+  <input class="fi" id="fo_empresa" value="${esNueva?a.empresa:''}" placeholder="Nombre de la nueva empresa" autocomplete="off" style="${esNueva?'margin-top:6px':'display:none;margin-top:6px'}"></div>
+  <div class="fg"><label>RUC</label><input class="fi" id="fo_ruc" value="${a.ruc||''}" readonly style="opacity:.7"></div>
+  <div class="fg"><label>CIIU</label><input class="fi" id="fo_ciiu" value="${a.ciiu||''}" readonly style="opacity:.7"></div></div>
   <div class="fr"><div class="fg" style="flex:2"><label>Establecimiento / Centro</label><input class="fi" id="fo_centro" value="${a.centro||''}" autocomplete="off"></div>
   <div class="fg"><label>N° Formulario</label><input class="fi" id="fo_nform" value="${a.nform||''}" autocomplete="off"></div>
   <div class="fg"><label>N° Archivo</label><input class="fi" id="fo_narch" value="${a.narch||''}" autocomplete="off"></div></div>
@@ -2526,11 +2538,12 @@ function fichaSecA(a){
 function fichaEmpChange(){
   const sel=document.getElementById('fo_empresa_sel');
   const inp=document.getElementById('fo_empresa');
-  if(sel&&sel.value==='_otro'){inp.style.display='';inp.value='';inp.focus();return;}
-  if(sel&&sel.value){inp.value=sel.value;inp.style.display='none';}
-  const v=inp?.value;
-  const e=(S.empresas_cli||[]).find(x=>x.nombre===v);
+  if(sel.value==='_nuevo'){inp.style.display='';inp.value='';inp.focus();document.getElementById('fo_ruc').value='';document.getElementById('fo_ciiu').value='';document.getElementById('fo_centro').value='';return;}
+  inp.style.display='none';
+  inp.value=sel.value;
+  const e=(S.empresas_cli||[]).find(x=>x.nombre===sel.value);
   if(e){document.getElementById('fo_ruc').value=e.ruc||'';document.getElementById('fo_ciiu').value=e.ciiu||'';document.getElementById('fo_centro').value=e.nombre||'';}
+  else{document.getElementById('fo_ruc').value='';document.getElementById('fo_ciiu').value='';document.getElementById('fo_centro').value='';}
 }
 function toggleAP(t){saveFichaSection();if(!FO.data.a.atencion_prioritaria)FO.data.a.atencion_prioritaria=[];const i=FO.data.a.atencion_prioritaria.indexOf(t);if(i>-1)FO.data.a.atencion_prioritaria.splice(i,1);else FO.data.a.atencion_prioritaria.push(t);fichaSecA();}
 
