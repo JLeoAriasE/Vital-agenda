@@ -2500,7 +2500,13 @@ function fichaSecContent(s){
 // ── SECCIÓN A: Datos del Paciente ──
 function fichaSecA(a){
   if(!a){a=FO.data.a||{};const el=document.getElementById('ficha_sec_body');if(el){el.innerHTML=fichaSecA(a);return;}}
-  return`<div class="fr"><div class="fg" style="flex:2"><label>Institución / Empresa</label><input class="fi" id="fo_empresa" value="${a.empresa||''}" list="dl_emps2" onchange="fichaEmpChange()" autocomplete="off"><datalist id="dl_emps2">${(S.empresas_cli||[]).map(e=>'<option value="'+e.nombre+'">').join('')}</datalist></div>
+  const empOpts=(S.empresas_cli||[]).map(e=>`<option value="${e.nombre}" ${a.empresa===e.nombre?'selected':''}>${e.nombre}</option>`).join('');
+  return`<div class="fr"><div class="fg" style="flex:2"><label>Institución / Empresa</label>
+  <select class="fi" id="fo_empresa_sel" onchange="document.getElementById('fo_empresa').value=this.value;fichaEmpChange()" style="margin-bottom:6px">
+    <option value="">— Seleccionar empresa —</option>${empOpts}
+    <option value="_otro" ${a.empresa&&!(S.empresas_cli||[]).find(e=>e.nombre===a.empresa)?'selected':''}>✏️ Escribir otra...</option>
+  </select>
+  <input class="fi" id="fo_empresa" value="${a.empresa||''}" placeholder="Nombre de la empresa" onchange="fichaEmpChange()" autocomplete="off" style="${a.empresa&&!(S.empresas_cli||[]).find(e=>e.nombre===a.empresa)?'':'display:none'}"></div>
   <div class="fg"><label>RUC</label><input class="fi" id="fo_ruc" value="${a.ruc||''}" autocomplete="off"></div>
   <div class="fg"><label>CIIU</label><input class="fi" id="fo_ciiu" value="${a.ciiu||''}" autocomplete="off"></div></div>
   <div class="fr"><div class="fg" style="flex:2"><label>Establecimiento / Centro</label><input class="fi" id="fo_centro" value="${a.centro||''}" autocomplete="off"></div>
@@ -2518,7 +2524,15 @@ function fichaSecA(a){
   <div class="fg"><label>Lateralidad</label><div style="display:flex;gap:6px;margin-top:4px">${['Diestro','Zurdo','Ambidiestro'].map(l=>`<button class="btn bsm ${a.lateralidad===l?'bp':'bg'}" onclick="saveFichaSection();FO.data.a.lateralidad='${l}';fichaSecA()" style="font-size:11px">${l}</button>`).join('')}</div></div></div>
   <div class="fg" style="margin-top:8px"><label>Atención prioritaria</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">${['Embarazada','Persona con discapacidad','Enfermedad catastrófica','Lactancia','Adulto mayor'].map(t=>`<button class="btn bsm ${(a.atencion_prioritaria||[]).includes(t)?'bp':'bg'}" onclick="toggleAP('${t}')" style="font-size:11px">${t}</button>`).join('')}</div></div>`;
 }
-function fichaEmpChange(){const v=document.getElementById('fo_empresa')?.value;const e=(S.empresas_cli||[]).find(x=>x.nombre===v);if(e){document.getElementById('fo_ruc').value=e.ruc||'';document.getElementById('fo_ciiu').value=e.ciiu||'';document.getElementById('fo_centro').value=e.nombre||'';}}
+function fichaEmpChange(){
+  const sel=document.getElementById('fo_empresa_sel');
+  const inp=document.getElementById('fo_empresa');
+  if(sel&&sel.value==='_otro'){inp.style.display='';inp.value='';inp.focus();return;}
+  if(sel&&sel.value){inp.value=sel.value;inp.style.display='none';}
+  const v=inp?.value;
+  const e=(S.empresas_cli||[]).find(x=>x.nombre===v);
+  if(e){document.getElementById('fo_ruc').value=e.ruc||'';document.getElementById('fo_ciiu').value=e.ciiu||'';document.getElementById('fo_centro').value=e.nombre||'';}
+}
 function toggleAP(t){saveFichaSection();if(!FO.data.a.atencion_prioritaria)FO.data.a.atencion_prioritaria=[];const i=FO.data.a.atencion_prioritaria.indexOf(t);if(i>-1)FO.data.a.atencion_prioritaria.splice(i,1);else FO.data.a.atencion_prioritaria.push(t);fichaSecA();}
 
 // ── SECCIÓN B: Motivo Consulta ──
