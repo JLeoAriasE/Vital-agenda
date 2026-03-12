@@ -2518,9 +2518,9 @@ function fichaSecA(a){
     <option value="_nuevo">➕ Escribir nueva empresa...</option>
   </select>
   <input class="fi" id="fo_empresa" value="${esNueva?a.empresa:''}" placeholder="Nombre de la nueva empresa" autocomplete="off" style="${esNueva?'margin-top:6px':'display:none;margin-top:6px'}"></div>
-  <div class="fg"><label>RUC</label><input class="fi" id="fo_ruc" value="${a.ruc||''}" readonly style="opacity:.7"></div>
-  <div class="fg"><label>CIIU</label><input class="fi" id="fo_ciiu" value="${a.ciiu||''}" readonly style="opacity:.7"></div></div>
-  <div class="fr"><div class="fg" style="flex:2"><label>Establecimiento / Centro</label><input class="fi" id="fo_centro" value="${a.centro||''}" autocomplete="off"></div>
+  <div class="fg"><label>RUC</label><input class="fi" id="fo_ruc_display" value="${a.ruc||''}" disabled style="opacity:.6;background:var(--c2)"><input type="hidden" id="fo_ruc" value="${a.ruc||''}"></div>
+  <div class="fg"><label>CIIU</label><input class="fi" id="fo_ciiu_display" value="${a.ciiu||''}" disabled style="opacity:.6;background:var(--c2)"><input type="hidden" id="fo_ciiu" value="${a.ciiu||''}"></div></div>
+  <div class="fr"><div class="fg" style="flex:2"><label>Establecimiento / Centro</label><input class="fi" id="fo_centro_display" value="${a.centro||''}" disabled style="opacity:.6;background:var(--c2)"><input type="hidden" id="fo_centro" value="${a.centro||''}"></div>
   <div class="fg"><label>N° Formulario</label><input class="fi" id="fo_nform" value="${a.nform||''}" autocomplete="off"></div>
   <div class="fg"><label>N° Archivo</label><input class="fi" id="fo_narch" value="${a.narch||''}" autocomplete="off"></div></div>
   <div class="fr"><div class="fg"><label>Primer Apellido <b style="color:red;font-size:14px">*</b></label><input class="fi" id="fo_ap1" value="${a.ap1||''}" required autocomplete="off"></div>
@@ -2538,12 +2538,22 @@ function fichaSecA(a){
 function fichaEmpChange(){
   const sel=document.getElementById('fo_empresa_sel');
   const inp=document.getElementById('fo_empresa');
-  if(sel.value==='_nuevo'){inp.style.display='';inp.value='';inp.focus();document.getElementById('fo_ruc').value='';document.getElementById('fo_ciiu').value='';document.getElementById('fo_centro').value='';return;}
+  if(sel.value==='_nuevo'){inp.style.display='';inp.value='';inp.focus();
+    document.getElementById('fo_ruc').value='';document.getElementById('fo_ruc_display').value='';
+    document.getElementById('fo_ciiu').value='';document.getElementById('fo_ciiu_display').value='';
+    document.getElementById('fo_centro').value='';document.getElementById('fo_centro_display').value='';return;}
   inp.style.display='none';
   inp.value=sel.value;
   const e=(S.empresas_cli||[]).find(x=>x.nombre===sel.value);
-  if(e){document.getElementById('fo_ruc').value=e.ruc||'';document.getElementById('fo_ciiu').value=e.ciiu||'';document.getElementById('fo_centro').value=e.nombre||'';}
-  else{document.getElementById('fo_ruc').value='';document.getElementById('fo_ciiu').value='';document.getElementById('fo_centro').value='';}
+  if(e){
+    document.getElementById('fo_ruc').value=e.ruc||'';document.getElementById('fo_ruc_display').value=e.ruc||'';
+    document.getElementById('fo_ciiu').value=e.ciiu||'';document.getElementById('fo_ciiu_display').value=e.ciiu||'';
+    document.getElementById('fo_centro').value=e.nombre||'';document.getElementById('fo_centro_display').value=e.nombre||'';
+  }else{
+    document.getElementById('fo_ruc').value='';document.getElementById('fo_ruc_display').value='';
+    document.getElementById('fo_ciiu').value='';document.getElementById('fo_ciiu_display').value='';
+    document.getElementById('fo_centro').value='';document.getElementById('fo_centro_display').value='';
+  }
 }
 function toggleAP(t){saveFichaSection();if(!FO.data.a.atencion_prioritaria)FO.data.a.atencion_prioritaria=[];const i=FO.data.a.atencion_prioritaria.indexOf(t);if(i>-1)FO.data.a.atencion_prioritaria.splice(i,1);else FO.data.a.atencion_prioritaria.push(t);fichaSecA();}
 
