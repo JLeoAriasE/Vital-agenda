@@ -1730,6 +1730,7 @@ function rBkp(){
     <button class="cvt ${t==='gsheet'?'on':''}" onclick="S.cfgTab='gsheet';render()">📊 Google Sheet</button>
     <button class="cvt ${t==='links'?'on':''}" onclick="S.cfgTab='links';render()">🔗 Links</button>
     <button class="cvt ${t==='respaldos'?'on':''}" onclick="S.cfgTab='respaldos';render()">💾 Respaldos</button>
+    <button class="cvt ${t==='gestion'?'on':''}" onclick="S.cfgTab='gestion';render()">🗑️ Gestión Datos</button>
   </div>`;
 
   let body='';
@@ -1959,6 +1960,39 @@ function rBkp(){
       <td><span class="ba ba-t">${(d.ordenes||[]).length}</span></td><td><span class="ba ba-w">${(d.usuarios||[]).length}</span></td>
       <td style="white-space:nowrap"><button class="btn bsm bs" onclick="restoreBkp(${i})">🔄</button><button class="btn bsm bg" onclick="downloadBkp(${i})">📥</button><button class="btn bsm bd" onclick="deleteBkp(${i})">🗑️</button></td></tr>`;}).join('')}</tbody></table></div>`}
     </div>`;
+  }else if(t==='gestion'){
+    const tablas=[
+      {key:'pacientes',icon:'👤',label:'Pacientes',campo:'created_at'},
+      {key:'citas',icon:'📅',label:'Citas',campo:'fecha'},
+      {key:'ordenes',icon:'📋',label:'Órdenes',campo:'created_at'},
+      {key:'fichas_ocupacionales',icon:'📂',label:'Fichas Ocupacionales',campo:'fecha'}
+    ];
+    body=`
+    <div class="cd"><div class="cdh"><h3>🗑️ Gestión de Datos</h3></div><div class="cdb">
+      <div style="font-size:12px;color:var(--tm);line-height:1.8;margin-bottom:14px;background:var(--ci);padding:12px;border-radius:8px">
+        ⚠️ <strong style="color:var(--w)">IMPORTANTE:</strong> Las eliminaciones son permanentes. Descarga primero si necesitas conservar los datos.
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+        <span style="font-size:13px;color:var(--tm);font-weight:600">📅 Fecha límite:</span>
+        <input type="date" class="fi" id="gd_fecha" style="width:160px;padding:8px;font-size:13px">
+        <span style="font-size:11px;color:var(--tm)">(se aplicará a registros anteriores a esta fecha)</span>
+      </div>
+      ${tablas.map(t=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:14px;margin-bottom:8px;background:var(--ci);border:1px solid var(--bd);border-radius:10px;flex-wrap:wrap">
+        <div style="font-size:22px">${t.icon}</div>
+        <div style="flex:1;min-width:120px"><div style="font-weight:600;font-size:14px">${t.label}</div></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn bsm bp" onclick="exportarTabla('${t.key}')" style="font-size:11px">📥 Descargar</button>
+          <button class="btn bsm" style="background:#ed8936;color:#fff;font-size:11px" onclick="descargarYEliminar('${t.key}','${t.campo}')">📥🗑️ Descargar y Eliminar</button>
+          <button class="btn bsm bd" style="font-size:11px" onclick="eliminarRegistros('${t.key}','${t.campo}')">🗑️ Eliminar</button>
+        </div>
+      </div>`).join('')}
+      <div style="margin-top:16px;padding:14px;background:var(--ci);border:1px solid var(--bd);border-radius:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-size:22px">🧹</div>
+        <div style="flex:1;min-width:120px"><div style="font-weight:600;font-size:14px">Limpiar pacientes sin citas</div><div style="font-size:11px;color:var(--tm)">Elimina pacientes que no tienen ninguna cita</div></div>
+        <button class="btn bsm bd" style="font-size:11px" onclick="eliminarPacientesSinCitas()">🗑️ Limpiar</button>
+      </div>
+    </div></div>`;
   }
 
   return`<div class="ph"><div><h2>${ic('stg',20)} Configuración</h2><p class="ph-s">${DB_OK?'🟢 Supabase conectado':'🟡 Modo local'}</p></div></div>${tabs}${body}`;
@@ -4200,6 +4234,100 @@ async function downloadExcelAtendidos(periodo){
   link.click();URL.revokeObjectURL(url);
   alert('✅ Descargado: '+citas.length+' pacientes');
 }
+// ═══ GESTIÓN DE DATOS ═══
+async function exportarTabla(tabla){
+  if(!DB_OK){alert('⚠️ Sin conexión a Supabase');return;}
+  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='⏳ Descargando...';}
+  try{
+    let datos=[];let offset=0;const limit=1000;
+    while(true){
+      const r=await SB.get(tabla,`select=*&order=created_at.desc&limit=${limit}&offset=${offset}`);
+      if(!r||r.length===0)break;
+      datos=datos.concat(r);offset+=limit;
+      if(r.length<limit)break;
+    }
+    if(datos.length===0){alert('No hay datos en '+tabla);return;}
+    const headers=Object.keys(datos[0]);
+    let csv='\uFEFF'+headers.join(';')+'\n';
+    datos.forEach(row=>{
+      csv+=headers.map(h=>{
+        let v=row[h];
+        if(v===null||v===undefined)v='';
+        if(typeof v==='object')v=JSON.stringify(v);
+        return '"'+String(v).replace(/"/g,'""')+'"';
+      }).join(';')+'\n';
+    });
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;link.download=`${tabla}_${TDS}.csv`;
+    link.click();URL.revokeObjectURL(url);
+    alert(`✅ Descargado: ${datos.length} registros de ${tabla}`);
+  }catch(e){alert('❌ Error: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent=btn.textContent.replace('⏳ Descargando...','📥');}}
+}
+
+async function eliminarRegistros(tabla,campo){
+  const fecha=document.getElementById('gd_fecha')?.value;
+  if(!fecha){alert('Selecciona una fecha límite primero');return;}
+  if(!DB_OK){alert('⚠️ Sin conexión a Supabase');return;}
+  if(!confirm(`🗑️ ELIMINAR registros de ${tabla} anteriores a ${fecha}.\n\nSe descargará un respaldo automáticamente antes de eliminar.\n\n¿Continuar?`))return;
+  
+  // Siempre descargar primero
+  await exportarTabla(tabla);
+  
+  if(!confirm(`✅ Respaldo descargado.\n\n🗑️ ¿CONFIRMAR eliminación de ${tabla} anteriores a ${fecha}?\n\nEsta acción es PERMANENTE.`))return;
+  
+  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='⏳...';}
+  try{
+    await SB.del(tabla,`${campo||'created_at'}=lt.${fecha}`);
+    if(tabla==='citas'){S.apt=S.apt.filter(a=>a.fecha>=fecha);}
+    else if(tabla==='ordenes'){const citasAntiguas=S.apt.filter(a=>a.fecha<fecha).map(a=>a.id);S.ord=S.ord.filter(o=>!citasAntiguas.includes(o.aid));}
+    alert(`✅ Registros de ${tabla} anteriores a ${fecha} eliminados.\n\n📥 El respaldo quedó en tu carpeta de descargas.`);
+    render();
+  }catch(e){alert('❌ Error: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='🗑️ Eliminar';}}
+}
+
+async function descargarYEliminar(tabla,campo){
+  const fecha=document.getElementById('gd_fecha')?.value;
+  if(!fecha){alert('Selecciona una fecha límite primero');return;}
+  if(!DB_OK){alert('⚠️ Sin conexión a Supabase');return;}
+  if(!confirm(`📥🗑️ DESCARGAR Y ELIMINAR\n\nTabla: ${tabla}\nAnteriores a: ${fecha}\n\nPrimero se descarga, luego se elimina.\n¿Continuar?`))return;
+  
+  // Primero descargar
+  await exportarTabla(tabla);
+  
+  // Luego eliminar
+  if(!confirm(`✅ Descarga completada.\n\n🗑️ ¿Proceder a ELIMINAR los registros de ${tabla} anteriores a ${fecha}?`))return;
+  await eliminarRegistros(tabla,campo);
+}
+
+async function eliminarPacientesSinCitas(){
+  if(!DB_OK){alert('⚠️ Sin conexión a Supabase');return;}
+  
+  // Buscar pacientes que no tienen citas
+  const pacientes=S.pts||[];
+  const citasPids=new Set((S.apt||[]).map(a=>a.pid));
+  const sinCitas=pacientes.filter(p=>!citasPids.has(p.id));
+  
+  if(sinCitas.length===0){alert('✅ Todos los pacientes tienen al menos una cita. No hay nada que limpiar.');return;}
+  
+  if(!confirm(`🗑️ Se encontraron ${sinCitas.length} pacientes sin citas.\n\n¿Eliminarlos?\n\nEsta acción es PERMANENTE.`))return;
+  
+  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='⏳ Eliminando...';}
+  try{
+    for(const p of sinCitas){
+      await SB.del('pacientes',`id=eq.${p.id}`);
+      await SB.del('fichas_ocupacionales',`paciente_id=eq.${p.id}`);
+    }
+    S.pts=S.pts.filter(p=>citasPids.has(p.id));
+    alert(`✅ ${sinCitas.length} pacientes sin citas eliminados`);
+    render();
+  }catch(e){alert('❌ Error: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='🗑️ Limpiar pacientes sin citas';}}
+}
+
 // ═══ INIT ═══
 applyTheme();
 syncPublic();
