@@ -3486,6 +3486,11 @@ function printFichaOficial(){
 
 async function saveFicha(){
   saveFichaSection();
+  // También guardar médico si está visible
+  const medNom=document.getElementById('fo_medico')?.value;
+  const medCod=document.getElementById('fo_codmed')?.value;
+  if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
+  
   const d=FO.data;
   const payload={
     paciente_id:FO.pid,medico_id:S.u?.id,fecha:d.b?.fecha_atencion||TD,tipo_eval:d.b?.tipo_eval||'INGRESO',
@@ -3493,14 +3498,20 @@ async function saveFicha(){
     aptitud:d.l?.aptitud||'',estado:'guardado',updated_at:new Date().toISOString()
   };
   if(DB_OK){
-    if(FO.fid){
-      await SB.patch('fichas_ocupacionales',payload,`id=eq.${FO.fid}`);
-    }else{
-      const r=await SB.post('fichas_ocupacionales',payload);
-      if(r&&r[0])FO.fid=r[0].id;
-    }
+    try{
+      if(FO.fid){
+        const r=await SB.patch('fichas_ocupacionales',payload,`id=eq.${FO.fid}`);
+        if(!r){alert('❌ Error al actualizar la ficha en Supabase. Verifica la conexión.');return;}
+      }else{
+        const r=await SB.post('fichas_ocupacionales',payload);
+        if(r&&r[0]){FO.fid=r[0].id;}
+        else{alert('❌ Error al crear la ficha en Supabase. Verifica que la tabla fichas_ocupacionales exista.');return;}
+      }
+      alert('✅ Ficha guardada correctamente');
+    }catch(e){alert('❌ Error: '+e.message);}
+  }else{
+    alert('⚠️ Sin conexión a Supabase. La ficha solo se guardó en memoria.');
   }
-  alert('✅ Ficha guardada correctamente');
   render();
 }
 
