@@ -482,7 +482,6 @@ function openModal(h){
   closeModal();
   const o=document.createElement('div');o.className='mo';o.id='_modal';
   o.innerHTML=`<div class="ml" onclick="event.stopPropagation()">${h}</div>`;
-  o.addEventListener('click',function(e){if(e.target===o)closeModal();});
   document.body.appendChild(o);
 }
 function closeModal(){const m=document.getElementById('_modal');if(m)m.remove();}
