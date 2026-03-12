@@ -3650,10 +3650,13 @@ function filterEmps(q){
   rows.forEach(r=>{r.style.display=r.dataset.search.includes(s)?'':'none';});
 }
 
+let _empModalData=null;
 function empCliMod(eid){
   const e=eid?(S.empresas_cli||[]).find(x=>x.id===eid):null;
-  const d=e||{};
-  openModal(`<div class="mhd"><h3>${e?'✏️ Editar':'➕ Nueva'} Empresa Cliente</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
+  const d=_empModalData||e||{};
+  const editId=eid||d._editId||'';
+  _empModalData=null;
+  openModal(`<div class="mhd"><h3>${e?'✏️ Editar':'➕ Nueva'} Empresa Cliente</h3><button class="btn bic bg" onclick="_empModalData=null;closeModal()">${ic('x')}</button></div>
   <div class="mbd">
     <div class="fg"><label>Nombre de la Empresa *</label><input class="fi" id="ec_nombre" value="${d.nombre||''}" placeholder="Ej: INT FOOD SERVICES CORP"></div>
     <div class="fr">
@@ -3665,8 +3668,17 @@ function empCliMod(eid){
       <div class="fg"><label>Teléfono</label><input class="fi" id="ec_tel" value="${d.telefono||''}" placeholder="Ej: +593999999999"></div>
       <div class="fg"><label>Persona de Contacto</label><input class="fi" id="ec_contacto" value="${d.contacto||''}" placeholder="Ej: Ing. Juan Pérez"></div>
     </div>
-  </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svEmpCli('${d.id||''}')">${e?'Guardar':'Crear'}</button></div>`);
+  </div><div class="mft"><button class="btn bg" onclick="_empModalData=null;closeModal()">Cancelar</button><button class="btn bp" onclick="_empModalData=null;svEmpCli('${editId}')">${e?'Guardar':'Crear'}</button></div>`);
 }
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){
+    if(document.getElementById('ec_nombre')){
+      _empModalData={nombre:document.getElementById('ec_nombre')?.value||'',ruc:document.getElementById('ec_ruc')?.value||'',ciiu:document.getElementById('ec_ciiu')?.value||'',direccion:document.getElementById('ec_dir')?.value||'',telefono:document.getElementById('ec_tel')?.value||'',contacto:document.getElementById('ec_contacto')?.value||''};
+    }
+  }else{
+    if(_empModalData&&!document.getElementById('_modal')){empCliMod();}
+  }
+});
 
 async function svEmpCli(eid){
   const nombre=document.getElementById('ec_nombre')?.value?.trim();
