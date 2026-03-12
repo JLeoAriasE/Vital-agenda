@@ -2291,8 +2291,9 @@ function rFichaOcup(){
       <div style="background:rgba(255,255,255,.2);border-radius:10px;height:8px;width:120px;margin:4px 0"><div style="background:#48bb78;height:100%;border-radius:10px;width:${prog}%;transition:.3s"></div></div>
       <div style="font-size:12px;font-weight:600">${prog}%</div>
     </div>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bsm" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="nav('medord')">← Volver</button>
+      <button class="btn bsm" style="background:#ed8936;color:#fff" onclick="verHistorialFichas()">📂 Historial</button>
       <button class="btn bsm" style="background:#48bb78;color:#fff" onclick="saveFicha()">✓ Guardar</button>
     </div>
   </div>
@@ -3482,6 +3483,86 @@ function printFichaOficial(){
   ${pg3}
   </body></html>`;
   printOpen(html);
+}
+
+async function verHistorialFichas(){
+  if(!FO.pid){alert('No hay paciente seleccionado');return;}
+  const p=gP(FO.pid)||{};
+  let fichas=[];
+  if(DB_OK){
+    fichas=await SB.get('fichas_ocupacionales',`select=id,fecha,tipo_eval,aptitud,estado,created_at&paciente_id=eq.${FO.pid}&order=created_at.desc`)||[];
+  }
+  const tipoIcon={'INGRESO':'🟢','PERIÓDICO':'🔵','REINTEGRO':'🟡','RETIRO':'🔴'};
+  const lista=fichas.length?fichas.map((f,i)=>{
+    const fecha=f.fecha||f.created_at?.split('T')[0]||'';
+    const activa=f.id===FO.fid;
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-bottom:6px;background:${activa?'#ebf8ff':'#f7fafc'};border:1px solid ${activa?'#2b6cb0':'#e2e8f0'};cursor:pointer" onclick="cargarFicha('${f.id}')">
+      <div style="font-size:18px">${tipoIcon[f.tipo_eval]||'📋'}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">${f.tipo_eval||'INGRESO'} ${activa?'<span style="color:#2b6cb0;font-size:10px">← ACTUAL</span>':''}</div>
+        <div style="font-size:11px;color:#718096">📅 ${fecha} &nbsp;|&nbsp; Aptitud: ${f.aptitud||'Sin definir'}</div>
+      </div>
+      <div style="font-size:10px;color:#a0aec0">#${i+1}</div>
+    </div>`;
+  }).join(''):'<div style="text-align:center;padding:20px;color:#718096">No hay fichas previas</div>';
+
+  openModal(`<div class="mhd"><h3>📂 Historial de Atenciones - ${p.nombre?.toUpperCase()||''}</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
+  <div class="mbd" style="max-height:400px;overflow-y:auto">
+    ${lista}
+  </div>
+  <div class="mft" style="display:flex;gap:8px">
+    <button class="btn bp" onclick="closeModal();nuevaAtencion()" style="flex:1">➕ Nueva Atención</button>
+    <button class="btn bg" onclick="closeModal()">Cerrar</button>
+  </div>`);
+}
+
+async function cargarFicha(fichaId){
+  closeModal();
+  if(!DB_OK)return;
+  const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
+  if(r&&r[0]){
+    FO.fid=r[0].id;
+    FO.data={a:r[0].seccion_a||{},b:r[0].seccion_b||{},c:r[0].seccion_c||{},d:r[0].seccion_d||{},e:r[0].seccion_e||{},f:r[0].seccion_f||{},g:r[0].seccion_g||{},h:r[0].seccion_h||{},i:r[0].seccion_i||{},j:r[0].seccion_j||{},k:r[0].seccion_k||{},l:r[0].seccion_l||{},m:r[0].seccion_m||{},n:r[0].seccion_n||{},r:r[0].seccion_r||{}};
+    FO.sec='A';
+    render();
+  }
+}
+
+async function nuevaAtencion(){
+  const p=gP(FO.pid);if(!p)return;
+  // Precargar datos de la última ficha
+  let ultimaFicha=null;
+  if(DB_OK){
+    const r=await SB.get('fichas_ocupacionales',`select=*&paciente_id=eq.${FO.pid}&order=created_at.desc&limit=1`);
+    if(r&&r[0])ultimaFicha=r[0];
+  }
+  // Crear nueva ficha con datos precargados
+  FO.fid=null;FO.sec='A';
+  if(ultimaFicha){
+    // Copiar datos de la última ficha
+    FO.data={
+      a:ultimaFicha.seccion_a||{},
+      b:{...(ultimaFicha.seccion_b||{}),fecha_atencion:TD,tipo_eval:'PERIÓDICO',observacion:''},
+      c:ultimaFicha.seccion_c||{},
+      d:{descripcion:''},
+      e:ultimaFicha.seccion_e||{},
+      f:{hallazgos:{},observaciones:''},
+      g:ultimaFicha.seccion_g||{},
+      h:ultimaFicha.seccion_h||{},
+      i:ultimaFicha.seccion_i||{},
+      j:{categorias:[],observaciones:''},
+      k:{diagnosticos:[]},
+      l:{aptitud:'',observaciones:''},
+      m:{estandar:[],medicas:''},
+      n:ultimaFicha.seccion_n||{},
+      r:ultimaFicha.seccion_r||{}
+    };
+    alert('✅ Nueva atención creada con datos precargados de la última ficha.\n\n📅 Fecha: Hoy\n📋 Tipo: PERIÓDICO\n\nLos datos del paciente, antecedentes y riesgos se mantienen.\nDiagnóstico, aptitud y resultados se reiniciaron.');
+  }else{
+    preloadFichaData(p);
+    alert('➕ Nueva atención creada desde cero.');
+  }
+  render();
 }
 
 async function saveFicha(){
