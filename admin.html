@@ -2329,7 +2329,8 @@ function printCertApt(){
       <td style="font-size:7pt;vertical-align:middle">CÓDIGO MÉDICO</td>
       <td class="val">${v('ca_codmed')}</td>
       <td colspan="3" style="vertical-align:middle;font-size:7pt">FIRMA Y SELLO</td>
-      <td colspan="3" style="height:60px"></td>
+      <td colspan="3" style="height:60px;text-align:center;vertical-align:middle">${firmaImgTag('cert')}
+      </td>
     </tr>
   </table>
   </body></html>`;
@@ -3214,6 +3215,46 @@ function fichaSecN(n){
   <div class="fg" style="align-self:flex-end"><button class="btn bsm" onclick="guardarMedico()" style="font-size:11px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0;white-space:nowrap">💾 Guardar médico</button></div></div>
   ${medicos.length?`<div style="margin-top:6px"><button class="btn bsm" onclick="if(confirm('¿Eliminar todos los médicos guardados?')){localStorage.removeItem('vw_medicos_list');render()}" style="font-size:10px;color:#e53e3e;background:none;border:none;cursor:pointer">🗑 Limpiar lista de médicos</button></div>`:''}
   <p style="font-size:11px;color:var(--tm);margin:10px 0;background:var(--bg);padding:8px;border-radius:6px">ℹ️ Haz clic en "💾 Guardar médico" para agregar un profesional a la lista. El seleccionado se mantiene hasta que elijas otro.</p>
+  <div style="margin-top:12px;padding:12px;border:1px dashed var(--bd);border-radius:8px;background:var(--bg)">
+    <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--tx)">🖊️ Firma y Sello del Profesional</div>
+    ${(()=>{const firma=getFirmaActual();return firma?`
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <img src="${firma}" style="max-height:70px;max-width:200px;border:1px solid var(--bd);border-radius:6px;background:#fff;padding:4px;object-fit:contain">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:10px;color:var(--ok);font-weight:600">✅ Firma guardada</span>
+          <button class="btn bsm" onclick="subirFirma()" style="font-size:11px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0">🔄 Cambiar firma</button>
+          <button class="btn bsm" onclick="eliminarFirma()" style="font-size:10px;color:#e53e3e;background:none;border:1px solid #e53e3e">🗑 Eliminar</button>
+        </div>
+      </div>`:`
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:160px;height:60px;border:2px dashed #cbd5e0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#a0aec0;background:#f7fafc">Sin firma cargada</div>
+        <button class="btn bsm" onclick="subirFirma()" style="font-size:11px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0">📁 Subir firma/sello</button>
+      </div>`;})()}
+    <p style="font-size:10px;color:var(--tm);margin-top:6px">Sube una imagen PNG/JPG de tu firma y sello.</p>
+    <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;font-size:11px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;min-width:160px">
+          <input type="checkbox" id="firma_cert" ${getFirmaCfg().cert!==false?'checked':''} onchange="saveFirmaCfg()">
+          📄 Certificado
+        </label>
+        <button class="btn bsm" onclick="abrirConfigFirma('cert')" style="font-size:10px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0">📐 Posición</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;min-width:160px">
+          <input type="checkbox" id="firma_ficha" ${getFirmaCfg().ficha!==false?'checked':''} onchange="saveFirmaCfg()">
+          📋 Ficha Ocupacional
+        </label>
+        <button class="btn bsm" onclick="abrirConfigFirma('ficha')" style="font-size:10px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0">📐 Posición</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;min-width:160px">
+          <input type="checkbox" id="firma_conf" ${getFirmaCfg().conf!==false?'checked':''} onchange="saveFirmaCfg()">
+          🔒 Confidencialidad
+        </label>
+        <button class="btn bsm" onclick="abrirConfigFirma('conf')" style="font-size:10px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0">📐 Posición</button>
+      </div>
+    </div>
+  </div>
   <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
     <button class="btn" style="background:#7c3aed;color:#fff" onclick="generarPDFOficial('certificado')">📄 Certificado</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="generarPDFOficial('formulario')">📋 Formulario PDF</button>
@@ -3342,7 +3383,8 @@ function printCertificadoYFicha(){
       <td style="font-size:7pt;vertical-align:middle;border:1px solid #000">CÓDIGO</td>
       <td style="font-weight:bold;border:1px solid #000">${n.codigo||''}</td>
       <td colspan="3" style="vertical-align:middle;font-size:7pt;border:1px solid #000">FIRMA Y SELLO</td>
-      <td colspan="3" style="border:1px solid #000"></td>
+      <td colspan="3" style="border:1px solid #000;text-align:center;vertical-align:middle">${firmaImgTag('cert')}
+      </td>
     </tr>
   </table>`;
 
@@ -3403,7 +3445,8 @@ function getFichaHtml(){
     <tr><td colspan="12" class="sec">M. RECOMENDACIONES</td></tr>
     <tr><td colspan="12" class="obs">${((m.estandar||[]).map(r=>'• '+r).join('  ')+(m.medicas?'  • '+m.medicas:'')).toUpperCase()}</td></tr>
     <tr><td colspan="6" class="sec">N. DATOS DEL PROFESIONAL</td><td colspan="6" class="sec">FIRMA DEL USUARIO</td></tr>
-    <tr style="height:55px"><td colspan="2" class="lbl">NOMBRE</td><td colspan="2" class="v">${(n.medico||'').toUpperCase()}</td><td class="lbl">CÓDIGO</td><td class="v">${n.codigo||''}</td><td colspan="3" class="lbl">FIRMA Y SELLO</td><td colspan="3"></td></tr>
+    <tr style="height:65px"><td colspan="2" class="lbl">NOMBRE</td><td colspan="2" class="v">${(n.medico||'').toUpperCase()}</td><td class="lbl">CÓDIGO</td><td class="v">${n.codigo||''}</td><td colspan="3" class="lbl">FIRMA Y SELLO</td><td colspan="3" style="text-align:center;vertical-align:middle">${firmaImgTag('ficha')}
+    </td></tr>
   </table>`;
 }
 async function finalizarFicha(){
@@ -3455,12 +3498,202 @@ function guardarMedico(){
   if(!nombre||!codigo){alert('Ingrese nombre y código del médico');return;}
   const list=JSON.parse(localStorage.getItem('vw_medicos_list')||'[]');
   if(list.find(m=>m.nombre===nombre&&m.codigo===codigo)){alert('Este médico ya está guardado');return;}
-  list.push({nombre,codigo});
+  const firma=getMedCfg().firma||'';
+  list.push({nombre,codigo,firma});
   localStorage.setItem('vw_medicos_list',JSON.stringify(list));
-  // También guardar en med_cfg para que esté siempre disponible
   localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));
   FO.data.n={medico:nombre,codigo:codigo};
   render();
+}
+
+function subirFirma(){
+  const input=document.createElement('input');
+  input.type='file';input.accept='image/*';
+  input.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    // Verificar tamaño máximo 2MB
+    if(file.size>2*1024*1024){alert('La imagen es muy grande. Máximo 2MB.');return;}
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const base64=ev.target.result;
+      // Guardar en med_cfg
+      const cfg={...getMedCfg(),firma:base64};
+      localStorage.setItem('mediagenda_med_cfg',JSON.stringify(cfg));
+      // Actualizar también en lista de médicos si hay uno activo
+      const nombre=gv('fo_medico')?.trim()||cfg.nombre||'';
+      if(nombre){
+        const list=JSON.parse(localStorage.getItem('vw_medicos_list')||'[]');
+        const idx=list.findIndex(m=>m.nombre===nombre);
+        if(idx>-1){list[idx].firma=base64;localStorage.setItem('vw_medicos_list',JSON.stringify(list));}
+      }
+      render();
+      toast('✅ Firma/sello guardado correctamente');
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function eliminarFirma(){
+  if(!confirm('¿Eliminar la firma/sello guardado?'))return;
+  const cfg={...getMedCfg()};delete cfg.firma;
+  localStorage.setItem('mediagenda_med_cfg',JSON.stringify(cfg));
+  render();
+}
+
+function getFirmaActual(){
+  const nombre=FO.data?.n?.medico||getMedCfg().nombre||'';
+  const list=JSON.parse(localStorage.getItem('vw_medicos_list')||'[]');
+  const med=list.find(m=>m.nombre===nombre);
+  if(med?.firma)return med.firma;
+  return getMedCfg().firma||'';
+}
+
+
+function abrirConfigFirma(doc){
+  const firma=getFirmaActual();
+  if(!firma){alert('Primero sube una imagen de firma/sello');return;}
+  const cfg=getFirmaCfg();
+  const pos=cfg['pos_'+doc]||{x:60,y:75,w:120,h:55};
+  const docLabel=doc==='cert'?'Certificado de Aptitud':doc==='ficha'?'Ficha Ocupacional':'Confidencialidad';
+
+  // Hoja A4 a escala: 210mm x 297mm → mostrar a 420x594px (escala 2px/mm)
+  const SCALE=1.8;
+  const W=Math.round(210*SCALE), H=Math.round(297*SCALE);
+
+  openModal(`<div class="mhd">
+    <h3>🖊️ Posición de firma — ${docLabel}</h3>
+    <button class="btn bic bg" onclick="closeModal()">${ic('x')}</button>
+  </div>
+  <div style="padding:16px">
+    <p style="font-size:11px;color:var(--tm);margin-bottom:12px">Arrastra la firma al lugar exacto. Ajusta el tamaño con los controles.</p>
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+      <!-- Hoja A4 simulada -->
+      <div id="hoja_preview" style="position:relative;width:${W}px;height:${H}px;background:#fff;border:1px solid #aaa;box-shadow:2px 2px 8px rgba(0,0,0,.2);flex-shrink:0;overflow:hidden;cursor:crosshair">
+        <!-- Líneas guía -->
+        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 35px,#f0f0f0 35px,#f0f0f0 36px),repeating-linear-gradient(90deg,transparent,transparent 35px,#f0f0f0 35px,#f0f0f0 36px);pointer-events:none;opacity:.4"></div>
+        <!-- Texto guía -->
+        <div style="position:absolute;top:8px;left:0;right:0;text-align:center;font-size:9px;color:#bbb;pointer-events:none">Hoja A4 — arrastra la firma</div>
+        <!-- Firma arrastrable -->
+        <img id="firma_drag" src="${firma}"
+          style="position:absolute;left:${pos.x}%;top:${pos.y}%;width:${pos.w}px;height:${pos.h}px;object-fit:contain;cursor:move;border:2px dashed #3182ce;border-radius:4px;background:rgba(255,255,255,.8)"
+          draggable="false">
+      </div>
+      <!-- Controles -->
+      <div style="min-width:200px">
+        <div class="fg" style="margin-bottom:12px">
+          <label style="font-size:11px">Ancho (px): <span id="lbl_w">${pos.w}</span></label>
+          <input type="range" id="ctrl_w" min="40" max="250" value="${pos.w}" oninput="document.getElementById('lbl_w').textContent=this.value;actualizarFirmaDrag()" style="width:100%">
+        </div>
+        <div class="fg" style="margin-bottom:12px">
+          <label style="font-size:11px">Alto (px): <span id="lbl_h">${pos.h}</span></label>
+          <input type="range" id="ctrl_h" min="20" max="150" value="${pos.h}" oninput="document.getElementById('lbl_h').textContent=this.value;actualizarFirmaDrag()" style="width:100%">
+        </div>
+        <div style="font-size:10px;color:var(--tm);background:var(--bg);padding:8px;border-radius:6px;margin-bottom:12px">
+          📍 Posición: <span id="lbl_pos">X: ${pos.x}% Y: ${pos.y}%</span>
+        </div>
+        <button class="btn bp" style="width:100%;margin-bottom:8px" onclick="guardarPosicionFirma('${doc}')">💾 Guardar posición</button>
+        <button class="btn bg" style="width:100%;font-size:11px" onclick="resetPosicionFirma('${doc}')">↩ Restablecer</button>
+      </div>
+    </div>
+  </div>`);
+
+  // Activar drag
+  setTimeout(()=>{
+    const hoja=document.getElementById('hoja_preview');
+    const img=document.getElementById('firma_drag');
+    if(!hoja||!img)return;
+    let dragging=false,ox=0,oy=0;
+    img.addEventListener('mousedown',e=>{
+      dragging=true;
+      const r=img.getBoundingClientRect(),hr=hoja.getBoundingClientRect();
+      ox=e.clientX-r.left; oy=e.clientY-r.top;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove',e=>{
+      if(!dragging)return;
+      const hr=hoja.getBoundingClientRect();
+      let nx=e.clientX-hr.left-ox;
+      let ny=e.clientY-hr.top-oy;
+      nx=Math.max(0,Math.min(nx,hr.width-img.offsetWidth));
+      ny=Math.max(0,Math.min(ny,hr.height-img.offsetHeight));
+      img.style.left=nx+'px'; img.style.top=ny+'px';
+      // Convertir a porcentaje
+      const px=Math.round((nx/hr.width)*100);
+      const py=Math.round((ny/hr.height)*100);
+      document.getElementById('lbl_pos').textContent='X: '+px+'% Y: '+py+'%';
+    });
+    document.addEventListener('mouseup',()=>dragging=false);
+  },100);
+}
+
+function actualizarFirmaDrag(){
+  const img=document.getElementById('firma_drag');
+  if(!img)return;
+  img.style.width=document.getElementById('ctrl_w').value+'px';
+  img.style.height=document.getElementById('ctrl_h').value+'px';
+}
+
+function guardarPosicionFirma(doc){
+  const img=document.getElementById('firma_drag');
+  const hoja=document.getElementById('hoja_preview');
+  if(!img||!hoja)return;
+  const hr=hoja.getBoundingClientRect();
+  const ir=img.getBoundingClientRect();
+  const x=Math.round(((ir.left-hr.left)/hr.width)*100);
+  const y=Math.round(((ir.top-hr.top)/hr.height)*100);
+  const w=+document.getElementById('ctrl_w').value;
+  const h=+document.getElementById('ctrl_h').value;
+  const cfg=getFirmaCfg();
+  cfg['pos_'+doc]={x,y,w,h};
+  localStorage.setItem('vw_firma_cfg',JSON.stringify(cfg));
+  closeModal();
+  toast('✅ Posición de firma guardada para '+( doc==='cert'?'Certificado':doc==='ficha'?'Ficha':'Confidencialidad'));
+  render();
+}
+
+function resetPosicionFirma(doc){
+  const cfg=getFirmaCfg();
+  delete cfg['pos_'+doc];
+  localStorage.setItem('vw_firma_cfg',JSON.stringify(cfg));
+  closeModal();
+  setTimeout(()=>abrirConfigFirma(doc),100);
+}
+function getFirmaCfg(){
+  try{const v=localStorage.getItem('vw_firma_cfg');if(v)return JSON.parse(v);}catch(e){}
+  return {cert:true,ficha:true,conf:true};
+}
+
+function saveFirmaCfg(){
+  const cfg={
+    cert:document.getElementById('firma_cert')?.checked!==false,
+    ficha:document.getElementById('firma_ficha')?.checked!==false,
+    conf:document.getElementById('firma_conf')?.checked!==false
+  };
+  // Leer checkboxes reales si existen
+  const ec=document.getElementById('firma_cert');
+  const ef=document.getElementById('firma_ficha');
+  const eco=document.getElementById('firma_conf');
+  if(ec)cfg.cert=ec.checked;
+  if(ef)cfg.ficha=ef.checked;
+  if(eco)cfg.conf=eco.checked;
+  localStorage.setItem('vw_firma_cfg',JSON.stringify(cfg));
+  toast('✅ Configuración de firma guardada');
+}
+
+function getFirmaDoc(doc){
+  const cfg=getFirmaCfg();
+  if(!cfg[doc])return null;
+  const img=getFirmaActual();
+  if(!img)return null;
+  const pos=cfg['pos_'+doc]||{x:60,y:75,w:120,h:55};
+  return {img,pos};
+}
+
+function firmaImgTag(doc){
+  const f=getFirmaDoc(doc);
+  if(!f)return '';
+  return `<img src="${f.img}" style="max-width:${f.pos.w}px;max-height:${f.pos.h}px;object-fit:contain">`;
 }
 function saveMedCfgFromCert2(){const nombre=gv('fo_medico'),codigo=gv('fo_codmed');if(nombre||codigo)localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));}
 
@@ -3553,7 +3786,8 @@ function printCertOficial(){
   <tr><td colspan="35" class="obs" style="min-height:60px">${recs}</td></tr>
   <tr><td colspan="35" class="nb" style="font-size:6.5pt;font-style:italic;padding:5px;line-height:1.6">Con este documento certifico que el trabajador se ha sometido a la evaluación médica requerida para el ingreso / la ejecución / el reingreso y retiro al puesto laboral y se le ha informado sobre los riesgos relacionados con el trabajo emitiendo recomendaciones relacionadas con su estado de salud.<br><br>La presente certificación se expide con base en el formulario de Evaluación Ocupacional, el cual tiene carácter de confidencial.</td></tr>
   <tr><td colspan="18" class="sec">E. DATOS DEL PROFESIONAL</td><td colspan="17" class="sec">F. FIRMA DEL USUARIO</td></tr>
-  <tr style="height:50px"><td colspan="6" class="s" style="vertical-align:middle">NOMBRE Y APELLIDO</td><td colspan="6" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="3" class="s" style="vertical-align:middle">CÓDIGO MEDICO</td><td colspan="3" class="v">${n.codigo||''}</td><td colspan="9" class="c s">FIRMA Y SELLO</td><td colspan="8"></td></tr>
+  <tr style="height:65px"><td colspan="6" class="s" style="vertical-align:middle">NOMBRE Y APELLIDO</td><td colspan="6" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="3" class="s" style="vertical-align:middle">CÓDIGO MEDICO</td><td colspan="3" class="v">${n.codigo||''}</td><td colspan="9" class="c s">FIRMA Y SELLO</td><td colspan="8" style="text-align:center;vertical-align:middle">${firmaImgTag('ficha')}
+  </td></tr>
   </table></body></html>`;
   printOpen(html);
 }
@@ -3569,7 +3803,8 @@ async function generarConfidencialidad(){
     cargo: 'Médico Ocupacional',
     empresa: a.empresa||p.empresa||'',
     ciudad: p.ciudad||'Machala',
-    fecha: b.fecha_atencion||TD
+    fecha: b.fecha_atencion||TD,
+    firma: getFirmaDoc('conf')?.img||''
   };
   const btn=event?.target;
   if(btn){btn.disabled=true;btn.textContent='⏳ Generando...';}
