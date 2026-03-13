@@ -1365,7 +1365,7 @@ function rMedO(){
   <td style="font-size:11px">${p?.empresa||''}</td>
   <td><span class="ba ${EB[x.estado]}">${EL[x.estado]}</span></td>
   <td style="text-align:center;white-space:nowrap">
-    ${(x.cat==='atencion_medica'||x.cat==='ficha_ocupacional')?`<button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="openFicha('${x.pid}','${x.aid}')">📋 Ficha</button><button class="btn bsm" style="background:#7c3aed;color:#fff;font-size:9px" onclick="certAptMod('${x.pid}','${x.aid}')">📄 Certificado</button>`:''} 
+    ${(x.cat==='atencion_medica'||x.cat==='ficha_ocupacional')?`<button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="openFicha('${x.pid}','${x.aid}')">📋 Ficha</button><button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="FO.pid='${x.pid}';verHistorialFichas()">📂 Historial</button><button class="btn bsm" style="background:#38a169;color:#fff;font-size:9px" onclick="FO.pid='${x.pid}';nuevaAtencion()">➕ Nueva Ficha</button>`:''} 
     ${x.estado!=='completado'?`<button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`}</div>`
 }
 
@@ -3086,7 +3086,6 @@ function fichaSecN(n){
   <div style="display:flex;gap:8px;margin-top:16px">
     <button class="btn" style="background:#7c3aed;color:#fff" onclick="generarPDFOficial('certificado')">📄 Certificado</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="generarPDFOficial('formulario')">📋 Formulario PDF</button>
-    <button class="btn" style="background:#718096;color:#fff;font-size:10px" onclick="saveFichaSection();printFichaOficial()">🖨️ Vista previa</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="generarConsentimiento()">✅ Consentimiento</button>
     <button class="btn" style="background:#718096;color:#fff" onclick="generarConfidencialidad()">🔒 Confidencialidad</button>
   </div>`;
