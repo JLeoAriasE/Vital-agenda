@@ -3535,6 +3535,8 @@ async function procesarFirmaSeleccionada(inp){
     // Guardar en memoria
     if(S.u) S.u.firma = base64;
     localStorage.setItem('mediagenda_med_cfg', JSON.stringify({...getMedCfg(), firma:base64}));
+    // Backup por cedula (garantizado)
+    if(S.u?.cedula) localStorage.setItem('vw_firma_'+S.u.cedula, base64);
     // Guardar en Supabase
     if(DB_OK && S.u?.id){
       try{
@@ -3555,12 +3557,22 @@ function eliminarFirma(){
   const cfg={...getMedCfg()};delete cfg.firma;
   localStorage.setItem('mediagenda_med_cfg',JSON.stringify(cfg));
   if(DB_OK&&S.u?.id)SB.patch('usuarios',{firma:null},`id=eq.${S.u.id}`);
+  if(S.u?.cedula)localStorage.removeItem('vw_firma_'+S.u.cedula);
   render();
 }
 
 function getFirmaActual(){
-  // Prioridad: S.u (Supabase) → localStorage (fallback)
+  // Prioridad 1: S.u.firma (Supabase)
   if(S.u?.firma)return S.u.firma;
+  // Prioridad 2: localStorage backup por cedula
+  if(S.u?.cedula){
+    try{
+      const k='vw_firma_'+S.u.cedula;
+      const f=localStorage.getItem(k);
+      if(f){S.u.firma=f;return f;}
+    }catch(e){}
+  }
+  // Prioridad 3: legacy
   return getMedCfg().firma||'';
 }
 
@@ -3898,15 +3910,14 @@ function debugFirma(){
 }
 
 function getFirmaOverlayHtml(doc){
-  // Simplificado: solo retorna img tag para insertar en celda
   try{
     const cfg=getFirmaCfg();
     if(cfg[doc]===false)return '';
     const img=getFirmaActual();
+    console.log('[FIRMA] doc='+doc+' img='+(img?'OK ('+img.length+' chars)':'VACÍO')+' S.u.firma='+(S.u?.firma?'OK':'VACÍO'));
     if(!img)return '';
-    const pos=cfg['pos_'+doc]||{w:130,h:60};
-    return `<img src="${img}" style="max-width:${pos.w||130}px;max-height:${pos.h||60}px;object-fit:contain;display:block;margin:auto">`;
-  }catch(e){return '';}
+    return `<img src="${img}" style="max-width:140px;max-height:65px;object-fit:contain;display:block;margin:auto">`;
+  }catch(e){console.error('[FIRMA] error:',e);return '';}
 }
 function saveMedCfgFromCert2(){const nombre=gv('fo_medico'),codigo=gv('fo_codmed');if(nombre||codigo)localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));}
 
@@ -3974,6 +3985,17 @@ function printOpen(html){
 }
 
 function printCertOficial(){
+  // === DIAGNÓSTICO FIRMA ===
+  const _firmaDebug = getFirmaActual();
+  const _cfgDebug = getFirmaCfg();
+  console.log('[FIRMA DEBUG] S.u.firma:', S.u?.firma ? 'OK ('+Math.round((S.u.firma.length/1024))+'KB)' : 'VACÍO');
+  console.log('[FIRMA DEBUG] getFirmaActual():', _firmaDebug ? 'OK ('+Math.round((_firmaDebug.length/1024))+'KB)' : 'VACÍO');
+  console.log('[FIRMA DEBUG] cfg.cert:', _cfgDebug.cert);
+  console.log('[FIRMA DEBUG] localStorage vw_firma_'+(S.u?.cedula||'?')+':', localStorage.getItem('vw_firma_'+(S.u?.cedula||''))? 'OK':'VACÍO');
+  if(!_firmaDebug){
+    if(!confirm('⚠️ No se encontró firma/sello.\n\nEl certificado se generará SIN firma.\n\n¿Continuar de todas formas?')) return;
+  }
+  // === FIN DIAGNÓSTICO ===
   saveFichaSection();
   const medNom=document.getElementById('fo_medico')?.value;
   const medCod=document.getElementById('fo_codmed')?.value;
@@ -4090,6 +4112,7 @@ async function generarPDFOficial(modo='formulario'){
     m:d.m||{},
     n:d.n||{medico:mc.nombre||'',codigo:mc.codigo||''},
     r:d.r||{},
+    _firma:getFirmaActual()||'',
   };
   
   const btn=event?.target;
