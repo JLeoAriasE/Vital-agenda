@@ -3554,60 +3554,125 @@ function abrirConfigFirma(doc){
   const firma=getFirmaActual();
   if(!firma){alert('Primero sube una imagen de firma/sello');return;}
   const cfg=getFirmaCfg();
-  const pos=cfg['pos_'+doc]||{x:60,y:75,w:120,h:55};
+  const pos=cfg['pos_'+doc]||{x:60,y:80,w:120,h:55};
   const docLabel=doc==='cert'?'Certificado de Aptitud':doc==='ficha'?'Ficha Ocupacional':'Confidencialidad';
 
-  // Hoja A4 a escala: 210mm x 297mm → mostrar a 420x594px (escala 2px/mm)
-  const SCALE=1.8;
-  const W=Math.round(210*SCALE), H=Math.round(297*SCALE);
+  // A4: 210x297mm → escala para caber en pantalla
+  const W=380, H=537;
+
+  // Marcas de regla cada 10mm
+  const mmW=210, mmH=297;
+  const rulerH=[], rulerV=[];
+  for(let i=0;i<=mmW;i+=10) rulerH.push(i);
+  for(let i=0;i<=mmH;i+=10) rulerV.push(i);
+  const scaleX=W/mmW, scaleY=H/mmH;
+
+  const hMarks=rulerH.map(m=>`<div style="position:absolute;left:${Math.round(m*scaleX)}px;top:0;height:100%;border-left:1px dashed ${m%50===0?'#aaa':'#e8e8e8'};pointer-events:none">
+    ${m%50===0&&m>0?`<span style="position:absolute;top:2px;left:2px;font-size:7px;color:#aaa">${m}</span>`:''}
+  </div>`).join('');
+  const vMarks=rulerV.map(m=>`<div style="position:absolute;top:${Math.round(m*scaleY)}px;left:0;width:100%;border-top:1px dashed ${m%50===0?'#aaa':'#e8e8e8'};pointer-events:none">
+    ${m%50===0&&m>0?`<span style="position:absolute;top:2px;left:2px;font-size:7px;color:#aaa">${m}mm</span>`:''}
+  </div>`).join('');
 
   openModal(`<div class="mhd">
-    <h3>🖊️ Posición de firma — ${docLabel}</h3>
+    <h3>📐 Posición de firma — ${docLabel}</h3>
     <button class="btn bic bg" onclick="closeModal()">${ic('x')}</button>
   </div>
-  <div style="padding:16px">
-    <p style="font-size:11px;color:var(--tm);margin-bottom:12px">Arrastra la firma al lugar exacto. Ajusta el tamaño con los controles.</p>
-    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
-      <!-- Hoja A4 simulada -->
-      <div id="hoja_preview" style="position:relative;width:${W}px;height:${H}px;background:#fff;border:1px solid #aaa;box-shadow:2px 2px 8px rgba(0,0,0,.2);flex-shrink:0;overflow:hidden;cursor:crosshair">
-        <!-- Líneas guía -->
-        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 35px,#f0f0f0 35px,#f0f0f0 36px),repeating-linear-gradient(90deg,transparent,transparent 35px,#f0f0f0 35px,#f0f0f0 36px);pointer-events:none;opacity:.4"></div>
-        <!-- Texto guía -->
-        <div style="position:absolute;top:8px;left:0;right:0;text-align:center;font-size:9px;color:#bbb;pointer-events:none">Hoja A4 — arrastra la firma</div>
-        <!-- Firma arrastrable -->
-        <img id="firma_drag" src="${firma}"
-          style="position:absolute;left:${pos.x}%;top:${pos.y}%;width:${pos.w}px;height:${pos.h}px;object-fit:contain;cursor:move;border:2px dashed #3182ce;border-radius:4px;background:rgba(255,255,255,.8)"
-          draggable="false">
+  <div style="padding:12px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+    <!-- Hoja A4 con guías -->
+    <div style="flex-shrink:0">
+      <div style="font-size:10px;color:var(--tm);margin-bottom:4px;text-align:center">Hoja A4 — arrastra o usa las flechas ↑↓←→</div>
+      <div style="display:flex">
+        <!-- Regla vertical izquierda -->
+        <div style="width:18px;height:${H}px;position:relative;background:#f0f0f0;border:1px solid #ccc;border-right:none;flex-shrink:0">
+          ${rulerV.map(m=>m%50===0?`<div style="position:absolute;top:${Math.round(m*scaleY)}px;right:2px;font-size:6px;color:#888;line-height:1">${m}</div>`:'').join('')}
+        </div>
+        <div>
+          <!-- Regla horizontal superior -->
+          <div style="height:18px;width:${W}px;position:relative;background:#f0f0f0;border:1px solid #ccc;border-bottom:none">
+            ${rulerH.map(m=>m%50===0?`<div style="position:absolute;left:${Math.round(m*scaleX)}px;bottom:2px;font-size:6px;color:#888">${m}mm</div>`:'').join('')}
+            ${rulerH.map(m=>`<div style="position:absolute;left:${Math.round(m*scaleX)}px;bottom:0;width:1px;height:${m%50===0?8:4}px;background:#aaa"></div>`).join('')}
+          </div>
+          <!-- Hoja principal -->
+          <div id="hoja_preview" tabindex="0" style="position:relative;width:${W}px;height:${H}px;background:#fff;border:1px solid #ccc;box-shadow:2px 2px 8px rgba(0,0,0,.15);overflow:hidden;outline:none">
+            ${hMarks}${vMarks}
+            <!-- Zona inferior marcada (área típica de firma) -->
+            <div style="position:absolute;bottom:0;left:0;right:0;height:${Math.round(60*scaleY)}px;background:rgba(49,130,206,.04);border-top:1px dashed #90cdf4;pointer-events:none">
+              <span style="position:absolute;top:3px;left:6px;font-size:8px;color:#90cdf4">zona firma</span>
+            </div>
+            <!-- Firma arrastrable -->
+            <img id="firma_drag" src="${firma}"
+              style="position:absolute;left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;height:${pos.h}px;object-fit:contain;cursor:move;border:2px dashed #3182ce;border-radius:4px;background:rgba(255,255,255,.9);box-shadow:0 2px 6px rgba(0,0,0,.2)"
+              draggable="false" title="Arrastra para mover">
+            <!-- Esquinas de resize -->
+            <div id="resize_br" style="position:absolute;width:10px;height:10px;background:#3182ce;border-radius:2px;cursor:se-resize;display:none"></div>
+          </div>
+        </div>
       </div>
-      <!-- Controles -->
-      <div style="min-width:200px">
-        <div class="fg" style="margin-bottom:12px">
-          <label style="font-size:11px">Ancho (px): <span id="lbl_w">${pos.w}</span></label>
+    </div>
+    <!-- Panel de controles -->
+    <div style="min-width:190px;max-width:220px">
+      <div style="background:var(--bg);border-radius:8px;padding:10px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:8px">📏 Tamaño</div>
+        <div class="fg" style="margin-bottom:8px">
+          <label style="font-size:10px">Ancho: <b><span id="lbl_w">${pos.w}</span>px</b></label>
           <input type="range" id="ctrl_w" min="40" max="250" value="${pos.w}" oninput="document.getElementById('lbl_w').textContent=this.value;actualizarFirmaDrag()" style="width:100%">
         </div>
-        <div class="fg" style="margin-bottom:12px">
-          <label style="font-size:11px">Alto (px): <span id="lbl_h">${pos.h}</span></label>
+        <div class="fg">
+          <label style="font-size:10px">Alto: <b><span id="lbl_h">${pos.h}</span>px</b></label>
           <input type="range" id="ctrl_h" min="20" max="150" value="${pos.h}" oninput="document.getElementById('lbl_h').textContent=this.value;actualizarFirmaDrag()" style="width:100%">
         </div>
-        <div style="font-size:10px;color:var(--tm);background:var(--bg);padding:8px;border-radius:6px;margin-bottom:12px">
-          📍 Posición: <span id="lbl_pos">X: ${pos.x}% Y: ${pos.y}%</span>
-        </div>
-        <button class="btn bp" style="width:100%;margin-bottom:8px" onclick="guardarPosicionFirma('${doc}')">💾 Guardar posición</button>
-        <button class="btn bg" style="width:100%;font-size:11px" onclick="resetPosicionFirma('${doc}')">↩ Restablecer</button>
       </div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:8px">🕹️ Mover con flechas</div>
+        <div style="display:grid;grid-template-columns:repeat(3,32px);gap:4px;justify-content:center;margin-bottom:6px">
+          <div></div>
+          <button class="btn bsm" style="padding:4px;font-size:14px" onmousedown="startMover(0,-1)" onmouseup="stopMover()" ontouchstart="startMover(0,-1)" ontouchend="stopMover()">↑</button>
+          <div></div>
+          <button class="btn bsm" style="padding:4px;font-size:14px" onmousedown="startMover(-1,0)" onmouseup="stopMover()" ontouchstart="startMover(-1,0)" ontouchend="stopMover()">←</button>
+          <button class="btn bsm" style="padding:4px;font-size:10px;background:#e2e8f0" onclick="centrarFirma()">◎</button>
+          <button class="btn bsm" style="padding:4px;font-size:14px" onmousedown="startMover(1,0)" onmouseup="stopMover()" ontouchstart="startMover(1,0)" ontouchend="stopMover()">→</button>
+          <div></div>
+          <button class="btn bsm" style="padding:4px;font-size:14px" onmousedown="startMover(0,1)" onmouseup="stopMover()" ontouchstart="startMover(0,1)" ontouchend="stopMover()">↓</button>
+          <div></div>
+        </div>
+        <div style="font-size:9px;color:var(--tm);text-align:center">También puedes usar ↑↓←→ del teclado</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px;margin-bottom:10px;font-size:10px;color:var(--tm)">
+        📍 X: <b><span id="lbl_x">${pos.x}</span>px</b> &nbsp; Y: <b><span id="lbl_y">${pos.y}</span>px</b>
+      </div>
+      <button class="btn bp" style="width:100%;margin-bottom:6px" onclick="guardarPosicionFirma('${doc}')">💾 Guardar posición</button>
+      <button class="btn bg" style="width:100%;font-size:11px" onclick="resetPosicionFirma('${doc}')">↩ Restablecer</button>
     </div>
   </div>`);
 
-  // Activar drag
   setTimeout(()=>{
     const hoja=document.getElementById('hoja_preview');
     const img=document.getElementById('firma_drag');
+    const rbr=document.getElementById('resize_br');
     if(!hoja||!img)return;
+
+    // Posicionar corner resize
+    function updateResizeHandle(){
+      if(!rbr)return;
+      rbr.style.left=(img.offsetLeft+img.offsetWidth-5)+'px';
+      rbr.style.top=(img.offsetTop+img.offsetHeight-5)+'px';
+      rbr.style.display='block';
+    }
+    updateResizeHandle();
+
+    function updateLabels(){
+      document.getElementById('lbl_x').textContent=img.offsetLeft;
+      document.getElementById('lbl_y').textContent=img.offsetTop;
+      updateResizeHandle();
+    }
+
+    // DRAG
     let dragging=false,ox=0,oy=0;
     img.addEventListener('mousedown',e=>{
       dragging=true;
-      const r=img.getBoundingClientRect(),hr=hoja.getBoundingClientRect();
-      ox=e.clientX-r.left; oy=e.clientY-r.top;
+      ox=e.clientX-img.offsetLeft; oy=e.clientY-img.offsetTop;
+      img.style.border='2px solid #3182ce';
       e.preventDefault();
     });
     document.addEventListener('mousemove',e=>{
@@ -3615,16 +3680,48 @@ function abrirConfigFirma(doc){
       const hr=hoja.getBoundingClientRect();
       let nx=e.clientX-hr.left-ox;
       let ny=e.clientY-hr.top-oy;
-      nx=Math.max(0,Math.min(nx,hr.width-img.offsetWidth));
-      ny=Math.max(0,Math.min(ny,hr.height-img.offsetHeight));
+      nx=Math.max(0,Math.min(nx,hoja.offsetWidth-img.offsetWidth));
+      ny=Math.max(0,Math.min(ny,hoja.offsetHeight-img.offsetHeight));
       img.style.left=nx+'px'; img.style.top=ny+'px';
-      // Convertir a porcentaje
-      const px=Math.round((nx/hr.width)*100);
-      const py=Math.round((ny/hr.height)*100);
-      document.getElementById('lbl_pos').textContent='X: '+px+'% Y: '+py+'%';
+      updateLabels();
     });
-    document.addEventListener('mouseup',()=>dragging=false);
-  },100);
+    document.addEventListener('mouseup',()=>{dragging=false;img.style.border='2px dashed #3182ce';});
+
+    // TECLADO
+    hoja.focus();
+    hoja.addEventListener('keydown',e=>{
+      const step=e.shiftKey?10:1;
+      let nx=img.offsetLeft, ny=img.offsetTop;
+      if(e.key==='ArrowLeft')nx-=step;
+      else if(e.key==='ArrowRight')nx+=step;
+      else if(e.key==='ArrowUp')ny-=step;
+      else if(e.key==='ArrowDown')ny+=step;
+      else return;
+      e.preventDefault();
+      nx=Math.max(0,Math.min(nx,hoja.offsetWidth-img.offsetWidth));
+      ny=Math.max(0,Math.min(ny,hoja.offsetHeight-img.offsetHeight));
+      img.style.left=nx+'px'; img.style.top=ny+'px';
+      updateLabels();
+    });
+
+    // BOTONES FLECHA continuo
+    window._moverInterval=null;
+    window.startMover=(dx,dy)=>{
+      stopMover();
+      window._moverInterval=setInterval(()=>{
+        let nx=img.offsetLeft+dx, ny=img.offsetTop+dy;
+        nx=Math.max(0,Math.min(nx,hoja.offsetWidth-img.offsetWidth));
+        ny=Math.max(0,Math.min(ny,hoja.offsetHeight-img.offsetHeight));
+        img.style.left=nx+'px'; img.style.top=ny+'px';
+        updateLabels();
+      },30);
+    };
+    window.stopMover=()=>{clearInterval(window._moverInterval);};
+    window.centrarFirma=()=>{
+      img.style.left=Math.round((hoja.offsetWidth-img.offsetWidth)/2)+'px';
+      updateLabels();
+    };
+  },150);
 }
 
 function actualizarFirmaDrag(){
@@ -3638,17 +3735,17 @@ function guardarPosicionFirma(doc){
   const img=document.getElementById('firma_drag');
   const hoja=document.getElementById('hoja_preview');
   if(!img||!hoja)return;
-  const hr=hoja.getBoundingClientRect();
-  const ir=img.getBoundingClientRect();
-  const x=Math.round(((ir.left-hr.left)/hr.width)*100);
-  const y=Math.round(((ir.top-hr.top)/hr.height)*100);
+  // Guardar en px absolutos y también como % para escalar en impresión
+  const x=img.offsetLeft, y=img.offsetTop;
+  const xp=Math.round((x/hoja.offsetWidth)*100);
+  const yp=Math.round((y/hoja.offsetHeight)*100);
   const w=+document.getElementById('ctrl_w').value;
   const h=+document.getElementById('ctrl_h').value;
   const cfg=getFirmaCfg();
-  cfg['pos_'+doc]={x,y,w,h};
+  cfg['pos_'+doc]={x,y,xp,yp,w,h};
   localStorage.setItem('vw_firma_cfg',JSON.stringify(cfg));
   closeModal();
-  toast('✅ Posición de firma guardada para '+( doc==='cert'?'Certificado':doc==='ficha'?'Ficha':'Confidencialidad'));
+  toast('✅ Posición guardada — '+(doc==='cert'?'Certificado':doc==='ficha'?'Ficha':'Confidencialidad'));
   render();
 }
 
