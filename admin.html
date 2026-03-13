@@ -3221,14 +3221,15 @@ async function descargarFichaFinalizada(fichaId){
   const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
   if(!r||!r[0]){alert('No se encontró la ficha');return;}
   const f=r[0];
-  // Guardar FO actual y cargar ficha
+  // Guardar FO actual
   const prevFid=FO.fid,prevPid=FO.pid,prevData=FO.data,prevSec=FO.sec;
+  // Cargar ficha en FO temporalmente
   FO.fid=f.id; FO.pid=f.paciente_id;
   FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
-  // Imprimir certificado + ficha juntos
-  printCertificadoYFicha();
+  // Llamar printFichaOficial sin saveFichaSection (no hay inputs en DOM)
+  printFichaOficialDirecto();
   // Restaurar FO
-  setTimeout(()=>{FO.fid=prevFid;FO.pid=prevPid;FO.data=prevData;FO.sec=prevSec;},1000);
+  setTimeout(()=>{FO.fid=prevFid;FO.pid=prevPid;FO.data=prevData;FO.sec=prevSec;},500);
 }
 
 function printCertificadoYFicha(){
@@ -3638,11 +3639,20 @@ async function generarPDFOficial(modo='formulario'){
   }
 }
 
+function printFichaOficialDirecto(){
+  // Llama printFichaOficial pero sin leer inputs del DOM
+  // (los datos ya están en FO.data cargados desde Supabase)
+  printFichaOficial();
+}
+
 function printFichaOficial(){
-  saveFichaSection();
-  const medNom=document.getElementById('fo_medico')?.value;
-  const medCod=document.getElementById('fo_codmed')?.value;
-  if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
+  // Solo guardar sección y leer inputs si estamos en vista de ficha
+  if(S.v==='ficha'){
+    saveFichaSection();
+    const medNom=document.getElementById('fo_medico')?.value;
+    const medCod=document.getElementById('fo_codmed')?.value;
+    if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
+  }
   const d=FO.data,a=d.a||{},b=d.b||{},c=d.c||{},dd2=d.d||{},e=d.e||{},f=d.f||{},g=d.g||{},h=d.h||{},ii2=d.i||{},j=d.j||{},k=d.k||{},l=d.l||{},m=d.m||{},n=d.n||{};
   const ec=getEmpCfg(),p=gP(FO.pid)||{};
   const fa=(b.fecha_atencion||TD).split('-');
