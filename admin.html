@@ -738,11 +738,17 @@ function render(){
         el.style.cursor='not-allowed';
         el.style.pointerEvents='none';
       });
+      // Bloquear todos los botones EXCEPTO los de impresión
+      const printFns=['generarPDFOficial','generarConsentimiento','generarConfidencialidad'];
       body.querySelectorAll('button').forEach(el=>{
-        el.disabled=true;
-        el.style.opacity='0.35';
-        el.style.cursor='not-allowed';
-        el.style.pointerEvents='none';
+        const fn=el.getAttribute('onclick')||'';
+        const esPrint=printFns.some(p=>fn.includes(p));
+        if(!esPrint){
+          el.disabled=true;
+          el.style.opacity='0.35';
+          el.style.cursor='not-allowed';
+          el.style.pointerEvents='none';
+        }
       });
     },200);
   }
@@ -3244,18 +3250,14 @@ async function editarFichaFinalizada(fichaId,pid){
   S.v='ficha'; render();
 }
 async function descargarFichaFinalizada(fichaId){
+  // Abrir ficha en soloLectura directo en Sección N para imprimir
   const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
   if(!r||!r[0]){alert('No se encontró la ficha');return;}
   const f=r[0];
-  // Guardar FO actual
-  const prevFid=FO.fid,prevPid=FO.pid,prevData=FO.data,prevSec=FO.sec,prevSL=FO.soloLectura;
-  // Cargar ficha en FO temporalmente
-  FO.fid=f.id; FO.pid=f.paciente_id; FO.soloLectura=false;
+  FO.fid=f.id; FO.pid=f.paciente_id; FO.soloLectura=true;
   FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
-  // Usar el mismo generador que el botón Certificado dentro de la ficha
-  await generarPDFOficial('certificado');
-  // Restaurar FO
-  setTimeout(()=>{FO.fid=prevFid;FO.pid=prevPid;FO.data=prevData;FO.sec=prevSec;FO.soloLectura=prevSL;},1000);
+  FO.sec='N'; // Abrir directo en sección N con botones de impresión
+  S.v='ficha'; render();
 }
 
 function printCertificadoYFicha(){
