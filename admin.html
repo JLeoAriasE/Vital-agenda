@@ -216,7 +216,7 @@ async function loadAll(){
     SB.get('empresas','select=*&order=nombre'),
     SB.get('cargos_ciuo','select=*&order=nombre','0-4999'),
     SB.get('cie10','select=*&order=codigo','0-4999'),
-    SB.get('fichas_ocupacionales','select=id,paciente_id,fecha,tipo_eval,aptitud,estado,seccion_a,updated_at&estado=eq.finalizado&order=updated_at.desc'),
+    SB.get('fichas_ocupacionales','select=id,paciente_id,fecha,tipo_eval,aptitud,estado,seccion_a,updated_at&estado=in.(finalizado,completado,guardado)&order=updated_at.desc'),
   ]);
   if(usrs!==null){
     DB_OK=true;
