@@ -210,7 +210,7 @@ function canAssign(){return isA()||isE();}
 async function loadAll(){
   S.loading=true;render();
   const [usrs,pts,apt,ord,emps,cargos,cie,fichasF]=await Promise.all([
-    SB.get('usuarios','select=*&order=created_at'),
+    SB.get('usuarios','select=id,nombre,cedula,pass,rol,activo,apodo,firma,firma_cfg&order=created_at'),
     SB.get('pacientes','select=*&order=created_at'),
     SB.get('citas','select=*&order=created_at'),
     SB.get('ordenes','select=*&order=created_at'),
@@ -221,7 +221,9 @@ async function loadAll(){
   ]);
   if(usrs!==null){
     DB_OK=true;
-    S.usrs=usrs.map(u=>({id:u.id,nombre:u.nombre,cedula:u.cedula,pass:u.pass,rol:u.rol,activo:u.activo,apodo:u.apodo||''}));
+    S.usrs=usrs.map(u=>({id:u.id,nombre:u.nombre,cedula:u.cedula,pass:u.pass,rol:u.rol,activo:u.activo,apodo:u.apodo||'',firma:u.firma||'',firma_cfg:u.firma_cfg||{}}));
+    // Si hay usuario logueado, actualizar su firma desde la lista recargada
+    if(S.u){const uu=S.usrs.find(x=>x.id===S.u.id);if(uu){S.u.firma=uu.firma;S.u.firma_cfg=uu.firma_cfg;}}
     S.pts=pts?pts.map(p=>({id:p.id,nombre:p.nombre,cedula:p.cedula,telefono:p.telefono||'',email:p.email||'',genero:p.genero||'',direccion:p.direccion||'',ciudad:p.ciudad||'',empresa:p.empresa,cargo:p.cargo||'',fecha_nacimiento:p.fecha_nacimiento||''})):[];
     S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin'})):[];
     S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado})):[];
@@ -263,16 +265,18 @@ function login(){
   if(!u){alert('❌ Credenciales incorrectas');return;}
   if(!u.activo){alert('⚠️ Usuario desactivado. Contacta al administrador.');return;}
   S.u=u;S.v=(isA()||isE())?'dash':isL()?'lord':isR()?'rxord':isM()?'medord':isPsi()?'psiord':'dash';
-  // Cargar firma desde Supabase si existe
+  // Cargar firma desde Supabase ANTES de render
   if(DB_OK&&u.id){
     SB.get('usuarios',`select=firma,firma_cfg&id=eq.${u.id}`).then(r=>{
       if(r&&r[0]){
         if(r[0].firma)S.u.firma=r[0].firma;
-        if(r[0].firma_cfg)S.u.firma_cfg=r[0].firma_cfg||{};
+        if(r[0].firma_cfg&&Object.keys(r[0].firma_cfg).length)S.u.firma_cfg=r[0].firma_cfg;
       }
-    });
+      render();
+    }).catch(()=>render());
+  } else {
+    render();
   }
-  render();
 }
 function logout(){S.u=null;S.v='login';render();}
 
