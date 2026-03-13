@@ -733,18 +733,18 @@ function render(){
       if(!body)return;
       body.querySelectorAll('input,select,textarea').forEach(el=>{
         el.disabled=true;
-        el.style.background='#f5f5f5';
+        el.style.background='#f0f0f0';
         el.style.color='#555';
-        el.style.cursor='not-allowed';
-      });
-      // Ocultar botones de acción dentro del cuerpo (agregar, eliminar, etc.)
-      body.querySelectorAll('button').forEach(el=>{
-        el.disabled=true;
-        el.style.opacity='0.4';
         el.style.cursor='not-allowed';
         el.style.pointerEvents='none';
       });
-    },50);
+      body.querySelectorAll('button').forEach(el=>{
+        el.disabled=true;
+        el.style.opacity='0.35';
+        el.style.cursor='not-allowed';
+        el.style.pointerEvents='none';
+      });
+    },200);
   }
 }
 
@@ -3229,19 +3229,19 @@ async function verFichaFinalizada(fichaId){
   const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
   if(!r||!r[0]){alert('No se encontró la ficha');return;}
   const f=r[0];
-  FO.fid=f.id; FO.pid=f.paciente_id;
+  FO.fid=f.id; FO.pid=f.paciente_id; FO.soloLectura=true;
   FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
-  FO.sec='A'; FO.soloLectura=true;
-  nav('ficha');
+  FO.sec='A';
+  S.v='ficha'; render();
 }
 async function editarFichaFinalizada(fichaId,pid){
   const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
   if(!r||!r[0]){alert('No se encontró la ficha');return;}
   const f=r[0];
-  FO.fid=f.id; FO.pid=pid;
+  FO.fid=f.id; FO.pid=pid; FO.soloLectura=false;
   FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
-  FO.sec='A'; FO.soloLectura=false;
-  nav('ficha');
+  FO.sec='A';
+  S.v='ficha'; render();
 }
 async function descargarFichaFinalizada(fichaId){
   const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
