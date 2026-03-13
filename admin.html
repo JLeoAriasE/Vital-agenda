@@ -176,7 +176,7 @@ const PROY=['AP','Lateral','Oblicua','AP + Lateral','AP + Lat + Oblicua'];
 const allRX=Object.values(RXZ).flat();
 
 // ═══ STATE ═══
-let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],cie10:[],sel:null,q:'',hq:'',ffq:'',medTab:'pendientes',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
+let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],cie10:[],fichas:[],sel:null,q:'',hq:'',ffq:'',medTab:'pendientes',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
 const TD=new Date().toISOString().split('T')[0];
 
 // ═══ HELPERS ═══
@@ -208,7 +208,7 @@ function canAssign(){return isA()||isE();}
 // ═══ LOAD DATA FROM SUPABASE ═══
 async function loadAll(){
   S.loading=true;render();
-  const [usrs,pts,apt,ord,emps,cargos,cie]=await Promise.all([
+  const [usrs,pts,apt,ord,emps,cargos,cie,fichasF]=await Promise.all([
     SB.get('usuarios','select=*&order=created_at'),
     SB.get('pacientes','select=*&order=created_at'),
     SB.get('citas','select=*&order=created_at'),
@@ -216,6 +216,7 @@ async function loadAll(){
     SB.get('empresas','select=*&order=nombre'),
     SB.get('cargos_ciuo','select=*&order=nombre','0-4999'),
     SB.get('cie10','select=*&order=codigo','0-4999'),
+    SB.get('fichas_ocupacionales','select=id,paciente_id,fecha,tipo_eval,aptitud,estado,seccion_a,updated_at&estado=eq.finalizado&order=updated_at.desc'),
   ]);
   if(usrs!==null){
     DB_OK=true;
@@ -226,6 +227,7 @@ async function loadAll(){
     S.empresas_cli=emps?emps.map(e=>({id:e.id,nombre:e.nombre,ruc:e.ruc||'',ciiu:e.ciiu||'',direccion:e.direccion||'',telefono:e.telefono||'',contacto:e.contacto||''})):[];
     S.cargos_ciuo=cargos?cargos.map(c=>({id:c.id,codigo:c.codigo,nombre:c.nombre})):[];
     S.cie10=cie?cie.map(c=>({id:c.id,codigo:c.codigo,descripcion:c.descripcion})):[];
+    S.fichas=fichasF?fichasF.map(f=>({id:f.id,pid:f.paciente_id,fecha:f.fecha,tipo:f.tipo_eval,aptitud:f.aptitud,estado:f.estado,empresa:(f.seccion_a||{}).empresa||'',updated_at:f.updated_at})):[];
     console.log('📦 Cargados:',S.cargos_ciuo.length,'cargos CIUO,',S.cie10.length,'CIE-10');
     // Load recomendaciones personalizadas
     S.recs_custom=[];S.recs_retiro=[];
@@ -1359,19 +1361,11 @@ function rMedO(){
   const audios=o.filter(x=>x.cat==='audiometria');
   const atenciones=o.filter(x=>x.cat==='atencion_medica');
 
-  // Fichas finalizadas: pacientes únicos con fichas completadas
-  const fichasFinalizadas=[];
-  const pidsVistos=new Set();
-  S.ord.filter(x=>x.cat==='ficha_ocupacional'&&x.estado==='completado')
-    .sort((a,b)=>(b.updated_at||'').localeCompare(a.updated_at||''))
-    .forEach(x=>{
-      if(!pidsVistos.has(x.pid)){pidsVistos.add(x.pid);fichasFinalizadas.push(x);}
-    });
-
-  // Buscador fichas finalizadas
+  // Fichas finalizadas desde S.fichas (empresa real de la ficha)
+  const fichasFinalizadas=S.fichas||[];
   const ffq=(S.ffq||'').toLowerCase().trim();
   const listaFF=ffq
-    ?fichasFinalizadas.filter(x=>{const p=gP(x.pid);return(p?.nombre||'').toLowerCase().includes(ffq)||(p?.empresa||'').toLowerCase().includes(ffq);})
+    ?fichasFinalizadas.filter(f=>{const p=gP(f.pid);return(p?.nombre||'').toLowerCase().includes(ffq)||(f.empresa||'').toLowerCase().includes(ffq);})
     :fichasFinalizadas;
 
   return`<div class="ph"><div><h2>🩺 Órdenes del Médico</h2><p class="ph-s">${medTab==='pendientes'?pend+' pendientes':fichasFinalizadas.length+' fichas finalizadas'}</p></div></div>
@@ -1416,12 +1410,14 @@ function rMedO(){
       ${listaFF.length===0
         ?`<div class="es"><h4>${ffq?'Sin resultados para "'+ffq+'"':'Sin fichas finalizadas aún'}</h4></div>`
         :`<div class="tw"><table><thead><tr><th>Paciente</th><th>Empresa</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
-        ${listaFF.map(x=>{const p=gP(x.pid);return`<tr>
-          <td style="font-weight:600;cursor:pointer;color:var(--a)" onclick="FO.pid='${x.pid}';verHistorialFichas()">${p?.nombre||'—'}</td>
-          <td style="font-size:12px">${p?.empresa||'—'}</td>
-          <td style="text-align:center;white-space:nowrap">
-            <button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="FO.pid='${x.pid}';verHistorialFichas()">📂 Historial</button>
-            ${isM()?`<button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="openFicha('${x.pid}','${x.aid}')">✏️ Editar</button>`:''}
+        ${listaFF.map(f=>{const p=gP(f.pid);const empNombre=f.empresa||(p?.empresa||'—');return`<tr>
+          <td style="font-weight:600">${p?.nombre||'—'}</td>
+          <td style="font-size:12px">${empNombre}</td>
+          <td style="text-align:center;white-space:nowrap;display:flex;gap:3px;flex-wrap:wrap;justify-content:center">
+            <button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="verFichaFinalizada('${f.id}')">👁️ Ver</button>
+            ${isM()?`<button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="editarFichaFinalizada('${f.id}','${f.pid}')">✏️ Editar</button>`:''}
+            <button class="btn bsm" style="background:#38a169;color:#fff;font-size:9px" onclick="descargarFichaFinalizada('${f.id}')">⬇️ Descargar</button>
+            <button class="btn bsm" style="background:#718096;color:#fff;font-size:9px" onclick="FO.pid='${f.pid}';verHistorialFichas()">📂 Historial</button>
           </td>
         </tr>`;}).join('')}
         </tbody></table></div>`
@@ -3173,6 +3169,35 @@ function fichaSecN(n){
 }
 
 
+
+// ══ FICHAS FINALIZADAS: Ver, Editar, Descargar ══
+async function verFichaFinalizada(fichaId){
+  const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
+  if(!r||!r[0]){alert('No se encontró la ficha');return;}
+  const f=r[0];
+  FO.fid=f.id; FO.pid=f.paciente_id;
+  FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
+  FO.sec='A'; FO.soloLectura=true;
+  nav('ficha');
+}
+async function editarFichaFinalizada(fichaId,pid){
+  const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
+  if(!r||!r[0]){alert('No se encontró la ficha');return;}
+  const f=r[0];
+  FO.fid=f.id; FO.pid=pid;
+  FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
+  FO.sec='A'; FO.soloLectura=false;
+  nav('ficha');
+}
+async function descargarFichaFinalizada(fichaId){
+  const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
+  if(!r||!r[0]){alert('No se encontró la ficha');return;}
+  const f=r[0];
+  FO.fid=f.id; FO.pid=f.paciente_id;
+  FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
+  // Generar PDF del formulario oficial
+  generarPDFOficial('formulario');
+}
 async function finalizarFicha(){
   if(!confirm('⚠️ ¿FINALIZAR la ficha?\n\nUna vez finalizada:\n• Se guardará automáticamente\n• Quedará BLOQUEADA (solo lectura)\n• Desaparecerá del listado de órdenes pendientes\n\n¿Confirmar?')) return;
   // Guardar sección actual primero
@@ -3200,7 +3225,13 @@ async function finalizarFicha(){
       // Marcar la orden como completada
       const ord=S.ord.find(o=>o.pid===FO.pid&&(o.cat==='ficha_ocupacional'||o.cat==='atencion_medica')&&o.estado!=='completado');
       if(ord){await updO(ord.id,{estado:'completado'});}
+      // Agregar a S.fichas para que aparezca en Fichas Finalizadas sin recargar
+      const pa=S.pts.find(p=>p.id===FO.pid);
+      const nuevaFicha={id:FO.fid,pid:FO.pid,fecha:d.b?.fecha_atencion||TD,tipo:d.b?.tipo_eval||'INGRESO',aptitud:d.l?.aptitud||'',estado:'finalizado',empresa:(d.a||{}).empresa||pa?.empresa||'',updated_at:new Date().toISOString()};
+      S.fichas=S.fichas.filter(f=>f.id!==FO.fid);
+      S.fichas.unshift(nuevaFicha);
       alert('✅ Ficha FINALIZADA y bloqueada correctamente.');
+      S.medTab='finalizadas';
       nav('medord');
     }catch(e){alert('❌ Error: '+e.message);}
   }else{
