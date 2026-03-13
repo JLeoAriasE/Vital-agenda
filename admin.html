@@ -176,7 +176,7 @@ const PROY=['AP','Lateral','Oblicua','AP + Lateral','AP + Lat + Oblicua'];
 const allRX=Object.values(RXZ).flat();
 
 // ═══ STATE ═══
-let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],cie10:[],sel:null,q:'',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
+let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],cie10:[],sel:null,q:'',hq:'',ffq:'',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
 const TD=new Date().toISOString().split('T')[0];
 
 // ═══ HELPERS ═══
@@ -765,11 +765,7 @@ function rSide(){
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
-    <div class="ni" onclick="document.getElementById('csub1').style.display=document.getElementById('csub1').style.display==='none'?'block':'none'" style="cursor:pointer">📂 Códigos de Salud <span style="font-size:9px;opacity:.6">▼</span></div>
-    <div id="csub1" style="display:${['cargos','cie10'].includes(S.v)?'block':'none'}">
-      <div class="ni ${S.v==='cargos'?'on':''}" onclick="nav('cargos')" style="padding-left:28px;font-size:12px">💼 Cargos CIUO</div>
-      <div class="ni ${S.v==='cie10'?'on':''}" onclick="nav('cie10')" style="padding-left:28px;font-size:12px">🏥 Diagnósticos CIE-10</div>
-    </div>
+
     <div class="ni ${S.v==='umg'?'on':''}" onclick="nav('umg')">${ic('up')} Usuarios</div>
     <div class="ni ${S.v==='aord'?'on':''}" onclick="nav('aord')">${ic('clp')} Todas las Órdenes ${pO?`<span class="nbg">${pO}</span>`:''}</div>
     <div class="ni ${S.v==='bkp'?'on':''}" onclick="nav('bkp')">${ic('stg')} Configuración</div>
@@ -1166,6 +1162,26 @@ function rEmpCli(){
 }
 
 // ═══ CARGOS CIUO (vista sidebar) ═══
+function rCargosInline(){
+  const cargos=S.cargos_ciuo||[];
+  const cargoRows=cargos.map(c=>`<tr><td style="font-size:11px">${c.codigo||''}</td><td style="font-size:11px">${c.nombre||''}</td><td><button class="btn bsm bd" onclick="delCargo('${c.id}')">🗑️</button></td></tr>`).join('');
+  return`<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+    <input class="fi" id="cfg_cargo_cod" placeholder="Código CIUO" style="width:100px;padding:6px">
+    <input class="fi" id="cfg_cargo_nom" placeholder="Nombre del cargo" style="flex:1;min-width:150px;padding:6px">
+    <button class="btn bp" onclick="addCargo()">➕ Agregar</button>
+  </div>
+  <div class="tw"><table><thead><tr><th>Código</th><th>Nombre</th><th></th></tr></thead><tbody>${cargoRows||'<tr><td colspan=3 style="text-align:center;color:var(--tm)">Sin cargos registrados</td></tr>'}</tbody></table></div>`;
+}
+function rCie10Inline(){
+  const cie=S.cie10||[];
+  const cieRows=cie.map(c=>`<tr><td style="font-size:11px">${c.codigo||''}</td><td style="font-size:11px">${c.nombre||''}</td><td><button class="btn bsm bd" onclick="delCie10('${c.id}')">🗑️</button></td></tr>`).join('');
+  return`<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+    <input class="fi" id="cfg_cie_cod" placeholder="Código CIE-10 (Ej: J45)" style="width:120px;padding:6px">
+    <input class="fi" id="cfg_cie_nom" placeholder="Nombre del diagnóstico" style="flex:1;min-width:150px;padding:6px">
+    <button class="btn bp" onclick="addCie10()">➕ Agregar</button>
+  </div>
+  <div class="tw"><table><thead><tr><th>Código</th><th>Diagnóstico</th><th></th></tr></thead><tbody>${cieRows||'<tr><td colspan=3 style="text-align:center;color:var(--tm)">Sin diagnósticos registrados</td></tr>'}</tbody></table></div>`;
+}
 function rCargos(){
   const cargos=S.cargos_ciuo||[];
   return`<div class="ph"><div><h2>💼 Cargos CIUO</h2><p class="ph-s">${cargos.length} cargo${cargos.length!==1?'s':''} registrado${cargos.length!==1?'s':''}</p></div>
@@ -1341,7 +1357,89 @@ function rMedO(){
   const audios=o.filter(x=>x.cat==='audiometria');
   const atenciones=o.filter(x=>x.cat==='atencion_medica');
 
+  // Historial buscador
+  const hFichas=[];
+  // Build historial from fichas_ocupacionales if available in S
+  // Use S.pts and search by hq
+  const hq=(S.hq||'').toLowerCase().trim();
+  let hResults=[];
+  if(hq.length>=2){
+    hResults=S.pts.filter(p=>{
+      const nm=(p.nombre||'').toLowerCase();
+      const ced=(p.cedula||'').toLowerCase();
+      const emp=(p.empresa||'').toLowerCase();
+      return nm.includes(hq)||ced.includes(hq)||emp.includes(hq);
+    }).slice(0,15);
+  }
+
+  // Fichas finalizadas: pacientes únicos con fichas completadas/finalizadas
+  const fichasFinalizadas=[];
+  const pidsVistos=new Set();
+  S.ord.filter(x=>x.cat==='ficha_ocupacional'&&x.estado==='completado')
+    .sort((a,b)=>(b.updated_at||'').localeCompare(a.updated_at||''))
+    .forEach(x=>{
+      if(!pidsVistos.has(x.pid)){
+        pidsVistos.add(x.pid);
+        fichasFinalizadas.push(x);
+      }
+    });
+
   return`<div class="ph"><div><h2>🩺 Órdenes del Médico</h2><p class="ph-s">${pend} pendientes de ${o.length} total</p></div></div>
+
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:start;margin-bottom:14px">
+    <div class="cd" style="margin:0">
+      <div class="cdh"><h3>🔍 Buscar Historial de Fichas</h3></div>
+    <div class="cdb">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="sb" style="flex:1;min-width:220px"><input class="fi" placeholder="Buscar por nombre, cédula o empresa..." value="${S.hq||''}" oninput="S.hq=this.value;render()" style="padding-left:10px"></div>
+        ${S.hq?`<button class="btn bg" onclick="S.hq='';render()" style="white-space:nowrap">✕ Limpiar</button>`:''}
+      </div>
+      ${hq.length>0&&hq.length<2?'<p style="font-size:11px;color:var(--tm);margin-top:6px">Escribe al menos 2 caracteres para buscar...</p>':''}
+      ${hResults.length>0?`<div style="margin-top:10px"><div class="tw"><table><thead><tr><th>Paciente</th><th>Cédula</th><th>Empresa</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
+      ${hResults.map(p=>`<tr>
+        <td style="font-weight:600">${p.nombre||'—'}</td>
+        <td class="mono" style="font-size:11px">${p.cedula||'—'}</td>
+        <td style="font-size:11px">${p.empresa||'—'}</td>
+        <td style="text-align:center;white-space:nowrap">
+          <button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="FO.pid='${p.id}';verHistorialFichas()">📂 Ver Historial</button>
+          <button class="btn bsm" style="background:#38a169;color:#fff;font-size:9px" onclick="FO.pid='${p.id}';nuevaAtencion()">➕ Nueva Ficha</button>
+        </td>
+      </tr>`).join('')}
+      </tbody></table></div></div>`:''}
+      ${hq.length>=2&&hResults.length===0?'<p style="font-size:12px;color:var(--tm);margin-top:8px;text-align:center">Sin resultados para <strong>'+hq+'</strong></p>':''}
+    </div>
+  </div>
+
+    <div class="cd" style="margin:0;position:sticky;top:10px">
+      <div class="cdh" style="background:linear-gradient(135deg,#1e3a5f,#2c5282);border-radius:8px 8px 0 0;padding:10px 12px">
+        <h3 style="color:#fff;font-size:13px">🔒 Fichas Finalizadas <span style="background:rgba(255,255,255,.2);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px">${fichasFinalizadas.length}</span></h3>
+      </div>
+      <div style="padding:8px 10px;border-bottom:1px solid var(--bd)">
+        <input class="fi" placeholder="🔍 Buscar nombre o empresa..." value="${S.ffq||''}"
+          oninput="S.ffq=this.value;render()"
+          style="font-size:11px;padding:5px 8px;width:100%">
+      </div>
+      <div style="max-height:340px;overflow-y:auto">
+        ${(()=>{
+          const ffq=(S.ffq||'').toLowerCase().trim();
+          const lista=ffq
+            ?fichasFinalizadas.filter(x=>{const p=gP(x.pid);return(p?.nombre||'').toLowerCase().includes(ffq)||(p?.empresa||'').toLowerCase().includes(ffq);})
+            :fichasFinalizadas;
+          if(lista.length===0) return '<div style="padding:20px;text-align:center;color:var(--tm);font-size:12px">'+(ffq?'Sin resultados para <strong>'+ffq+'</strong>':'Sin fichas finalizadas aún')+'</div>';
+          return lista.map(x=>{
+            const p=gP(x.pid);
+            return`<div style="padding:8px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--ci)'" onmouseout="this.style.background=''" onclick="FO.pid='${x.pid}';verHistorialFichas()">
+              <div>
+                <div style="font-weight:600;font-size:12px;color:var(--a)">${p?.nombre||'—'}</div>
+                <div style="font-size:10px;color:var(--tm)">${p?.empresa||'—'}</div>
+              </div>
+              <span style="font-size:15px;flex-shrink:0">🔒</span>
+            </div>`;
+          }).join('');
+        })()}
+      </div>
+    </div>
+  </div>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
     <div class="cd" style="margin:0"><div class="cdb" style="text-align:center;padding:14px">
@@ -1731,6 +1829,7 @@ function rBkp(){
     <button class="cvt ${t==='respaldos'?'on':''}" onclick="S.cfgTab='respaldos';render()">💾 Respaldos</button>
     <button class="cvt ${t==='gestion'?'on':''}" onclick="S.cfgTab='gestion';render()">🗑️ Gestión Datos</button>
   </div>`;
+    <button class="cvt ${t==='codigos_salud'?'on':''}" onclick="S.cfgTab='codigos_salud';render()">🏥 Códigos de Salud</button>
 
   let body='';
 
@@ -1992,6 +2091,22 @@ function rBkp(){
         <button class="btn bsm bd" style="font-size:11px" onclick="eliminarPacientesSinCitas()">🗑️ Limpiar</button>
       </div>
     </div></div>`;
+    if(t==='codigos_salud'){
+    body=`
+    <div class="cd" style="margin-bottom:12px">
+      <div class="cdh"><h3>💼 Cargos / Puestos CIUO</h3></div>
+      <div class="cdb" style="padding:8px">
+        ${rCargosInline()}
+      </div>
+    </div>
+    <div class="cd">
+      <div class="cdh"><h3>🏥 Diagnósticos CIE-10</h3></div>
+      <div class="cdb" style="padding:8px">
+        ${rCie10Inline()}
+      </div>
+    </div>`;
+  }
+
   }
 
   return`<div class="ph"><div><h2>${ic('stg',20)} Configuración</h2><p class="ph-s">${DB_OK?'🟢 Supabase conectado':'🟡 Modo local'}</p></div></div>${tabs}${body}`;
@@ -3083,7 +3198,8 @@ function fichaSecN(n){
   <div class="fg" style="align-self:flex-end"><button class="btn bsm" onclick="guardarMedico()" style="font-size:11px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0;white-space:nowrap">💾 Guardar médico</button></div></div>
   ${medicos.length?`<div style="margin-top:6px"><button class="btn bsm" onclick="if(confirm('¿Eliminar todos los médicos guardados?')){localStorage.removeItem('vw_medicos_list');render()}" style="font-size:10px;color:#e53e3e;background:none;border:none;cursor:pointer">🗑 Limpiar lista de médicos</button></div>`:''}
   <p style="font-size:11px;color:var(--tm);margin:10px 0;background:var(--bg);padding:8px;border-radius:6px">ℹ️ Haz clic en "💾 Guardar médico" para agregar un profesional a la lista. El seleccionado se mantiene hasta que elijas otro.</p>
-  <div style="display:flex;gap:8px;margin-top:16px">
+  <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn" style="background:#c53030;color:#fff;font-weight:700;font-size:13px" onclick="finalizarFicha()">🔒 Finalizar Ficha</button>
     <button class="btn" style="background:#7c3aed;color:#fff" onclick="generarPDFOficial('certificado')">📄 Certificado</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="generarPDFOficial('formulario')">📋 Formulario PDF</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="generarConsentimiento()">✅ Consentimiento</button>
@@ -3091,6 +3207,45 @@ function fichaSecN(n){
   </div>`;
 }
 
+
+async function finalizarFicha(){
+  if(!confirm('⚠️ ¿FINALIZAR la ficha?\n\nUna vez finalizada:\n• Se guardará automáticamente\n• Quedará BLOQUEADA (solo lectura)\n• Desaparecerá del listado de órdenes pendientes\n\n¿Confirmar?')) return;
+  // Guardar sección actual primero
+  saveFichaSection();
+  const medNom=document.getElementById('fo_medico')?.value;
+  const medCod=document.getElementById('fo_codmed')?.value;
+  if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
+  const d=FO.data;
+  const payload={
+    paciente_id:FO.pid,medico_id:S.u?.id,fecha:d.b?.fecha_atencion||TD,tipo_eval:d.b?.tipo_eval||'INGRESO',
+    seccion_a:d.a||{},seccion_b:d.b||{},seccion_c:d.c||{},seccion_d:d.d||{},seccion_e:d.e||{},seccion_f:d.f||{},seccion_g:d.g||{},seccion_h:d.h||{},seccion_i:d.i||{},seccion_j:d.j||{},seccion_k:d.k||{},seccion_l:d.l||{},seccion_m:d.m||{},seccion_n:d.n||{},seccion_r:d.r||{},
+    aptitud:d.l?.aptitud||'',estado:'finalizado',updated_at:new Date().toISOString()
+  };
+  if(DB_OK){
+    try{
+      let ok=false;
+      if(FO.fid){
+        const r=await SB.patch('fichas_ocupacionales',payload,`id=eq.${FO.fid}`);
+        ok=!!r;
+      }else{
+        const r=await SB.post('fichas_ocupacionales',payload);
+        if(r&&r[0]){FO.fid=r[0].id;ok=true;}
+      }
+      if(!ok){alert('❌ Error al finalizar. Verifica la conexión.');return;}
+      // Marcar la orden como completada
+      const ord=S.ord.find(o=>o.pid===FO.pid&&(o.cat==='ficha_ocupacional'||o.cat==='atencion_medica')&&o.estado!=='completado');
+      if(ord){await updO(ord.id,{estado:'completado'});}
+      alert('✅ Ficha FINALIZADA y bloqueada correctamente.');
+      nav('medord');
+    }catch(e){alert('❌ Error: '+e.message);}
+  }else{
+    // Sin Supabase: solo marcar en memoria
+    const ord=S.ord.find(o=>o.pid===FO.pid&&(o.cat==='ficha_ocupacional'||o.cat==='atencion_medica'));
+    if(ord)ord.estado='completado';
+    alert('⚠️ Sin conexión a Supabase. Ficha marcada como finalizada en memoria.');
+    nav('medord');
+  }
+}
 function guardarMedico(){
   const nombre=gv('fo_medico')?.trim(),codigo=gv('fo_codmed')?.trim();
   if(!nombre||!codigo){alert('Ingrese nombre y código del médico');return;}
@@ -3635,6 +3790,7 @@ async function nuevaAtencion(){
 }
 
 async function saveFicha(){
+  // Guardar sección actual
   saveFichaSection();
   // También guardar médico si está visible
   const medNom=document.getElementById('fo_medico')?.value;
@@ -3642,6 +3798,15 @@ async function saveFicha(){
   if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
   
   const d=FO.data;
+  
+  // Debug: verificar que los datos están en memoria
+  console.log('📋 Guardando ficha. Sección A:', JSON.stringify(d.a||{}).substring(0,200));
+  console.log('📋 FO.fid:', FO.fid, 'FO.pid:', FO.pid);
+  
+  if(!d.a||!d.a.ap1){
+    console.warn('⚠️ Sección A vacía. Datos actuales:', d);
+  }
+  
   const payload={
     paciente_id:FO.pid,medico_id:S.u?.id,fecha:d.b?.fecha_atencion||TD,tipo_eval:d.b?.tipo_eval||'INGRESO',
     seccion_a:d.a||{},seccion_b:d.b||{},seccion_c:d.c||{},seccion_d:d.d||{},seccion_e:d.e||{},seccion_f:d.f||{},seccion_g:d.g||{},seccion_h:d.h||{},seccion_i:d.i||{},seccion_j:d.j||{},seccion_k:d.k||{},seccion_l:d.l||{},seccion_m:d.m||{},seccion_n:d.n||{},seccion_r:d.r||{},
