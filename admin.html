@@ -3248,14 +3248,14 @@ async function descargarFichaFinalizada(fichaId){
   if(!r||!r[0]){alert('No se encontró la ficha');return;}
   const f=r[0];
   // Guardar FO actual
-  const prevFid=FO.fid,prevPid=FO.pid,prevData=FO.data,prevSec=FO.sec;
+  const prevFid=FO.fid,prevPid=FO.pid,prevData=FO.data,prevSec=FO.sec,prevSL=FO.soloLectura;
   // Cargar ficha en FO temporalmente
-  FO.fid=f.id; FO.pid=f.paciente_id;
+  FO.fid=f.id; FO.pid=f.paciente_id; FO.soloLectura=false;
   FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
-  // Llamar printFichaOficial sin saveFichaSection (no hay inputs en DOM)
-  printFichaOficialDirecto();
+  // Usar el mismo generador que el botón Certificado dentro de la ficha
+  await generarPDFOficial('certificado');
   // Restaurar FO
-  setTimeout(()=>{FO.fid=prevFid;FO.pid=prevPid;FO.data=prevData;FO.sec=prevSec;},500);
+  setTimeout(()=>{FO.fid=prevFid;FO.pid=prevPid;FO.data=prevData;FO.sec=prevSec;FO.soloLectura=prevSL;},1000);
 }
 
 function printCertificadoYFicha(){
