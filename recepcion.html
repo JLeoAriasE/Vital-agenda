@@ -178,7 +178,20 @@ function rForm(){
       <div class="fg"><label>Ciudad <span class="req">*</span></label><input class="fi" id="f_ciudad" value="${formData.ciudad}" placeholder="Ej: Machala"></div>
       <div class="fg"><label>Empresa <span class="req">*</span></label><input class="fi" id="f_empresa" value="${formData.empresa}" placeholder="Nombre de la empresa"></div>
     </div>
-    <div class="fg"><label>Correo Electrónico</label><input class="fi" id="f_email" value="${formData.email}" placeholder="correo@mail.com" type="email" autocomplete="email"></div>
+    <div class="fg"><label>Correo Electrónico</label>
+      <div style="display:flex;gap:0">
+        <input class="fi" id="f_email_user" value="${(formData.email||'').split('@')[0]||''}" placeholder="usuario" autocomplete="off" style="border-radius:var(--rs) 0 0 var(--rs);border-right:none;flex:1">
+        <select class="fi" id="f_email_domain" onchange="toggleEmailCustom()" style="border-radius:0 var(--rs) var(--rs) 0;width:auto;min-width:140px;flex:0">
+          <option value="@gmail.com" ${(formData.email||'').includes('@gmail.com')?'selected':''}>@gmail.com</option>
+          <option value="@hotmail.com" ${(formData.email||'').includes('@hotmail.com')?'selected':''}>@hotmail.com</option>
+          <option value="@outlook.com" ${(formData.email||'').includes('@outlook.com')?'selected':''}>@outlook.com</option>
+          <option value="@yahoo.com" ${(formData.email||'').includes('@yahoo.com')?'selected':''}>@yahoo.com</option>
+          <option value="@live.com" ${(formData.email||'').includes('@live.com')?'selected':''}>@live.com</option>
+          <option value="_otro" ${formData.email&&!['@gmail.com','@hotmail.com','@outlook.com','@yahoo.com','@live.com'].some(d=>formData.email.includes(d))?'selected':''}>Otro...</option>
+        </select>
+      </div>
+      <input class="fi" id="f_email_custom" placeholder="correo@dominio.com" value="${formData.email&&!['@gmail.com','@hotmail.com','@outlook.com','@yahoo.com','@live.com'].some(d=>formData.email.includes(d))?formData.email:''}" style="margin-top:6px;display:${formData.email&&!['@gmail.com','@hotmail.com','@outlook.com','@yahoo.com','@live.com'].some(d=>formData.email.includes(d))?'block':'none'}">
+    </div>
     <button class="btn bp" onclick="validate()">Registrar Paciente →</button>
   </div></div>`;
 }
@@ -222,7 +235,13 @@ function validate(){
   formData.telefono=document.getElementById('f_telefono').value.trim();
   formData.ciudad=document.getElementById('f_ciudad').value.trim();
   formData.empresa=document.getElementById('f_empresa').value.trim();
-  formData.email=document.getElementById('f_email').value.trim();
+  const emailDomain=document.getElementById('f_email_domain').value;
+  if(emailDomain==='_otro'){
+    formData.email=document.getElementById('f_email_custom').value.trim();
+  }else{
+    const emailUser=document.getElementById('f_email_user').value.trim();
+    formData.email=emailUser?emailUser+emailDomain:'';
+  }
 
   if(!formData.ap1){alert('Ingrese el Primer Apellido');return;}
   if(!formData.ap2){alert('Ingrese el Segundo Apellido');return;}
@@ -406,6 +425,12 @@ function nuevoPaciente(){
   render();
 }
 
+function toggleEmailCustom(){
+  const sel=document.getElementById('f_email_domain');
+  const custom=document.getElementById('f_email_custom');
+  if(sel.value==='_otro'){custom.style.display='block';custom.focus();}
+  else{custom.style.display='none';}
+}
 render();
 </script>
 </body>
