@@ -1415,7 +1415,7 @@ function rMedO(){
           <td style="font-size:12px">${empNombre}</td>
           <td style="text-align:center;white-space:nowrap;display:flex;gap:3px;flex-wrap:wrap;justify-content:center">
             <button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="verFichaFinalizada('${f.id}')">👁️ Ver</button>
-            ${isM()?`<button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="editarFichaFinalizada('${f.id}','${f.pid}')">✏️ Editar</button>`:''}
+            ${S.u?.rol==='medico'||S.u?.rol==='admin'?`<button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="editarFichaFinalizada('${f.id}','${f.pid}')">✏️ Editar</button>`:''}
             <button class="btn bsm" style="background:#38a169;color:#fff;font-size:9px" onclick="descargarFichaFinalizada('${f.id}')">⬇️ Descargar</button>
             <button class="btn bsm" style="background:#718096;color:#fff;font-size:9px" onclick="FO.pid='${f.pid}';verHistorialFichas()">📂 Historial</button>
           </td>
