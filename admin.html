@@ -176,7 +176,7 @@ const PROY=['AP','Lateral','Oblicua','AP + Lateral','AP + Lat + Oblicua'];
 const allRX=Object.values(RXZ).flat();
 
 // ═══ STATE ═══
-let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],cie10:[],sel:null,q:'',hq:'',ffq:'',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
+let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],cie10:[],sel:null,q:'',hq:'',ffq:'',medTab:'pendientes',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
 const TD=new Date().toISOString().split('T')[0];
 
 // ═══ HELPERS ═══
@@ -1349,98 +1349,39 @@ function rPsiO(){
 
 // ═══ MEDICO ORDERS (ficha, espirometría, audiometría, atención médica) ═══
 function rMedO(){
+  const medTab=S.medTab||'pendientes';
   const medCats=['ficha_ocupacional','espirometria','audiometria','atencion_medica'];
-  const o=S.ord.filter(x=>medCats.includes(x.cat)).sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1));
+  // Solo órdenes NO completadas para pestaña pendientes
+  const o=S.ord.filter(x=>medCats.includes(x.cat)&&x.estado!=='completado').sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1));
   const pend=o.filter(x=>x.estado==='pendiente').length;
   const fichas=o.filter(x=>x.cat==='ficha_ocupacional');
   const espiros=o.filter(x=>x.cat==='espirometria');
   const audios=o.filter(x=>x.cat==='audiometria');
   const atenciones=o.filter(x=>x.cat==='atencion_medica');
 
-  // Historial buscador
-  const hFichas=[];
-  // Build historial from fichas_ocupacionales if available in S
-  // Use S.pts and search by hq
-  const hq=(S.hq||'').toLowerCase().trim();
-  let hResults=[];
-  if(hq.length>=2){
-    hResults=S.pts.filter(p=>{
-      const nm=(p.nombre||'').toLowerCase();
-      const ced=(p.cedula||'').toLowerCase();
-      const emp=(p.empresa||'').toLowerCase();
-      return nm.includes(hq)||ced.includes(hq)||emp.includes(hq);
-    }).slice(0,15);
-  }
-
-  // Fichas finalizadas: pacientes únicos con fichas completadas/finalizadas
+  // Fichas finalizadas: pacientes únicos con fichas completadas
   const fichasFinalizadas=[];
   const pidsVistos=new Set();
   S.ord.filter(x=>x.cat==='ficha_ocupacional'&&x.estado==='completado')
     .sort((a,b)=>(b.updated_at||'').localeCompare(a.updated_at||''))
     .forEach(x=>{
-      if(!pidsVistos.has(x.pid)){
-        pidsVistos.add(x.pid);
-        fichasFinalizadas.push(x);
-      }
+      if(!pidsVistos.has(x.pid)){pidsVistos.add(x.pid);fichasFinalizadas.push(x);}
     });
 
-  return`<div class="ph"><div><h2>🩺 Órdenes del Médico</h2><p class="ph-s">${pend} pendientes de ${o.length} total</p></div></div>
+  // Buscador fichas finalizadas
+  const ffq=(S.ffq||'').toLowerCase().trim();
+  const listaFF=ffq
+    ?fichasFinalizadas.filter(x=>{const p=gP(x.pid);return(p?.nombre||'').toLowerCase().includes(ffq)||(p?.empresa||'').toLowerCase().includes(ffq);})
+    :fichasFinalizadas;
 
-  <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:start;margin-bottom:14px">
-    <div class="cd" style="margin:0">
-      <div class="cdh"><h3>🔍 Buscar Historial de Fichas</h3></div>
-    <div class="cdb">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <div class="sb" style="flex:1;min-width:220px"><input class="fi" placeholder="Buscar por nombre, cédula o empresa..." value="${S.hq||''}" oninput="S.hq=this.value;render()" style="padding-left:10px"></div>
-        ${S.hq?`<button class="btn bg" onclick="S.hq='';render()" style="white-space:nowrap">✕ Limpiar</button>`:''}
-      </div>
-      ${hq.length>0&&hq.length<2?'<p style="font-size:11px;color:var(--tm);margin-top:6px">Escribe al menos 2 caracteres para buscar...</p>':''}
-      ${hResults.length>0?`<div style="margin-top:10px"><div class="tw"><table><thead><tr><th>Paciente</th><th>Cédula</th><th>Empresa</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
-      ${hResults.map(p=>`<tr>
-        <td style="font-weight:600">${p.nombre||'—'}</td>
-        <td class="mono" style="font-size:11px">${p.cedula||'—'}</td>
-        <td style="font-size:11px">${p.empresa||'—'}</td>
-        <td style="text-align:center;white-space:nowrap">
-          <button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="FO.pid='${p.id}';verHistorialFichas()">📂 Ver Historial</button>
-          <button class="btn bsm" style="background:#38a169;color:#fff;font-size:9px" onclick="FO.pid='${p.id}';nuevaAtencion()">➕ Nueva Ficha</button>
-        </td>
-      </tr>`).join('')}
-      </tbody></table></div></div>`:''}
-      ${hq.length>=2&&hResults.length===0?'<p style="font-size:12px;color:var(--tm);margin-top:8px;text-align:center">Sin resultados para <strong>'+hq+'</strong></p>':''}
-    </div>
+  return`<div class="ph"><div><h2>🩺 Órdenes del Médico</h2><p class="ph-s">${medTab==='pendientes'?pend+' pendientes':fichasFinalizadas.length+' fichas finalizadas'}</p></div></div>
+
+  <div class="cvtabs" style="margin-bottom:14px">
+    <button class="cvt ${medTab==='pendientes'?'on':''}" onclick="S.medTab='pendientes';render()">🩺 Órdenes Pendientes <span style="background:${medTab==='pendientes'?'rgba(255,255,255,.3)':'var(--bd)'};border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px">${pend}</span></button>
+    <button class="cvt ${medTab==='finalizadas'?'on':''}" onclick="S.medTab='finalizadas';S.ffq='';render()">🔒 Fichas Finalizadas <span style="background:${medTab==='finalizadas'?'rgba(255,255,255,.3)':'var(--bd)'};border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px">${fichasFinalizadas.length}</span></button>
   </div>
 
-    <div class="cd" style="margin:0;position:sticky;top:10px">
-      <div class="cdh" style="background:linear-gradient(135deg,#1e3a5f,#2c5282);border-radius:8px 8px 0 0;padding:10px 12px">
-        <h3 style="color:#fff;font-size:13px">🔒 Fichas Finalizadas <span style="background:rgba(255,255,255,.2);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px">${fichasFinalizadas.length}</span></h3>
-      </div>
-      <div style="padding:8px 10px;border-bottom:1px solid var(--bd)">
-        <input class="fi" placeholder="🔍 Buscar nombre o empresa..." value="${S.ffq||''}"
-          oninput="S.ffq=this.value;render()"
-          style="font-size:11px;padding:5px 8px;width:100%">
-      </div>
-      <div style="max-height:340px;overflow-y:auto">
-        ${(()=>{
-          const ffq=(S.ffq||'').toLowerCase().trim();
-          const lista=ffq
-            ?fichasFinalizadas.filter(x=>{const p=gP(x.pid);return(p?.nombre||'').toLowerCase().includes(ffq)||(p?.empresa||'').toLowerCase().includes(ffq);})
-            :fichasFinalizadas;
-          if(lista.length===0) return '<div style="padding:20px;text-align:center;color:var(--tm);font-size:12px">'+(ffq?'Sin resultados para <strong>'+ffq+'</strong>':'Sin fichas finalizadas aún')+'</div>';
-          return lista.map(x=>{
-            const p=gP(x.pid);
-            return`<div style="padding:8px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--ci)'" onmouseout="this.style.background=''" onclick="FO.pid='${x.pid}';verHistorialFichas()">
-              <div>
-                <div style="font-weight:600;font-size:12px;color:var(--a)">${p?.nombre||'—'}</div>
-                <div style="font-size:10px;color:var(--tm)">${p?.empresa||'—'}</div>
-              </div>
-              <span style="font-size:15px;flex-shrink:0">🔒</span>
-            </div>`;
-          }).join('');
-        })()}
-      </div>
-    </div>
-  </div>
-
+  ${medTab==='pendientes'?`
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
     <div class="cd" style="margin:0"><div class="cdb" style="text-align:center;padding:14px">
       <div style="font-size:24px">📋</div><div style="font-size:20px;font-weight:700;color:var(--p)">${fichas.filter(x=>x.estado==='pendiente').length}</div><div style="font-size:10px;color:var(--tm)">Fichas pendientes</div>
@@ -1455,8 +1396,7 @@ function rMedO(){
       <div style="font-size:24px">🩺</div><div style="font-size:20px;font-weight:700;color:var(--a)">${atenciones.filter(x=>x.estado==='pendiente').length}</div><div style="font-size:10px;color:var(--tm)">Atenciones pend.</div>
     </div></div>
   </div>
-
-  <div class="cd">${o.length===0?'<div class="es"><h4>Sin órdenes médicas</h4></div>':`<div class="tw"><table><thead><tr><th>Tipo</th><th>Paciente</th><th>Empresa</th><th>Estado</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
+  <div class="cd">${o.length===0?'<div class="es"><h4>Sin órdenes pendientes</h4></div>':`<div class="tw"><table><thead><tr><th>Tipo</th><th>Paciente</th><th>Empresa</th><th>Estado</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
   ${o.map(x=>{const p=gP(x.pid);return`<tr>
   <td>${cI[x.cat]||'📋'} <span style="font-size:10px;font-weight:600">${x.cat==='ficha_ocupacional'?'Ficha Ocup.':x.cat==='espirometria'?'Espirometría':x.cat==='audiometria'?'Audiometría':'Atención Médica'}</span></td>
   <td style="font-weight:500">${p?.nombre||'—'}</td>
@@ -1464,7 +1404,32 @@ function rMedO(){
   <td><span class="ba ${EB[x.estado]}">${EL[x.estado]}</span></td>
   <td style="text-align:center;white-space:nowrap">
     ${(x.cat==='atencion_medica'||x.cat==='ficha_ocupacional')?`<button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="openFicha('${x.pid}','${x.aid}')">📋 Ficha</button><button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="FO.pid='${x.pid}';verHistorialFichas()">📂 Historial</button><button class="btn bsm" style="background:#38a169;color:#fff;font-size:9px" onclick="FO.pid='${x.pid}';nuevaAtencion()">➕ Nueva Ficha</button>`:''} 
-    ${x.estado!=='completado'?`<button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`}</div>`
+    ${x.estado!=='completado'?`<button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`}</div>
+  `:`
+  <div class="cd">
+    <div class="cdh"><h3>🔒 Pacientes Atendidos</h3></div>
+    <div class="cdb">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div class="sb" style="flex:1"><input class="fi" placeholder="🔍 Buscar por nombre o empresa..." value="${S.ffq||''}" oninput="S.ffq=this.value;render()" style="padding-left:10px"></div>
+        ${S.ffq?`<button class="btn bg" onclick="S.ffq='';render()">✕</button>`:''}
+      </div>
+      ${listaFF.length===0
+        ?`<div class="es"><h4>${ffq?'Sin resultados para "'+ffq+'"':'Sin fichas finalizadas aún'}</h4></div>`
+        :`<div class="tw"><table><thead><tr><th>Paciente</th><th>Empresa</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
+        ${listaFF.map(x=>{const p=gP(x.pid);return`<tr>
+          <td style="font-weight:600;cursor:pointer;color:var(--a)" onclick="FO.pid='${x.pid}';verHistorialFichas()">${p?.nombre||'—'}</td>
+          <td style="font-size:12px">${p?.empresa||'—'}</td>
+          <td style="text-align:center;white-space:nowrap">
+            <button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="FO.pid='${x.pid}';verHistorialFichas()">📂 Historial</button>
+            ${isM()?`<button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="openFicha('${x.pid}','${x.aid}')">✏️ Editar</button>`:''}
+          </td>
+        </tr>`;}).join('')}
+        </tbody></table></div>`
+      }
+    </div>
+  </div>
+  `}
+`
 }
 
 // ═══ ALL ORDERS (admin/enfermería) ═══
