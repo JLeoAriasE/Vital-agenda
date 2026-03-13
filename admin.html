@@ -2329,10 +2329,10 @@ function printCertApt(){
       <td style="font-size:7pt;vertical-align:middle">CÓDIGO MÉDICO</td>
       <td class="val">${v('ca_codmed')}</td>
       <td colspan="3" style="vertical-align:middle;font-size:7pt">FIRMA Y SELLO</td>
-      <td colspan="3" style="height:60px;text-align:center;vertical-align:middle">${firmaImgTag('cert')}
-      </td>
+      <td colspan="3" style="height:60px"></td>
     </tr>
   </table>
+  ${getFirmaOverlayHtml('cert')}
   </body></html>`;
 
   const win=window.open('','_blank','width=900,height=700');
@@ -3383,10 +3383,10 @@ function printCertificadoYFicha(){
       <td style="font-size:7pt;vertical-align:middle;border:1px solid #000">CÓDIGO</td>
       <td style="font-weight:bold;border:1px solid #000">${n.codigo||''}</td>
       <td colspan="3" style="vertical-align:middle;font-size:7pt;border:1px solid #000">FIRMA Y SELLO</td>
-      <td colspan="3" style="border:1px solid #000;text-align:center;vertical-align:middle">${firmaImgTag('cert')}
-      </td>
+      <td colspan="3" style="border:1px solid #000;height:60px"></td>
     </tr>
-  </table>`;
+  </table>
+  ${getFirmaOverlayHtml('cert')}`;
 
   // ── OBTENER HTML DE LA FICHA OFICIAL ──
   // Llamar printFichaOficial pero capturar el HTML en lugar de abrirlo
@@ -3445,8 +3445,8 @@ function getFichaHtml(){
     <tr><td colspan="12" class="sec">M. RECOMENDACIONES</td></tr>
     <tr><td colspan="12" class="obs">${((m.estandar||[]).map(r=>'• '+r).join('  ')+(m.medicas?'  • '+m.medicas:'')).toUpperCase()}</td></tr>
     <tr><td colspan="6" class="sec">N. DATOS DEL PROFESIONAL</td><td colspan="6" class="sec">FIRMA DEL USUARIO</td></tr>
-    <tr style="height:65px"><td colspan="2" class="lbl">NOMBRE</td><td colspan="2" class="v">${(n.medico||'').toUpperCase()}</td><td class="lbl">CÓDIGO</td><td class="v">${n.codigo||''}</td><td colspan="3" class="lbl">FIRMA Y SELLO</td><td colspan="3" style="text-align:center;vertical-align:middle">${firmaImgTag('ficha')}
-    </td></tr>
+    <tr style="height:65px"><td colspan="2" class="lbl">NOMBRE</td><td colspan="2" class="v">${(n.medico||'').toUpperCase()}</td><td class="lbl">CÓDIGO</td><td class="v">${n.codigo||''}</td><td colspan="3" class="lbl">FIRMA Y SELLO</td><td colspan="3"></td></tr>
+  ${getFirmaOverlayHtml('ficha')}
   </table>`;
 }
 async function finalizarFicha(){
@@ -3824,9 +3824,35 @@ function getFirmaDoc(doc){
 }
 
 function firmaImgTag(doc){
+  // Solo retorna la imagen simple para celdas de tabla (fallback)
   const f=getFirmaDoc(doc);
   if(!f)return '';
   return `<img src="${f.img}" style="max-width:${f.pos.w}px;max-height:${f.pos.h}px;object-fit:contain">`;
+}
+
+function firmaOverlayStyle(doc){
+  // Retorna CSS para posicionar la firma como overlay absoluto en la página impresa
+  const f=getFirmaDoc(doc);
+  if(!f)return '';
+  const p=f.pos;
+  // El configurador usa escala sobre hoja de pantalla
+  // Convertir px de pantalla a % de página para impresión
+  // Hoja pantalla: cert=480×339px (297×210mm), ficha/conf=339×480px (210×297mm)
+  const hojaW = doc==='cert'?480:339;
+  const hojaH = doc==='cert'?339:480;
+  const xPct = Math.round((p.x/hojaW)*100*10)/10;
+  const yPct = Math.round((p.y/hojaH)*100*10)/10;
+  const wPct = Math.round((p.w/hojaW)*100*10)/10;
+  const hPct = Math.round((p.h/hojaH)*100*10)/10;
+  return `position:absolute;left:${xPct}%;top:${yPct}%;width:${wPct}%;height:${hPct}%;object-fit:contain;z-index:100`;
+}
+
+function getFirmaOverlayHtml(doc){
+  const f=getFirmaDoc(doc);
+  if(!f)return '';
+  const st=firmaOverlayStyle(doc);
+  if(!st)return '';
+  return `<img src="${f.img}" style="${st}">`;
 }
 function saveMedCfgFromCert2(){const nombre=gv('fo_medico'),codigo=gv('fo_codmed');if(nombre||codigo)localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));}
 
@@ -3846,7 +3872,7 @@ function printCertAptFromFicha(){
   const tipo=b.tipo_eval||'INGRESO';const aptitud=l.aptitud||'';const ec=getEmpCfg();
   // Reusar printCertApt pero con datos de FO
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificado de Aptitud - ${a.ap1} ${a.n1}</title>
-  <style>@page{size:A4;margin:12mm 10mm}*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:8pt;color:#000}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:3px 5px;font-size:8pt;vertical-align:middle}.sec{background:#c5d9f1;font-weight:bold;font-size:8.5pt;padding:4px 6px}.tit{text-align:center;font-size:13pt;font-weight:bold;padding:10px;background:#dce6f1}.val{font-weight:bold}.chk{font-size:11pt}.obs{min-height:45px;padding:4px 6px;font-size:8pt;vertical-align:top}.legal{border:none;padding:6px;font-size:7pt;line-height:1.5;font-style:italic}.firma-row td{height:60px;vertical-align:bottom;text-align:center;font-size:7.5pt}.logo-c{text-align:center;margin-bottom:2px}.logo-c img{max-height:55px;object-fit:contain}</style></head><body onload="window.print()">
+  <style>@page{size:A4;margin:12mm 10mm}*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:8pt;color:#000}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:3px 5px;font-size:8pt;vertical-align:middle}.sec{background:#c5d9f1;font-weight:bold;font-size:8.5pt;padding:4px 6px}.tit{text-align:center;font-size:13pt;font-weight:bold;padding:10px;background:#dce6f1}.val{font-weight:bold}.chk{font-size:11pt}.obs{min-height:45px;padding:4px 6px;font-size:8pt;vertical-align:top}.legal{border:none;padding:6px;font-size:7pt;line-height:1.5;font-style:italic}.firma-row td{height:60px;vertical-align:bottom;text-align:center;font-size:7.5pt}.logo-c{text-align:center;margin-bottom:2px}.logo-c img{max-height:55px;object-fit:contain}</style></head><body onload="window.print()" style="position:relative">
   ${ec.logo?`<div class="logo-c"><img src="${ec.logo}"></div>`:''}
   <table>
     <tr><td colspan="12" class="tit">CERTIFICADO - EVALUACIÓN MÉDICA OCUPACIONAL</td></tr>
@@ -3919,8 +3945,8 @@ function printCertOficial(){
   <tr><td colspan="35" class="obs" style="min-height:60px">${recs}</td></tr>
   <tr><td colspan="35" class="nb" style="font-size:6.5pt;font-style:italic;padding:5px;line-height:1.6">Con este documento certifico que el trabajador se ha sometido a la evaluación médica requerida para el ingreso / la ejecución / el reingreso y retiro al puesto laboral y se le ha informado sobre los riesgos relacionados con el trabajo emitiendo recomendaciones relacionadas con su estado de salud.<br><br>La presente certificación se expide con base en el formulario de Evaluación Ocupacional, el cual tiene carácter de confidencial.</td></tr>
   <tr><td colspan="18" class="sec">E. DATOS DEL PROFESIONAL</td><td colspan="17" class="sec">F. FIRMA DEL USUARIO</td></tr>
-  <tr style="height:65px"><td colspan="6" class="s" style="vertical-align:middle">NOMBRE Y APELLIDO</td><td colspan="6" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="3" class="s" style="vertical-align:middle">CÓDIGO MEDICO</td><td colspan="3" class="v">${n.codigo||''}</td><td colspan="9" class="c s">FIRMA Y SELLO</td><td colspan="8" style="text-align:center;vertical-align:middle">${firmaImgTag('ficha')}
-  </td></tr>
+  <tr style="height:65px"><td colspan="6" class="s" style="vertical-align:middle">NOMBRE Y APELLIDO</td><td colspan="6" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="3" class="s" style="vertical-align:middle">CÓDIGO MEDICO</td><td colspan="3" class="v">${n.codigo||''}</td><td colspan="9" class="c s">FIRMA Y SELLO</td><td colspan="8"></td></tr>
+  ${getFirmaOverlayHtml('ficha')}
   </table></body></html>`;
   printOpen(html);
 }
