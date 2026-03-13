@@ -506,11 +506,20 @@ function closeModal(){const m=document.getElementById('_modal');if(m)m.remove();
 // ═══ PATIENT MODAL ═══
 function pmMod(p){
   const d=p||{};
-  const nombres=d.nombre?d.nombre.split('||')[0]||d.nombre:'';
-  const apellidos=d.nombre?d.nombre.split('||')[1]||'':'';
+  // Separar nombre en 4 partes: "AP1 AP2 || N1 N2"
+  const _partes=(d.nombre||'').split('||');
+  const _aps=(_partes[0]||'').trim().split(' ');
+  const _nms=(_partes[1]||'').trim().split(' ');
+  const _ap1=_aps[0]||''; const _ap2=_aps.slice(1).join(' ')||'';
+  const _n1=_nms[0]||'';  const _n2=_nms.slice(1).join(' ')||'';
   openModal(`<div class="mhd"><h3>${p?'Editar':'Nuevo'} Paciente</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
   <div class="mbd">
-    <div class="fr"><div class="fg"><label>Nombres *</label><input class="fi" id="mn_nombres" value="${nombres}" placeholder="Ej: Jorge Leonardo" style="text-transform:uppercase"></div><div class="fg"><label>Apellidos *</label><input class="fi" id="mn_apellidos" value="${apellidos}" placeholder="Ej: Arias Espinoza" style="text-transform:uppercase"></div></div>
+    <div class="fr">
+      <div class="fg"><label>Primer Apellido <b style="color:red">*</b></label><input class="fi" id="mn_ap1" value="${_ap1}" placeholder="Ej: ARIAS" style="text-transform:uppercase" required></div>
+      <div class="fg"><label>Segundo Apellido <b style="color:red">*</b></label><input class="fi" id="mn_ap2" value="${_ap2}" placeholder="Ej: ESPINOZA" style="text-transform:uppercase" required></div>
+      <div class="fg"><label>Primer Nombre <b style="color:red">*</b></label><input class="fi" id="mn_n1" value="${_n1}" placeholder="Ej: JORGE" style="text-transform:uppercase" required></div>
+      <div class="fg"><label>Segundo Nombre</label><input class="fi" id="mn_n2" value="${_n2}" placeholder="Ej: LEONARDO" style="text-transform:uppercase"></div>
+    </div>
     <div class="fr"><div class="fg"><label>Cédula</label><input class="fi" id="mc" value="${d.cedula||''}"></div><div class="fg"><label>Género</label><select class="fi" id="mg"><option value="">—</option><option ${d.genero==='Masculino'?'selected':''}>Masculino</option><option ${d.genero==='Femenino'?'selected':''}>Femenino</option></select></div></div>
     <div class="fr"><div class="fg"><label>Teléfono</label><input class="fi" id="mt" value="${d.telefono||''}"></div><div class="fg"><label>Email</label><input class="fi" id="me" value="${d.email||''}"></div></div>
     <div class="fr"><div class="fg"><label>Dirección</label><input class="fi" id="md" value="${d.direccion||''}"></div><div class="fg"><label>Ciudad</label><input class="fi" id="mci" value="${d.ciudad||''}"></div></div>
@@ -519,10 +528,16 @@ function pmMod(p){
   </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svP('${d.id||''}')">${p?'Guardar':'Registrar'}</button></div>`);
 }
 function svP(eid){
-  const nombres=(document.getElementById('mn_nombres').value||'').trim().toUpperCase();
-  const apellidos=(document.getElementById('mn_apellidos').value||'').trim().toUpperCase();
-  const d={nombre:nombres+'||'+apellidos,cedula:document.getElementById('mc').value,genero:document.getElementById('mg').value,telefono:document.getElementById('mt').value,email:document.getElementById('me').value,direccion:document.getElementById('md').value,ciudad:document.getElementById('mci').value,empresa:document.getElementById('mem').value,cargo:document.getElementById('mcg').value,fecha_nacimiento:document.getElementById('mfn').value};
-  if(!nombres||!apellidos||!d.empresa){alert('Nombres, Apellidos y Empresa obligatorios');return;}
+  const ap1=(document.getElementById('mn_ap1').value||'').trim().toUpperCase();
+  const ap2=(document.getElementById('mn_ap2').value||'').trim().toUpperCase();
+  const n1=(document.getElementById('mn_n1').value||'').trim().toUpperCase();
+  const n2=(document.getElementById('mn_n2').value||'').trim().toUpperCase();
+  if(!ap1||!ap2||!n1){alert('⚠️ Primer Apellido, Segundo Apellido y Primer Nombre son obligatorios');return;}
+  // Guardar como "AP1 AP2 || N1 N2" para compatibilidad
+  const apellidos=ap2?ap1+' '+ap2:ap1;
+  const nombres=n2?n1+' '+n2:n1;
+  const d={nombre:apellidos+'||'+nombres,cedula:document.getElementById('mc').value,genero:document.getElementById('mg').value,telefono:document.getElementById('mt').value,email:document.getElementById('me').value,direccion:document.getElementById('md').value,ciudad:document.getElementById('mci').value,empresa:document.getElementById('mem').value,cargo:document.getElementById('mcg').value,fecha_nacimiento:document.getElementById('mfn').value};
+  if(!d.empresa){alert('⚠️ La Empresa es obligatoria');return;}
   closeModal();if(eid){d.id=eid;updP(d);}else addP(d);
 }
 
@@ -1630,7 +1645,7 @@ render=_patchedRender;
 // ═══ MEDICAL APPOINTMENT CONFIG ═══
 function getMedCfg(){
   try{const v=localStorage.getItem('mediagenda_med_cfg');if(v)return JSON.parse(v);}catch(e){}
-  return {inicio_h:10,inicio_m:0,fin_h:17,fin_m:0,intervalo:20};
+  return {inicio_h:7,inicio_m:0,fin_h:17,fin_m:0,intervalo:5};
 }
 async function saveMedCfg(){
   const ih=+document.getElementById('cfg_med_ih').value;
