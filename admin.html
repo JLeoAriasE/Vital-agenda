@@ -3533,9 +3533,9 @@ function subirFirma(){
       if(DB_OK&&S.u?.id){
         try{
           await SB.patch('usuarios',{firma:base64},`id=eq.${S.u.id}`);
-          toast('✅ Firma guardada en servidor');
-        }catch(e){toast('✅ Firma guardada localmente');}
-      }else{toast('✅ Firma/sello guardado');}
+          alert('✅ Firma guardada en servidor');
+        }catch(e){alert('✅ Firma guardada localmente');}
+      }else{alert('✅ Firma/sello guardado');}
       render();
     };
     reader.readAsDataURL(file);
@@ -3792,10 +3792,10 @@ function guardarPosicionFirma(doc){
   localStorage.setItem('vw_firma_cfg',JSON.stringify(cfg));
   if(DB_OK&&S.u?.id){
     SB.patch('usuarios',{firma_cfg:cfg},`id=eq.${S.u.id}`)
-      .then(()=>toast('✅ Posición guardada en servidor — '+(doc==='cert'?'Certificado':doc==='ficha'?'Ficha':'Confidencialidad')))
-      .catch(()=>toast('✅ Posición guardada localmente'));
+      .then(()=>alert('✅ Posición guardada en servidor — '+(doc==='cert'?'Certificado':doc==='ficha'?'Ficha':'Confidencialidad')))
+      .catch(()=>alert('✅ Posición guardada localmente'));
   }else{
-    toast('✅ Posición guardada — '+(doc==='cert'?'Certificado':doc==='ficha'?'Ficha':'Confidencialidad'));
+    alert('✅ Posición guardada — '+(doc==='cert'?'Certificado':doc==='ficha'?'Ficha':'Confidencialidad'));
   }
   closeModal();
   render();
@@ -3831,7 +3831,7 @@ function saveFirmaCfg(){
   if(S.u)S.u.firma_cfg=cfg;
   localStorage.setItem('vw_firma_cfg',JSON.stringify(cfg));
   if(DB_OK&&S.u?.id)SB.patch('usuarios',{firma_cfg:cfg},`id=eq.${S.u.id}`);
-  toast('✅ Configuración guardada');
+  alert('✅ Configuración guardada');
 }
 
 function getFirmaDoc(doc){
@@ -4115,7 +4115,7 @@ async function generarPDFOficial(modo='formulario'){
     link.download=`formulario_${(d.a?.ap1||'').toUpperCase()}_${(d.a?.n1||'').toUpperCase()}_${(d.b?.fecha_atencion||'').replace(/-/g,'')}.pdf`;
     link.click();
     URL.revokeObjectURL(url);
-    toast('✅ PDF generado correctamente');
+    alert('✅ PDF generado correctamente');
   }catch(err){
     console.error('Error generando PDF:',err);
     alert('❌ Error generando PDF: '+err.message+'\n\nSi el servicio está iniciando, espera 1 minuto e intenta de nuevo.');
