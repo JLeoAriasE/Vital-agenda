@@ -1415,7 +1415,7 @@ function rMedO(){
           <td style="font-size:12px">${empNombre}</td>
           <td style="text-align:center;white-space:nowrap;display:flex;gap:3px;flex-wrap:wrap;justify-content:center">
             <button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="verFichaFinalizada('${f.id}')">👁️ Ver</button>
-            ${S.u?.rol==='medico'||S.u?.rol==='admin'?`<button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="editarFichaFinalizada('${f.id}','${f.pid}')">✏️ Editar</button>`:''}
+            ${S.u?.rol==='medico'||S.u?.rol==='administrador'?`<button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="editarFichaFinalizada('${f.id}','${f.pid}')">✏️ Editar</button>`:''}
             <button class="btn bsm" style="background:#38a169;color:#fff;font-size:9px" onclick="descargarFichaFinalizada('${f.id}')">⬇️ Descargar</button>
             <button class="btn bsm" style="background:#718096;color:#fff;font-size:9px" onclick="FO.pid='${f.pid}';verHistorialFichas()">📂 Historial</button>
           </td>
@@ -3193,10 +3193,161 @@ async function descargarFichaFinalizada(fichaId){
   const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
   if(!r||!r[0]){alert('No se encontró la ficha');return;}
   const f=r[0];
+  // Guardar FO actual y cargar ficha
+  const prevFid=FO.fid,prevPid=FO.pid,prevData=FO.data,prevSec=FO.sec;
   FO.fid=f.id; FO.pid=f.paciente_id;
   FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
-  // Generar PDF del formulario oficial
-  generarPDFOficial('formulario');
+  // Imprimir certificado + ficha juntos
+  printCertificadoYFicha();
+  // Restaurar FO
+  setTimeout(()=>{FO.fid=prevFid;FO.pid=prevPid;FO.data=prevData;FO.sec=prevSec;},1000);
+}
+
+function printCertificadoYFicha(){
+  const d=FO.data,a=d.a||{},b=d.b||{},l=d.l||{},m=d.m||{},n=d.n||{};
+  const ec=getEmpCfg(),p=gP(FO.pid)||{};
+  const fecha=(b.fecha_atencion||TD).split('-');
+  const yy=fecha[0]||'',mm=fecha[1]||'',dd2=fecha[2]||'';
+  const tipo=b.tipo_eval||'INGRESO',aptitud=l.aptitud||'';
+  const ck=(v,m)=>v===m?'☒':'☐';
+
+  // ── HTML CERTIFICADO ──
+  const certHtml=`
+  ${ec.logo?`<div style="text-align:center;margin-bottom:4px"><img src="${ec.logo}" style="max-height:55px;object-fit:contain"></div>`:''}
+  <table>
+    <tr><td colspan="12" style="text-align:center;font-size:13pt;font-weight:bold;padding:10px;background:#dce6f1;border:1px solid #000">CERTIFICADO - EVALUACIÓN MÉDICA OCUPACIONAL</td></tr>
+    <tr><td colspan="12" style="background:#c5d9f1;font-weight:bold;font-size:8.5pt;padding:4px 6px;border:1px solid #000">A. DATOS DEL ESTABLECIMIENTO - DATOS DEL USUARIO</td></tr>
+    <tr>
+      <td colspan="3" style="font-size:6.5pt;color:#333;border:1px solid #000">INSTITUCIÓN</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">RUC</td>
+      <td style="font-size:6.5pt;color:#333;border:1px solid #000">CIIU</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">CENTRO DE TRABAJO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">N° FORMULARIO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">N° ARCHIVO</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="font-weight:bold;border:1px solid #000">${(a.empresa||'').toUpperCase()}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.ruc||''}</td>
+      <td style="font-weight:bold;border:1px solid #000">${a.ciiu||''}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${(a.centro||'').toUpperCase()}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.nform||''}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.narch||''}</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="font-size:6.5pt;color:#333;border:1px solid #000">PRIMER APELLIDO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">SEGUNDO APELLIDO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">PRIMER NOMBRE</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">SEGUNDO NOMBRE</td>
+      <td style="font-size:6.5pt;color:#333;border:1px solid #000">SEXO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">PUESTO CIUO</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="font-weight:bold;border:1px solid #000">${a.ap1||''}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.ap2||''}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.n1||''}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.n2||''}</td>
+      <td style="font-weight:bold;text-align:center;border:1px solid #000">${a.sexo||''}</td>
+      <td colspan="2" style="font-weight:bold;font-size:7pt;border:1px solid #000">${(a.cargo||'').toUpperCase()}</td>
+    </tr>
+    <tr><td colspan="12" style="background:#c5d9f1;font-weight:bold;padding:4px 6px;border:1px solid #000">B. DATOS GENERALES</td></tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000">FECHA:</td>
+      <td style="font-weight:bold;text-align:center;border:1px solid #000">${yy}</td>
+      <td style="font-weight:bold;text-align:center;border:1px solid #000">${mm}</td>
+      <td style="font-weight:bold;text-align:center;border:1px solid #000">${dd2}</td>
+      <td style="font-size:6.5pt;text-align:center;color:#666;border:1px solid #000">aaaa/mm/dd</td>
+      <td colspan="6" style="border:1px solid #000"></td>
+    </tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000">EVALUACIÓN:</td>
+      <td colspan="2" style="text-align:center;border:1px solid #000">INGRESO ${ck(tipo,'INGRESO')}</td>
+      <td colspan="3" style="text-align:center;border:1px solid #000">PERIÓDICO ${ck(tipo,'PERIÓDICO')}</td>
+      <td colspan="2" style="text-align:center;border:1px solid #000">REINTEGRO ${ck(tipo,'REINTEGRO')}</td>
+      <td colspan="3" style="text-align:center;border:1px solid #000">RETIRO ${ck(tipo,'RETIRO')}</td>
+    </tr>
+    <tr><td colspan="12" style="background:#c5d9f1;font-weight:bold;padding:4px 6px;border:1px solid #000">C. APTITUD MÉDICA PARA EL TRABAJO</td></tr>
+    <tr><td colspan="12" style="font-size:7pt;font-style:italic;border:1px solid #000">Después de la valoración médica ocupacional se certifica que la persona en mención, es calificada como:</td></tr>
+    <tr>
+      <td colspan="3" style="text-align:center;font-weight:600;border:1px solid #000">APTO ${ck(aptitud,'APTO')}</td>
+      <td colspan="3" style="text-align:center;font-weight:600;font-size:7pt;border:1px solid #000">APTO EN OBSERVACIÓN ${ck(aptitud,'APTO EN OBSERVACIÓN')}</td>
+      <td colspan="3" style="text-align:center;font-weight:600;font-size:7pt;border:1px solid #000">APTO CON LIMITACIONES ${ck(aptitud,'APTO CON LIMITACIONES')}</td>
+      <td colspan="3" style="text-align:center;font-weight:600;border:1px solid #000">NO APTO ${ck(aptitud,'NO APTO')}</td>
+    </tr>
+    <tr><td colspan="12" style="font-size:7pt;color:#333;border:1px solid #000">DETALLE DE OBSERVACIONES:</td></tr>
+    <tr><td colspan="12" style="min-height:45px;padding:4px 6px;font-size:8pt;vertical-align:top;border:1px solid #000">${(l.observaciones||'').toUpperCase()}</td></tr>
+    <tr><td colspan="12" style="background:#c5d9f1;font-weight:bold;padding:4px 6px;border:1px solid #000">D. RECOMENDACIONES / OBSERVACIONES</td></tr>
+    <tr><td colspan="12" style="min-height:65px;padding:4px 6px;font-size:8pt;vertical-align:top;border:1px solid #000">${((m.estandar||[]).map(r=>'- '+r).join(' ')+(m.medicas?' - '+m.medicas.toUpperCase():'')).toUpperCase()}</td></tr>
+    <tr><td colspan="12" style="border:none;padding:6px;font-size:7pt;line-height:1.5;font-style:italic">Con este documento certifico que el trabajador se ha sometido a la evaluación médica requerida para (el ingreso / la ejecución / el reingreso y retiro) al puesto laboral y se le ha informado sobre los riesgos relacionados con el trabajo emitiendo recomendaciones relacionadas con su estado de salud.<br><br>La presente certificación se expide con base en el formulario de Evaluación Ocupacional, el cual tiene carácter de confidencial.</td></tr>
+    <tr><td colspan="6" style="background:#c5d9f1;font-weight:bold;padding:4px 6px;border:1px solid #000">E. DATOS DEL PROFESIONAL</td><td colspan="6" style="background:#c5d9f1;font-weight:bold;padding:4px 6px;border:1px solid #000">F. FIRMA DEL USUARIO</td></tr>
+    <tr style="height:60px">
+      <td colspan="2" style="font-size:7pt;vertical-align:middle;border:1px solid #000">NOMBRE</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${(n.medico||'').toUpperCase()}</td>
+      <td style="font-size:7pt;vertical-align:middle;border:1px solid #000">CÓDIGO</td>
+      <td style="font-weight:bold;border:1px solid #000">${n.codigo||''}</td>
+      <td colspan="3" style="vertical-align:middle;font-size:7pt;border:1px solid #000">FIRMA Y SELLO</td>
+      <td colspan="3" style="border:1px solid #000"></td>
+    </tr>
+  </table>`;
+
+  // ── OBTENER HTML DE LA FICHA OFICIAL ──
+  // Llamar printFichaOficial pero capturar el HTML en lugar de abrirlo
+  const fichaHtml=getFichaHtml();
+
+  // ── COMBINAR EN UNA SOLA VENTANA ──
+  const estilos=`@page{size:A4;margin:8mm 6mm}*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:7.5pt;color:#000}table{border-collapse:collapse;width:100%}td,th{border:.5pt solid #000;padding:2px 3px;font-size:7.5pt;vertical-align:middle}.sec{background:#ccccff;font-weight:bold;font-size:8pt;padding:3px 5px}.tit{text-align:center;font-size:11pt;font-weight:bold;padding:6px;background:#ccccff}.lbl{background:#ccffcc;font-size:7pt;padding:2px 3px}.v{font-weight:bold}.c{text-align:center}.s{font-size:7pt;background:#ccffcc;padding:2px 3px}.chk{font-size:10pt}.obs{min-height:35px;vertical-align:top;padding:3px}.nb{border:none}.pbreak{page-break-before:always}.logo-c{text-align:center;margin-bottom:2px}.logo-c img{max-height:50px;object-fit:contain}`;
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ficha Completa - ${a.ap1||''} ${a.n1||''}</title>
+  <style>${estilos}</style></head><body onload="window.print()">
+  ${certHtml}
+  <div class="pbreak"></div>
+  ${fichaHtml}
+  </body></html>`;
+
+  const win=window.open('','_blank','width=1000,height=800');
+  win.document.write(html);
+  win.document.close();
+}
+
+function getFichaHtml(){
+  // Extraer el HTML de la ficha sin abrir ventana
+  const d=FO.data,a=d.a||{},b=d.b||{},c=d.c||{},dd2=d.d||{},e=d.e||{},f=d.f||{},g=d.g||{},h=d.h||{},ii2=d.i||{},j=d.j||{},k=d.k||{},l=d.l||{},m=d.m||{},n=d.n||{};
+  const ec=getEmpCfg(),p=gP(FO.pid)||{};
+  const fa=(b.fecha_atencion||TD).split('-');
+  const tipo=b.tipo_eval||'INGRESO',apt=l.aptitud||'';
+  const edad=p.fecha_nacimiento?Math.floor((new Date()-new Date(p.fecha_nacimiento))/31557600000):'';
+  const fn=(p.fecha_nacimiento||'').split('-');
+  const ck=(v,match)=>v===match?'☒':'☐';
+  const hall=f.hallazgos||{};
+
+  return`
+  ${ec.logo?`<div class="logo-c"><img src="${ec.logo}"></div>`:''}
+  <table>
+    <tr><td colspan="12" class="tit">FORMULARIO DE EVALUACIÓN MÉDICA OCUPACIONAL</td></tr>
+    <tr><td colspan="12" class="sec">A. DATOS DEL ESTABLECIMIENTO - DATOS DEL USUARIO</td></tr>
+    <tr><td colspan="3" class="lbl">INSTITUCIÓN</td><td colspan="2" class="lbl">RUC</td><td class="lbl">CIIU</td><td colspan="2" class="lbl">CENTRO DE TRABAJO</td><td colspan="2" class="lbl">N° FORMULARIO</td><td colspan="2" class="lbl">N° ARCHIVO</td></tr>
+    <tr><td colspan="3" class="v">${(a.empresa||'').toUpperCase()}</td><td colspan="2" class="v">${a.ruc||''}</td><td class="v">${a.ciiu||''}</td><td colspan="2" class="v">${(a.centro||'').toUpperCase()}</td><td colspan="2" class="v">${a.nform||''}</td><td colspan="2" class="v">${a.narch||''}</td></tr>
+    <tr><td colspan="3" class="lbl">PRIMER APELLIDO</td><td colspan="2" class="lbl">SEGUNDO APELLIDO</td><td colspan="2" class="lbl">PRIMER NOMBRE</td><td colspan="2" class="lbl">SEGUNDO NOMBRE</td><td class="lbl">SEXO</td><td colspan="2" class="lbl">PUESTO CIUO</td></tr>
+    <tr><td colspan="3" class="v">${a.ap1||''}</td><td colspan="2" class="v">${a.ap2||''}</td><td colspan="2" class="v">${a.n1||''}</td><td colspan="2" class="v">${a.n2||''}</td><td class="v c">${a.sexo||''}</td><td colspan="2" class="v s">${(a.cargo||'').toUpperCase()}</td></tr>
+    <tr><td class="lbl">C.I.</td><td colspan="2" class="v">${p.cedula||''}</td><td class="lbl">F. NAC.</td><td colspan="2" class="v">${fn[2]||''} / ${fn[1]||''} / ${fn[0]||''}</td><td class="lbl">EDAD</td><td class="v">${edad}</td><td class="lbl">GRUPO SANG.</td><td class="v">${a.grupo_sang||''}</td><td class="lbl">LATERALIDAD</td><td class="v">${a.lateralidad||''}</td></tr>
+    <tr><td colspan="12" class="sec">B. DATOS GENERALES</td></tr>
+    <tr><td colspan="2" class="lbl">FECHA ATENCIÓN</td><td colspan="2" class="v">${fa[2]||''} / ${fa[1]||''} / ${fa[0]||''}</td><td colspan="2" class="lbl">EVALUACIÓN</td><td colspan="6" class="v">INGRESO ${ck(tipo,'INGRESO')} &nbsp; PERIÓDICO ${ck(tipo,'PERIÓDICO')} &nbsp; REINTEGRO ${ck(tipo,'REINTEGRO')} &nbsp; RETIRO ${ck(tipo,'RETIRO')}</td></tr>
+    <tr><td colspan="12" class="sec">C. ANTECEDENTES</td></tr>
+    <tr><td colspan="2" class="lbl">Clínicos</td><td colspan="10" class="obs">${c.ant_clinicos||''}</td></tr>
+    <tr><td colspan="2" class="lbl">Familiares</td><td colspan="10" class="obs">${c.ant_familiares||''}</td></tr>
+    <tr><td colspan="2" class="lbl">Medicación</td><td colspan="10" class="obs">${c.medicacion||''}</td></tr>
+    <tr><td colspan="12" class="sec">D. ENFERMEDAD ACTUAL</td></tr>
+    <tr><td colspan="12" class="obs" style="min-height:50px">${dd2.descripcion||''}</td></tr>
+    <tr><td colspan="12" class="sec">E. SIGNOS VITALES Y ANTROPOMETRÍA</td></tr>
+    <tr><td class="lbl">TEMP</td><td class="v">${e.temp||''}</td><td class="lbl">PA</td><td class="v">${e.pa_s||''}/${e.pa_d||''}</td><td class="lbl">FC</td><td class="v">${e.fc||''}</td><td class="lbl">FR</td><td class="v">${e.fr||''}</td><td class="lbl">SAT O2</td><td class="v">${e.sat||''}</td><td class="lbl">PESO</td><td class="v">${e.peso||''}</td></tr>
+    <tr><td class="lbl">TALLA</td><td class="v">${e.talla||''}</td><td class="lbl">IMC</td><td class="v">${e.imc||''}</td><td class="lbl">CLASIF.</td><td class="v">${e.clasif_imc||''}</td><td class="lbl">PERÍMETRO ABD.</td><td colspan="5" class="v">${e.perim_abd||''}</td></tr>
+    <tr><td colspan="12" class="sec">L. APTITUD MÉDICA</td></tr>
+    <tr><td colspan="3" class="c">APTO ${ck(apt,'APTO')}</td><td colspan="3" class="c s">APTO EN OBSERVACIÓN ${ck(apt,'APTO EN OBSERVACIÓN')}</td><td colspan="3" class="c s">APTO CON LIMITACIONES ${ck(apt,'APTO CON LIMITACIONES')}</td><td colspan="3" class="c">NO APTO ${ck(apt,'NO APTO')}</td></tr>
+    <tr><td colspan="12" class="obs">${(l.observaciones||'').toUpperCase()}</td></tr>
+    <tr><td colspan="12" class="sec">M. RECOMENDACIONES</td></tr>
+    <tr><td colspan="12" class="obs">${((m.estandar||[]).map(r=>'• '+r).join('  ')+(m.medicas?'  • '+m.medicas:'')).toUpperCase()}</td></tr>
+    <tr><td colspan="6" class="sec">N. DATOS DEL PROFESIONAL</td><td colspan="6" class="sec">FIRMA DEL USUARIO</td></tr>
+    <tr style="height:55px"><td colspan="2" class="lbl">NOMBRE</td><td colspan="2" class="v">${(n.medico||'').toUpperCase()}</td><td class="lbl">CÓDIGO</td><td class="v">${n.codigo||''}</td><td colspan="3" class="lbl">FIRMA Y SELLO</td><td colspan="3"></td></tr>
+  </table>`;
 }
 async function finalizarFicha(){
   if(!confirm('⚠️ ¿FINALIZAR la ficha?\n\nUna vez finalizada:\n• Se guardará automáticamente\n• Quedará BLOQUEADA (solo lectura)\n• Desaparecerá del listado de órdenes pendientes\n\n¿Confirmar?')) return;
