@@ -1397,7 +1397,7 @@ function rMedO(){
   <td style="font-size:11px">${p?.empresa||''}</td>
   <td><span class="ba ${EB[x.estado]}">${EL[x.estado]}</span></td>
   <td style="text-align:center;white-space:nowrap">
-    ${(x.cat==='atencion_medica'||x.cat==='ficha_ocupacional')?`<button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="openFicha('${x.pid}','${x.aid}')">📋 Ficha</button><button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="FO.pid='${x.pid}';verHistorialFichas()">📂 Historial</button><button class="btn bsm" style="background:#38a169;color:#fff;font-size:9px" onclick="FO.pid='${x.pid}';nuevaAtencion()">➕ Nueva Ficha</button>`:''} 
+    ${(x.cat==='atencion_medica'||x.cat==='ficha_ocupacional')?`<button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="abrirFichaInteligente('${x.pid}','${x.aid}')">📋 Ficha</button>`:''} 
     ${x.estado!=='completado'?`<button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`}</div>
   `:`
   <div class="cd">
@@ -2317,16 +2317,44 @@ function printCertApt(){
 let FO={pid:null,fid:null,sec:'A',data:{}};
 
 function openFicha(pid,aid){
-  FO.pid=pid;FO.sec='A';FO.data={};FO.fid=null;
+  abrirFichaInteligente(pid,aid);
+}
+
+// Abre ficha prellenada con último historial si existe, si no en blanco
+async function abrirFichaInteligente(pid,aid){
+  FO.pid=pid;FO.sec='A';FO.data={};FO.fid=null;FO.soloLectura=false;
   const p=gP(pid);if(!p)return;
-  // Buscar ficha existente del paciente
   if(DB_OK){
-    SB.get('fichas_ocupacionales',`select=*&paciente_id=eq.${pid}&order=created_at.desc&limit=1`).then(r=>{
-      if(r&&r[0]){FO.fid=r[0].id;FO.data={a:r[0].seccion_a||{},b:r[0].seccion_b||{},c:r[0].seccion_c||{},d:r[0].seccion_d||{},e:r[0].seccion_e||{},f:r[0].seccion_f||{},g:r[0].seccion_g||{},h:r[0].seccion_h||{},i:r[0].seccion_i||{},j:r[0].seccion_j||{},k:r[0].seccion_k||{},l:r[0].seccion_l||{},m:r[0].seccion_m||{},n:r[0].seccion_n||{},r:r[0].seccion_r||{}};}
-      else{preloadFichaData(p);}
-      S.v='ficha';render();
-    });
-  }else{preloadFichaData(p);S.v='ficha';render();}
+    const r=await SB.get('fichas_ocupacionales',`select=*&paciente_id=eq.${pid}&order=created_at.desc&limit=1`);
+    if(r&&r[0]){
+      // Tiene historial: precargar datos de la última ficha pero crear una NUEVA (fid=null)
+      const uf=r[0];
+      FO.fid=null; // nueva ficha
+      FO.data={
+        a:{...uf.seccion_a||{}},
+        b:{...(uf.seccion_b||{}),fecha_atencion:TD,tipo_eval:(uf.seccion_b||{}).tipo_eval||'INGRESO'},
+        c:{...uf.seccion_c||{}},
+        d:{descripcion:''},
+        e:{temp:'36.5',pa_s:'120',pa_d:'80',fc:'70',fr:'16',sat:'98',peso:(uf.seccion_e||{}).peso||'',talla:(uf.seccion_e||{}).talla||'',imc:(uf.seccion_e||{}).imc||'',clasif_imc:(uf.seccion_e||{}).clasif_imc||'',perim_abd:(uf.seccion_e||{}).perim_abd||''},
+        f:{hallazgos:{},observaciones:''},
+        g:{...uf.seccion_g||{}},
+        h:{...uf.seccion_h||{}},
+        i:{actividades:[]},
+        j:{categorias:[],observaciones:''},
+        k:{diagnosticos:[]},
+        l:{aptitud:'',observaciones:''},
+        m:{estandar:[],medicas:''},
+        n:{...uf.seccion_n||{}},
+        r:{...uf.seccion_r||{}}
+      };
+    }else{
+      // Sin historial: ficha en blanco con datos básicos
+      preloadFichaData(p);
+    }
+  }else{
+    preloadFichaData(p);
+  }
+  S.v='ficha';render();
 }
 
 function preloadFichaData(p){
