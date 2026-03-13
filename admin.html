@@ -103,6 +103,7 @@ select.fi{cursor:pointer;appearance:auto}textarea.fi{min-height:60px;resize:vert
 </style>
 </head>
 <body>
+<input type="file" id="input_firma_file" accept="image/*" style="display:none" onchange="procesarFirmaSeleccionada(this)">
 <div id="app"></div>
 <script>
 // ═══════════════════════════════════════════
@@ -3518,29 +3519,33 @@ function guardarMedico(){
 }
 
 function subirFirma(){
-  const input=document.createElement('input');
-  input.type='file';input.accept='image/*';
-  input.onchange=e=>{
-    const file=e.target.files[0];if(!file)return;
-    if(file.size>2*1024*1024){alert('La imagen es muy grande. Máximo 2MB.');return;}
-    const reader=new FileReader();
-    reader.onload=async ev=>{
-      const base64=ev.target.result;
-      // 1. Guardar en memoria local (inmediato)
-      if(S.u)S.u.firma=base64;
-      localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),firma:base64}));
-      // 2. Guardar en Supabase
-      if(DB_OK&&S.u?.id){
-        try{
-          await SB.patch('usuarios',{firma:base64},`id=eq.${S.u.id}`);
-          alert('✅ Firma guardada en servidor');
-        }catch(e){alert('✅ Firma guardada localmente');}
-      }else{alert('✅ Firma/sello guardado');}
-      render();
-    };
-    reader.readAsDataURL(file);
+  // Usar input fijo en el DOM para evitar bloqueo del navegador
+  const inp = document.getElementById('input_firma_file');
+  if(inp){ inp.value=''; inp.click(); }
+}
+
+async function procesarFirmaSeleccionada(inp){
+  const file = inp.files[0];
+  if(!file) return;
+  if(file.size > 2*1024*1024){ alert('La imagen es muy grande. Máximo 2MB.'); return; }
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const base64 = ev.target.result;
+    // Guardar en memoria
+    if(S.u) S.u.firma = base64;
+    localStorage.setItem('mediagenda_med_cfg', JSON.stringify({...getMedCfg(), firma:base64}));
+    // Guardar en Supabase
+    if(DB_OK && S.u?.id){
+      try{
+        await SB.patch('usuarios', {firma:base64}, `id=eq.${S.u.id}`);
+        alert('✅ Firma guardada en servidor');
+      }catch(e){ alert('✅ Firma guardada localmente (error: '+e.message+')'); }
+    } else {
+      alert('✅ Firma guardada localmente');
+    }
+    render();
   };
-  input.click();
+  reader.readAsDataURL(file);
 }
 
 function eliminarFirma(){
