@@ -2090,7 +2090,6 @@ function rBkp(){
       <div style="margin-top:16px;padding:14px;background:var(--ci);border:1px solid var(--bd);border-radius:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div style="font-size:22px">🧹</div>
         <div style="flex:1;min-width:120px"><div style="font-weight:600;font-size:14px">Limpiar pacientes sin citas</div><div style="font-size:11px;color:var(--tm)">Elimina pacientes que no tienen ninguna cita</div></div>
-        <button class="btn bsm bd" style="font-size:11px" onclick="eliminarPacientesSinCitas()">🗑️ Limpiar</button>
       </div>
     </div></div>`;
     if(t==='codigos_salud'){
@@ -5202,30 +5201,7 @@ async function descargarYEliminar(tabla,campo){
   await eliminarRegistros(tabla,campo);
 }
 
-async function eliminarPacientesSinCitas(){
-  if(!DB_OK){alert('⚠️ Sin conexión a Supabase');return;}
-  
-  // Buscar pacientes que no tienen citas
-  const pacientes=S.pts||[];
-  const citasPids=new Set((S.apt||[]).map(a=>a.pid));
-  const sinCitas=pacientes.filter(p=>!citasPids.has(p.id));
-  
-  if(sinCitas.length===0){alert('✅ Todos los pacientes tienen al menos una cita. No hay nada que limpiar.');return;}
-  
-  if(!confirm(`🗑️ Se encontraron ${sinCitas.length} pacientes sin citas.\n\n¿Eliminarlos?\n\nEsta acción es PERMANENTE.`))return;
-  
-  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='⏳ Eliminando...';}
-  try{
-    for(const p of sinCitas){
-      await SB.del('pacientes',`id=eq.${p.id}`);
-      await SB.del('fichas_ocupacionales',`paciente_id=eq.${p.id}`);
-    }
-    S.pts=S.pts.filter(p=>citasPids.has(p.id));
-    alert(`✅ ${sinCitas.length} pacientes sin citas eliminados`);
-    render();
-  }catch(e){alert('❌ Error: '+e.message);}
-  finally{if(btn){btn.disabled=false;btn.textContent='🗑️ Limpiar pacientes sin citas';}}
-}
+
 
 // ═══ INIT ═══
 applyTheme();
