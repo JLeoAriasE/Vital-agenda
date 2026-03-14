@@ -248,8 +248,8 @@ async function loadAll(){
       if(c.clave==='dash_cfg'&&v&&Object.keys(v).length>0)localStorage.setItem('mediagenda_dash_cfg',JSON.stringify(v));
     });}
     console.log('✅ Datos cargados desde Supabase');
-    // Sincronizar pacientes guardados offline
-    setTimeout(syncOfflineQ, 1500);
+    // Sincronizar datos guardados offline
+    setTimeout(()=>{syncOfflineQ();syncOfflineQCitas();syncOfflineQOrd();}, 1500);
   }else{
     DB_OK=false;
     console.warn('⚠️ No se pudo conectar a Supabase, usando modo local');
@@ -321,7 +321,7 @@ async function addP(d){
     try{
       const r=await SB.post('pacientes',{nombre:d.nombre,cedula:d.cedula||'',telefono:d.telefono||'',email:d.email||'',genero:d.genero||'',direccion:d.direccion||'',ciudad:d.ciudad||'',empresa:d.empresa,cargo:d.cargo||'',fecha_nacimiento:d.fecha_nacimiento||''});
       if(r&&r[0]){d.id=r[0].id;S.pts.push(d);render();showToast('✅ Paciente registrado correctamente','ok');return;}
-      else{addToOfflineQ(d);d.id=gid();S.pts.push(d);render();showToast('⚠️ Sin respuesta del servidor — guardado localmente','warn');}
+      else{addToOfflineQ(d);d.id=gid();S.pts.push(d);render();showToast('⚠️ El servidor no confirmó el registro — guardado localmente como respaldo','warn');}
     }catch(e){
       addToOfflineQ(d);d.id=gid();S.pts.push(d);render();
       showToast('📴 Sin internet — guardado localmente, se sincronizará al reconectarse','warn');
@@ -333,16 +333,63 @@ async function addP(d){
 }
 async function updP(d){
   const i=S.pts.findIndex(p=>p.id===d.id);if(i>-1)S.pts[i]={...S.pts[i],...d};
-  if(DB_OK)await SB.patch('pacientes',{nombre:d.nombre,cedula:d.cedula||'',telefono:d.telefono||'',email:d.email||'',genero:d.genero||'',direccion:d.direccion||'',ciudad:d.ciudad||'',empresa:d.empresa,cargo:d.cargo||'',fecha_nacimiento:d.fecha_nacimiento||''},`id=eq.${d.id}`);
+  if(DB_OK){
+    try{
+      await SB.patch('pacientes',{nombre:d.nombre,cedula:d.cedula||'',telefono:d.telefono||'',email:d.email||'',genero:d.genero||'',direccion:d.direccion||'',ciudad:d.ciudad||'',empresa:d.empresa,cargo:d.cargo||'',fecha_nacimiento:d.fecha_nacimiento||''},`id=eq.${d.id}`);
+      showToast('✅ Paciente actualizado correctamente','ok');
+    }catch(e){showToast('⚠️ Error al actualizar — cambio guardado localmente','warn');}
+  }else{showToast('📴 Sin conexión — cambio guardado localmente','warn');}
   render();
 }
+
+// ═══ OFFLINE QUEUES: CITAS Y ORDENES ═══
+function getOfflineQCitas(){try{return JSON.parse(localStorage.getItem('vw_offline_citas')||'[]');}catch{return[];}}
+function saveOfflineQCitas(q){localStorage.setItem('vw_offline_citas',JSON.stringify(q));}
+function getOfflineQOrd(){try{return JSON.parse(localStorage.getItem('vw_offline_ord')||'[]');}catch{return[];}}
+function saveOfflineQOrd(q){localStorage.setItem('vw_offline_ord',JSON.stringify(q));}
+
+async function syncOfflineQCitas(){
+  if(!DB_OK)return;
+  const q=getOfflineQCitas();if(!q.length)return;
+  const ok=[];
+  for(const d of q){
+    try{
+      const r=await SB.post('citas',{pid:d.pid,tipo:d.tipo,fecha:d.fecha,hora:d.hora,estado:d.estado,asistio:d.asistio,ex_asig:d.exAsig,origen:d.origen||'admin'});
+      if(r&&r[0]){d.id=r[0].id;if(!S.apt.find(a=>a.id===d.id))S.apt.push(d);ok.push(d);}
+    }catch(e){}
+  }
+  if(ok.length){saveOfflineQCitas(q.filter(x=>!ok.find(o=>o._ts===x._ts)));render();showToast(`✅ ${ok.length} cita(s) sincronizada(s)`,'ok');}
+}
+async function syncOfflineQOrd(){
+  if(!DB_OK)return;
+  const q=getOfflineQOrd();if(!q.length)return;
+  const ok=[];
+  for(const d of q){
+    try{
+      const r=await SB.post('ordenes',{aid:d.aid,pid:d.pid,cat:d.cat,exams:d.exams||[],parte:d.parte||'',proy:d.proy||'',estado:d.estado});
+      if(r&&r[0]){d.id=r[0].id;if(!S.ord.find(o=>o.id===d.id))S.ord.push(d);ok.push(d);}
+    }catch(e){}
+  }
+  if(ok.length){saveOfflineQOrd(q.filter(x=>!ok.find(o=>o._ts===x._ts)));render();showToast(`✅ ${ok.length} orden(es) sincronizada(s)`,'ok');}
+}
+
 async function addA(d){
   d.estado='pendiente';d.asistio=null;d.exAsig=false;
   if(DB_OK){
-    const r=await SB.post('citas',{pid:d.pid,tipo:d.tipo,fecha:d.fecha,hora:d.hora,estado:d.estado,asistio:d.asistio,ex_asig:d.exAsig,origen:d.origen||'admin'});
-    if(r&&r[0]){d.id=r[0].id;S.apt.push(d);render();return;}
+    try{
+      const r=await SB.post('citas',{pid:d.pid,tipo:d.tipo,fecha:d.fecha,hora:d.hora,estado:d.estado,asistio:d.asistio,ex_asig:d.exAsig,origen:d.origen||'admin'});
+      if(r&&r[0]){d.id=r[0].id;S.apt.push(d);render();showToast('✅ Cita agendada correctamente','ok');return;}
+      else{d._ts=Date.now();getOfflineQCitas().concat([d]);saveOfflineQCitas([...getOfflineQCitas(),d]);d.id=gid();S.apt.push(d);render();showToast('⚠️ Sin respuesta — cita guardada localmente','warn');}
+    }catch(e){
+      d._ts=Date.now();saveOfflineQCitas([...getOfflineQCitas(),d]);
+      d.id=gid();S.apt.push(d);render();
+      showToast('📴 Sin internet — cita guardada localmente, se sincronizará al reconectarse','warn');
+    }
+  }else{
+    d._ts=Date.now();saveOfflineQCitas([...getOfflineQCitas(),d]);
+    d.id=gid();S.apt.push(d);render();
+    showToast('📴 Sin conexión — cita guardada localmente','warn');
   }
-  d.id=gid();S.apt.push(d);render();
 }
 async function updA(id,u){
   const i=S.apt.findIndex(a=>a.id===id);if(i>-1)S.apt[i]={...S.apt[i],...u};
@@ -353,10 +400,20 @@ function mrkA(id,v){updA(id,{asistio:v,estado:v?'en_proceso':'cancelada'});}
 async function addO(d){
   d.estado='pendiente';
   if(DB_OK){
-    const r=await SB.post('ordenes',{aid:d.aid,pid:d.pid,cat:d.cat,exams:d.exams||[],parte:d.parte||'',proy:d.proy||'',estado:d.estado});
-    if(r&&r[0]){d.id=r[0].id;S.ord.push(d);render();return;}
+    try{
+      const r=await SB.post('ordenes',{aid:d.aid,pid:d.pid,cat:d.cat,exams:d.exams||[],parte:d.parte||'',proy:d.proy||'',estado:d.estado});
+      if(r&&r[0]){d.id=r[0].id;S.ord.push(d);render();return;}
+      else{d._ts=Date.now();saveOfflineQOrd([...getOfflineQOrd(),d]);d.id=gid();S.ord.push(d);render();showToast('⚠️ Sin respuesta — orden guardada localmente','warn');}
+    }catch(e){
+      d._ts=Date.now();saveOfflineQOrd([...getOfflineQOrd(),d]);
+      d.id=gid();S.ord.push(d);render();
+      showToast('📴 Sin internet — orden guardada localmente','warn');
+    }
+  }else{
+    d._ts=Date.now();saveOfflineQOrd([...getOfflineQOrd(),d]);
+    d.id=gid();S.ord.push(d);render();
+    showToast('📴 Sin conexión — orden guardada localmente','warn');
   }
-  d.id=gid();S.ord.push(d);render();
 }
 async function updO(id,u){
   const i=S.ord.findIndex(o=>o.id===id);if(i>-1)S.ord[i]={...S.ord[i],...u};
@@ -555,20 +612,71 @@ function pmMod(p){
   const _nms=(_partes[1]||'').trim().split(' ');
   const _ap1=_aps[0]||''; const _ap2=_aps.slice(1).join(' ')||'';
   const _n1=_nms[0]||'';  const _n2=_nms.slice(1).join(' ')||'';
-  openModal(`<div class="mhd"><h3>${p?'Editar':'Nuevo'} Paciente</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
+  // Si es paciente existente mostrar aviso
+  const _esExistente=!!(d.id);
+  const _avisoExistente=_esExistente?`<div style="background:#dcfce7;border:1px solid #16a34a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#15803d;font-weight:600">✅ Bienvenido de nuevo. Tus datos han sido cargados automáticamente. Puedes actualizar lo que necesites.</div>`:'';
+  openModal(`<div class="mhd"><h3>${p?'Actualizar datos':'Registro de Paciente'}</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
   <div class="mbd">
+    ${_avisoExistente}
+    <div style="background:var(--as);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--tm)">
+      📋 <strong>Paso 1:</strong> Ingresa tu cédula y presiona Tab o haz clic en otro campo para cargar tus datos automáticamente.
+    </div>
+    <div class="fr"><div class="fg"><label>Cédula <b style="color:red">*</b></label><input class="fi" id="mc" value="${d.cedula||''}" placeholder="Ingresa tu número de cédula" onblur="autoFillByCedula()" oninput="autoFillByCedula()" maxlength="13"></div><div class="fg"><label>Género</label><select class="fi" id="mg"><option value="">—</option><option ${d.genero==='Masculino'?'selected':''}>Masculino</option><option ${d.genero==='Femenino'?'selected':''}>Femenino</option></select></div></div>
+    <div id="_paciente_fields" style="${d.cedula||_esExistente?'':'opacity:0.4;pointer-events:none'}">
     <div class="fr">
-      <div class="fg"><label>Primer Apellido <b style="color:red">*</b></label><input class="fi" id="mn_ap1" value="${_ap1}" placeholder="Ej: ARIAS" style="text-transform:uppercase" required></div>
-      <div class="fg"><label>Segundo Apellido <b style="color:red">*</b></label><input class="fi" id="mn_ap2" value="${_ap2}" placeholder="Ej: ESPINOZA" style="text-transform:uppercase" required></div>
-      <div class="fg"><label>Primer Nombre <b style="color:red">*</b></label><input class="fi" id="mn_n1" value="${_n1}" placeholder="Ej: JORGE" style="text-transform:uppercase" required></div>
+      <div class="fg"><label>Primer Apellido <b style="color:red">*</b></label><input class="fi" id="mn_ap1" value="${_ap1}" placeholder="Ej: ARIAS" style="text-transform:uppercase"></div>
+      <div class="fg"><label>Segundo Apellido <b style="color:red">*</b></label><input class="fi" id="mn_ap2" value="${_ap2}" placeholder="Ej: ESPINOZA" style="text-transform:uppercase"></div>
+      <div class="fg"><label>Primer Nombre <b style="color:red">*</b></label><input class="fi" id="mn_n1" value="${_n1}" placeholder="Ej: JORGE" style="text-transform:uppercase"></div>
       <div class="fg"><label>Segundo Nombre</label><input class="fi" id="mn_n2" value="${_n2}" placeholder="Ej: LEONARDO" style="text-transform:uppercase"></div>
     </div>
-    <div class="fr"><div class="fg"><label>Cédula</label><input class="fi" id="mc" value="${d.cedula||''}"></div><div class="fg"><label>Género</label><select class="fi" id="mg"><option value="">—</option><option ${d.genero==='Masculino'?'selected':''}>Masculino</option><option ${d.genero==='Femenino'?'selected':''}>Femenino</option></select></div></div>
     <div class="fr"><div class="fg"><label>Teléfono</label><input class="fi" id="mt" value="${d.telefono||''}"></div><div class="fg"><label>Email</label><input class="fi" id="me" value="${d.email||''}"></div></div>
     <div class="fr"><div class="fg"><label>Dirección</label><input class="fi" id="md" value="${d.direccion||''}"></div><div class="fg"><label>Ciudad</label><input class="fi" id="mci" value="${d.ciudad||''}"></div></div>
     <div class="fr"><div class="fg"><label>Empresa *</label><input class="fi" id="mem" value="${d.empresa||''}"></div><div class="fg"><label>Cargo</label><input class="fi" id="mcg" value="${d.cargo||''}"></div></div>
     <div class="fg"><label>Fecha Nac.</label><input type="date" class="fi" id="mfn" value="${d.fecha_nacimiento||''}"></div>
-  </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svP('${d.id||''}')">${p?'Guardar':'Registrar'}</button></div>`);
+    </div>
+  </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svP('${d.id||''}')">${p?'Actualizar y registrar visita':'Registrar'}</button></div>`);
+}
+
+function autoFillByCedula(){
+  const ced=(document.getElementById('mc')?.value||'').trim();
+  const fields=document.getElementById('_paciente_fields');
+  if(!ced){if(fields){fields.style.opacity='0.4';fields.style.pointerEvents='none';}return;}
+  if(fields){fields.style.opacity='1';fields.style.pointerEvents='';}
+  if(ced.length<5)return;
+  const dup=S.pts.find(p=>p.cedula&&p.cedula===ced);
+  if(!dup)return;
+  // Llenar campos automáticamente
+  const partes=(dup.nombre||'').split('||');
+  const aps=(partes[0]||'').trim().split(' ');
+  const nms=(partes[1]||'').trim().split(' ');
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  set('mn_ap1',aps[0]||'');
+  set('mn_ap2',aps.slice(1).join(' ')||'');
+  set('mn_n1',nms[0]||'');
+  set('mn_n2',nms.slice(1).join(' ')||'');
+  set('mt',dup.telefono||'');
+  set('me',dup.email||'');
+  set('md',dup.direccion||'');
+  set('mci',dup.ciudad||'');
+  set('mem',dup.empresa||'');
+  set('mcg',dup.cargo||'');
+  set('mfn',dup.fecha_nacimiento||'');
+  const mg=document.getElementById('mg');
+  if(mg&&dup.genero)mg.value=dup.genero;
+  // Guardar id del paciente existente en campo oculto
+  const btn=document.querySelector('#_modal .btn.bp');
+  if(btn){btn.setAttribute('onclick',`svP('${dup.id}')`);btn.textContent='Actualizar y registrar visita';}
+  // Mostrar aviso
+  const mbd=document.querySelector('#_modal .mbd');
+  const oldAviso=document.getElementById('_aviso_dup');
+  if(oldAviso)oldAviso.remove();
+  if(mbd){
+    const aviso=document.createElement('div');
+    aviso.id='_aviso_dup';
+    aviso.style.cssText='background:#dcfce7;border:1px solid #16a34a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#15803d;font-weight:600';
+    aviso.textContent='✅ Bienvenido de nuevo. Tus datos han sido cargados. Puedes actualizar lo que necesites.';
+    mbd.insertBefore(aviso,mbd.firstChild);
+  }
 }
 function svP(eid){
   const ap1=(document.getElementById('mn_ap1').value||'').trim().toUpperCase();
@@ -581,7 +689,15 @@ function svP(eid){
   const nombres=n2?n1+' '+n2:n1;
   const d={nombre:apellidos+'||'+nombres,cedula:document.getElementById('mc').value,genero:document.getElementById('mg').value,telefono:document.getElementById('mt').value,email:document.getElementById('me').value,direccion:document.getElementById('md').value,ciudad:document.getElementById('mci').value,empresa:document.getElementById('mem').value,cargo:document.getElementById('mcg').value,fecha_nacimiento:document.getElementById('mfn').value};
   if(!d.empresa){alert('⚠️ La Empresa es obligatoria');return;}
-  closeModal();if(eid){d.id=eid;updP(d);}else addP(d);
+  closeModal();
+  if(eid){
+    // Paciente existente — actualizar datos y mostrar confirmación
+    d.id=eid;
+    updP(d);
+    showToast('✅ Datos actualizados. Visita registrada.','ok');
+  }else{
+    addP(d);
+  }
 }
 
 // ═══ APPOINTMENT MODAL ═══
@@ -793,7 +909,13 @@ function render(){
   const mainEl=document.querySelector('.main');
   const sideScroll=sideEl?sideEl.scrollTop:0;
   const mainScroll=mainEl?mainEl.scrollTop:0;
-  a.innerHTML=`<div class="app">${rSide()}<main class="main">${rView()}</main></div><button class="mtog" onclick="document.querySelector('.side').classList.toggle('open')">☰</button>`;
+  // Banner offline
+  const _qPts=getOfflineQ().length;
+  const _qCitas=getOfflineQCitas().length;
+  const _qOrd=getOfflineQOrd().length;
+  const _total=_qPts+_qCitas+_qOrd;
+  const _banner=_total>0?`<div id="_offline_banner" style="position:fixed;top:0;left:0;right:0;z-index:99998;background:#dc2626;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3);">⚠️ ${_total} dato(s) sin sincronizar con el servidor — <strong>NO cierres ni apagues</strong> hasta que este aviso desaparezca${!navigator.onLine?' · Sin internet':' · Reconectando...'}</div>`:'';
+  a.innerHTML=_banner+`<div class="app" style="${_total>0?'margin-top:42px':''}">${rSide()}<main class="main">${rView()}</main></div><button class="mtog" style="${_total>0?'top:52px':''}" onclick="document.querySelector('.side').classList.toggle('open')">☰</button>`;
   // Restaurar scroll
   const newSide=document.querySelector('.side');
   const newMain=document.querySelector('.main');
