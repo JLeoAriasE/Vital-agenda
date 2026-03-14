@@ -5272,91 +5272,151 @@ async function downloadExcelAtendidos(periodo){
 
   if(citas.length===0&&ptsSinCita.length===0){alert('No hay pacientes registrados en ese período');return;}
 
-  // Crear libro
-  const wb=new ExcelJS.Workbook();
-  const ws=wb.addWorksheet('Pacientes');
-
-  // Columnas
-  ws.columns=[
-    {header:'N°',key:'n',width:6},
-    {header:'NOMBRE',key:'nombre',width:38},
-    {header:'CÉDULA',key:'cedula',width:16},
-    {header:'CELULAR',key:'celular',width:14},
-    {header:'CIUDAD',key:'ciudad',width:16},
-    {header:'FECHA REGISTRO',key:'fregistro',width:16},
-    {header:'FECHA NAC.',key:'fnac',width:14},
-    {header:'EMPRESA',key:'empresa',width:35}
-  ];
-
-  // Estilo encabezado
-  const hr=ws.getRow(1);
-  hr.height=24;
-  hr.eachCell(c=>{
-    c.font={name:'Arial',bold:true,size:11,color:{argb:'FFFFFFFF'}};
-    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2B6CB0'}};
-    c.alignment={horizontal:'center',vertical:'middle'};
-    c.border={top:{style:'thin',color:{argb:'FF2B6CB0'}},bottom:{style:'thin',color:{argb:'FF2B6CB0'}},left:{style:'thin',color:{argb:'FF2B6CB0'}},right:{style:'thin',color:{argb:'FF2B6CB0'}}};
-  });
-
-  // Combinar: pacientes con cita + pacientes sin cita
+  // ═══ CONSTRUIR FILAS ═══
   const filasConCita=citas.sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).map(a=>{
     const p=gP(a.pid)||{};
-    return{p,fecha:a.fecha,tipo:a.tipo,conCita:true};
+    const ords=S.ord.filter(o=>o.aid===a.id);
+    return{p,fecha:a.fecha,tipo:a.tipo,conCita:true,ords};
   });
   const filasSinCita=ptsSinCita.map(p=>{
     const fc=p.created_at?p.created_at.split('T')[0]:TD;
-    return{p,fecha:fc,tipo:'Sin cita',conCita:false};
+    // buscar ordenes por pid sin importar cita
+    const ords=S.ord.filter(o=>o.pid===p.id);
+    return{p,fecha:fc,tipo:'Sin cita',conCita:false,ords};
   });
   const todasFilas=[...filasConCita,...filasSinCita].sort((a,b)=>a.fecha.localeCompare(b.fecha));
 
-  // Datos
+  // ═══ DETECTAR COLUMNAS DINÁMICAS ═══
+  // Fijas: LAB, RX, FICHA OCUPACIONAL
+  // Dinámicas: solo si al menos 1 paciente las tiene
+  const catsDinamicas=[
+    {cat:'ecografia',label:'ECOGRAFÍA'},
+    {cat:'electrocardiograma',label:'EKG'},
+    {cat:'espirometria',label:'ESPIROMETRÍA'},
+    {cat:'audiometria',label:'AUDIOMETRÍA'},
+    {cat:'psico_ocupacional',label:'PSIC. OCUP.'},
+    {cat:'psico_clinica',label:'PSIC. CLÍNICA'},
+    {cat:'atencion_medica',label:'ATENCIÓN MÉDICA'},
+  ];
+  const colsDinamicas=catsDinamicas.filter(cd=>todasFilas.some(f=>f.ords.some(o=>o.cat===cd.cat)));
+
+  // ═══ CREAR LIBRO ═══
+  const wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet('Reporte Facturación');
+
+  // Columnas base + fijas + dinámicas
+  const colsDef=[
+    {header:'N°',key:'n',width:5},
+    {header:'FECHA',key:'fecha',width:12},
+    {header:'NOMBRE COMPLETO',key:'nombre',width:38},
+    {header:'CÉDULA',key:'cedula',width:14},
+    {header:'EMPRESA',key:'empresa',width:30},
+    {header:'TIPO',key:'tipo',width:14},
+    {header:'LABORATORIO',key:'lab',width:40},
+    {header:'RADIOLOGÍA',key:'rx',width:20},
+    {header:'FICHA OCUP.',key:'ficha',width:13},
+    ...colsDinamicas.map(cd=>({header:cd.label,key:cd.cat,width:16}))
+  ];
+  ws.columns=colsDef;
+
+  // ═══ ESTILO ENCABEZADO ═══
+  const hr=ws.getRow(1);
+  hr.height=26;
+  hr.eachCell((c,col)=>{
+    // Colores por sección
+    let color='FF2B6CB0'; // azul base
+    if(col===7)color='FF0F766E'; // lab: verde
+    if(col===8)color='FF7C3AED'; // rx: morado
+    if(col===9)color='FF0369A1'; // ficha: azul oscuro
+    if(col>9)color='FF92400E'; // dinámicas: naranja
+    c.font={name:'Arial',bold:true,size:10,color:{argb:'FFFFFFFF'}};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:color}};
+    c.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    c.border={top:{style:'thin',color:{argb:'FFCBD5E1'}},bottom:{style:'thin',color:{argb:'FFCBD5E1'}},left:{style:'thin',color:{argb:'FFCBD5E1'}},right:{style:'thin',color:{argb:'FFCBD5E1'}}};
+  });
+
+  // ═══ FILAS DE DATOS ═══
   todasFilas.forEach((item,idx)=>{
     const p=item.p;
-    let fnac='';
-    if(p.fecha_nacimiento){const pts=p.fecha_nacimiento.split('-');if(pts.length===3)fnac=pts[2]+'/'+pts[1]+'/'+pts[0];}
-    const row=ws.addRow({
+    const ords=item.ords||[];
+
+    // Lab: todos los exámenes de laboratorio
+    const labOrd=ords.filter(o=>o.cat==='laboratorio');
+    const labTxt=labOrd.length>0?labOrd.map(o=>(o.exams||[]).join(', ')).join(' / '):'-';
+
+    // RX: parte + proyección
+    const rxOrd=ords.filter(o=>o.cat==='radiologia');
+    const rxTxt=rxOrd.length>0?rxOrd.map(o=>`${o.parte||''} ${o.proy||''}`.trim()).join(', '):'-';
+
+    // Ficha ocupacional
+    const fichaOrd=ords.find(o=>o.cat==='ficha_ocupacional'||o.cat==='atencion_medica');
+    // Verificar si tiene ficha registrada en S.fichas
+    const fichaReg=fichaOrd?S.fichas.find(f=>f.pid===p.id&&(f.estado==='finalizado'||f.estado==='completado')):null;
+    const fichaTxt=!fichaOrd?'-':fichaReg?'✓':'✗';
+
+    // Nombre formateado
+    const nombreFmt=(p.nombre||'').replace('||',' ').toUpperCase();
+
+    const rowData={
       n:idx+1,
-      nombre:(p.nombre||'').replace('||',' ').toUpperCase(),
+      fecha:item.fecha,
+      nombre:nombreFmt,
       cedula:p.cedula||'',
-      celular:p.telefono||'',
-      ciudad:(p.ciudad||'').toUpperCase(),
-      fregistro:item.fecha,
-      fnac:fnac,
-      empresa:(p.empresa||'').toUpperCase()
+      empresa:(p.empresa||'').toUpperCase(),
+      tipo:item.tipo||'-',
+      lab:labTxt,
+      rx:rxTxt,
+      ficha:fichaTxt,
+    };
+    // Dinámicas
+    colsDinamicas.forEach(cd=>{
+      const o=ords.find(x=>x.cat===cd.cat);
+      rowData[cd.cat]=o?'✓':'-';
     });
-    const isEven=(idx%2===0);
+
+    const row=ws.addRow(rowData);
+    row.height=18;
+    const isEven=idx%2===0;
+    const bgBase=item.conCita?(isEven?'FFF8FAFC':'FFFFFFFF'):'FFFFF9E6';
+
     row.eachCell({includeEmpty:true},(c,col)=>{
       c.font={name:'Arial',size:10};
-      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:item.conCita?(isEven?'FFF0F4F8':'FFFFFFFF'):'FFFFF9E6'}};
+      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bgBase}};
       c.border={top:{style:'thin',color:{argb:'FFE2E8F0'}},bottom:{style:'thin',color:{argb:'FFE2E8F0'}},left:{style:'thin',color:{argb:'FFE2E8F0'}},right:{style:'thin',color:{argb:'FFE2E8F0'}}};
-      c.alignment={vertical:'middle',horizontal:(col===1||col===3||col===4||col===5||col===6||col===7)?'center':'left'};
+      // Centrar columnas cortas
+      const centradas=[1,2,4,6,9,...colsDinamicas.map((_,i)=>10+i)];
+      c.alignment={vertical:'middle',horizontal:centradas.includes(col)?'center':'left',wrapText:col===7};
+      // Color ✓
+      if(c.value==='✓'){c.font={name:'Arial',size:11,bold:true,color:{argb:'FF16A34A'}};}
+      // Color ✗
+      if(c.value==='✗'){c.font={name:'Arial',size:11,bold:true,color:{argb:'FFDC2626'}};}
+      // Color - 
+      if(c.value==='-'){c.font={name:'Arial',size:10,color:{argb:'FFCBD5E1'}};}
     });
   });
 
-  // Congelar encabezado + filtro
-  ws.views=[{state:'frozen',ySplit:1}];
-  ws.autoFilter={from:'A1',to:`H${todasFilas.length+1}`};
-
-  // Auto-ajustar ancho de NOMBRE (col 2) y EMPRESA (col 8)
-  let maxNombre=8,maxEmpresa=8;
-  ws.eachRow((row,rn)=>{
-    if(rn===1)return;
-    const n=String(row.getCell(2).value||'').length;
-    const e=String(row.getCell(8).value||'').length;
-    if(n>maxNombre)maxNombre=n;
-    if(e>maxEmpresa)maxEmpresa=e;
+  // ═══ FILA TOTAL ═══
+  const filaTot=ws.addRow({n:'',fecha:'',nombre:`TOTAL: ${todasFilas.length} pacientes`,cedula:'',empresa:'',tipo:'',lab:'',rx:'',ficha:''});
+  filaTot.height=20;
+  filaTot.eachCell({includeEmpty:true},c=>{
+    c.font={name:'Arial',bold:true,size:10,color:{argb:'FF1E3A5F'}};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8F0FE'}};
+    c.border={top:{style:'medium',color:{argb:'FF2B6CB0'}},bottom:{style:'thin',color:{argb:'FFE2E8F0'}},left:{style:'thin',color:{argb:'FFE2E8F0'}},right:{style:'thin',color:{argb:'FFE2E8F0'}}};
   });
-  ws.getColumn(2).width=Math.min(maxNombre+3,60);
-  ws.getColumn(8).width=Math.min(maxEmpresa+3,60);
 
-  // Descargar
+  // Congelar encabezado
+  ws.views=[{state:'frozen',ySplit:1}];
+  ws.autoFilter={from:'A1',to:{row:1,col:colsDef.length}};
+
+  // ═══ DESCARGAR ═══
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob);
   const link=document.createElement('a');
-  link.href=url;link.download=`pacientes_${desde}_a_${hasta}.xlsx`;
+  const periodoLabel=periodo==='hoy'?TD:periodo==='semana'?'semana':periodo==='mes'?'mes':`${desde}_${hasta}`;
+  link.href=url;link.download=`reporte_facturacion_${periodoLabel}.xlsx`;
   link.click();URL.revokeObjectURL(url);
-  alert('✅ Descargado: '+citas.length+' pacientes');
+  showToast(`✅ Reporte descargado: ${todasFilas.length} pacientes`,'ok');
 }
 // ═══ GESTIÓN DE DATOS ═══
 async function exportarTabla(tabla){
