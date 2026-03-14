@@ -103,6 +103,7 @@ select.fi{cursor:pointer;appearance:auto}textarea.fi{min-height:60px;resize:vert
 </style>
 </head>
 <body>
+<input type="file" id="input_firma_file" accept="image/*" style="display:none" onchange="procesarFirmaSeleccionada(this)">
 <div id="app"></div>
 <script>
 // ═══════════════════════════════════════════
@@ -176,7 +177,7 @@ const PROY=['AP','Lateral','Oblicua','AP + Lateral','AP + Lat + Oblicua'];
 const allRX=Object.values(RXZ).flat();
 
 // ═══ STATE ═══
-let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],cie10:[],sel:null,q:'',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
+let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],cie10:[],fichas:[],sel:null,q:'',hq:'',ffq:'',medTab:'pendientes',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
 const TD=new Date().toISOString().split('T')[0];
 
 // ═══ HELPERS ═══
@@ -208,24 +209,28 @@ function canAssign(){return isA()||isE();}
 // ═══ LOAD DATA FROM SUPABASE ═══
 async function loadAll(){
   S.loading=true;render();
-  const [usrs,pts,apt,ord,emps,cargos,cie]=await Promise.all([
-    SB.get('usuarios','select=*&order=created_at'),
+  const [usrs,pts,apt,ord,emps,cargos,cie,fichasF]=await Promise.all([
+    SB.get('usuarios','select=id,nombre,cedula,pass,rol,activo,apodo,firma,firma_cfg&order=created_at'),
     SB.get('pacientes','select=*&order=created_at'),
     SB.get('citas','select=*&order=created_at'),
     SB.get('ordenes','select=*&order=created_at'),
     SB.get('empresas','select=*&order=nombre'),
     SB.get('cargos_ciuo','select=*&order=nombre','0-4999'),
     SB.get('cie10','select=*&order=codigo','0-4999'),
+    SB.get('fichas_ocupacionales','select=id,paciente_id,fecha,tipo_eval,aptitud,estado,seccion_a,updated_at&estado=in.(finalizado,completado,guardado)&order=updated_at.desc'),
   ]);
   if(usrs!==null){
     DB_OK=true;
-    S.usrs=usrs.map(u=>({id:u.id,nombre:u.nombre,cedula:u.cedula,pass:u.pass,rol:u.rol,activo:u.activo,apodo:u.apodo||''}));
+    S.usrs=usrs.map(u=>({id:u.id,nombre:u.nombre,cedula:u.cedula,pass:u.pass,rol:u.rol,activo:u.activo,apodo:u.apodo||'',firma:u.firma||'',firma_cfg:u.firma_cfg||{}}));
+    // Si hay usuario logueado, actualizar su firma desde la lista recargada
+    if(S.u){const uu=S.usrs.find(x=>x.id===S.u.id);if(uu){S.u.firma=uu.firma;S.u.firma_cfg=uu.firma_cfg;}}
     S.pts=pts?pts.map(p=>({id:p.id,nombre:p.nombre,cedula:p.cedula,telefono:p.telefono||'',email:p.email||'',genero:p.genero||'',direccion:p.direccion||'',ciudad:p.ciudad||'',empresa:p.empresa,cargo:p.cargo||'',fecha_nacimiento:p.fecha_nacimiento||''})):[];
     S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin'})):[];
     S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado})):[];
     S.empresas_cli=emps?emps.map(e=>({id:e.id,nombre:e.nombre,ruc:e.ruc||'',ciiu:e.ciiu||'',direccion:e.direccion||'',telefono:e.telefono||'',contacto:e.contacto||''})):[];
     S.cargos_ciuo=cargos?cargos.map(c=>({id:c.id,codigo:c.codigo,nombre:c.nombre})):[];
     S.cie10=cie?cie.map(c=>({id:c.id,codigo:c.codigo,descripcion:c.descripcion})):[];
+    S.fichas=fichasF?fichasF.map(f=>({id:f.id,pid:f.paciente_id,fecha:f.fecha,tipo:f.tipo_eval,aptitud:f.aptitud,estado:f.estado,empresa:(f.seccion_a||{}).empresa||'',updated_at:f.updated_at})):[];
     console.log('📦 Cargados:',S.cargos_ciuo.length,'cargos CIUO,',S.cie10.length,'CIE-10');
     // Load recomendaciones personalizadas
     S.recs_custom=[];S.recs_retiro=[];
@@ -243,6 +248,8 @@ async function loadAll(){
       if(c.clave==='dash_cfg'&&v&&Object.keys(v).length>0)localStorage.setItem('mediagenda_dash_cfg',JSON.stringify(v));
     });}
     console.log('✅ Datos cargados desde Supabase');
+    // Sincronizar pacientes guardados offline
+    setTimeout(syncOfflineQ, 1500);
   }else{
     DB_OK=false;
     console.warn('⚠️ No se pudo conectar a Supabase, usando modo local');
@@ -259,17 +266,70 @@ function login(){
   const u=S.usrs.find(u=>u.cedula===c&&u.pass===p);
   if(!u){alert('❌ Credenciales incorrectas');return;}
   if(!u.activo){alert('⚠️ Usuario desactivado. Contacta al administrador.');return;}
-  S.u=u;S.v=(isA()||isE())?'dash':isL()?'lord':isR()?'rxord':isM()?'medord':isPsi()?'psiord':'dash';render();
+  S.u=u;S.v=(isA()||isE())?'dash':isL()?'lord':isR()?'rxord':isM()?'medord':isPsi()?'psiord':'dash';
+  // Cargar firma desde Supabase ANTES de render
+  if(DB_OK&&u.id){
+    SB.get('usuarios',`select=firma,firma_cfg&id=eq.${u.id}`).then(r=>{
+      if(r&&r[0]){
+        if(r[0].firma)S.u.firma=r[0].firma;
+        if(r[0].firma_cfg&&Object.keys(r[0].firma_cfg).length)S.u.firma_cfg=r[0].firma_cfg;
+      }
+      render();
+    }).catch(()=>render());
+  } else {
+    render();
+  }
 }
 function logout(){S.u=null;S.v='login';render();}
 
 // ═══ CRUD (Supabase + local state) ═══
+// ═══ OFFLINE QUEUE ═══
+function getOfflineQ(){try{return JSON.parse(localStorage.getItem('vw_offline_pts')||'[]');}catch{return[];}}
+function saveOfflineQ(q){localStorage.setItem('vw_offline_pts',JSON.stringify(q));}
+function addToOfflineQ(d){const q=getOfflineQ();q.push({...d,_ts:Date.now()});saveOfflineQ(q);console.warn('📴 Paciente guardado offline:',d.nombre);}
+async function syncOfflineQ(){
+  if(!DB_OK)return;
+  const q=getOfflineQ();if(!q.length)return;
+  console.log(`🔄 Sincronizando ${q.length} paciente(s) offline...`);
+  const ok=[];
+  for(const d of q){
+    try{
+      const existe=S.pts.find(p=>p.cedula&&p.cedula===d.cedula);
+      if(existe){ok.push(d);continue;}
+      const r=await SB.post('pacientes',{nombre:d.nombre,cedula:d.cedula||'',telefono:d.telefono||'',email:d.email||'',genero:d.genero||'',direccion:d.direccion||'',ciudad:d.ciudad||'',empresa:d.empresa,cargo:d.cargo||'',fecha_nacimiento:d.fecha_nacimiento||''});
+      if(r&&r[0]){d.id=r[0].id;if(!S.pts.find(p=>p.id===d.id))S.pts.push(d);ok.push(d);}
+    }catch(e){console.error('Error sync:',e);}
+  }
+  if(ok.length){saveOfflineQ(q.filter(x=>!ok.find(o=>o._ts===x._ts)));render();showToast(`✅ ${ok.length} paciente(s) sincronizado(s) con la base de datos`,'ok');}
+}
+// Intentar sincronizar cuando vuelve la conexión
+window.addEventListener('online',()=>{setTimeout(syncOfflineQ,2000);});
+
+function showToast(msg,tipo='ok'){
+  const old=document.getElementById('_toast');if(old)old.remove();
+  const t=document.createElement('div');t.id='_toast';
+  t.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);transition:opacity .4s;white-space:nowrap;`;
+  if(tipo==='ok'){t.style.background='#16a34a';t.style.color='#fff';}
+  else if(tipo==='err'){t.style.background='#dc2626';t.style.color='#fff';}
+  else{t.style.background='#f59e0b';t.style.color='#fff';}
+  t.textContent=msg;document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400);},4000);
+}
+
 async function addP(d){
   if(DB_OK){
-    const r=await SB.post('pacientes',{nombre:d.nombre,cedula:d.cedula||'',telefono:d.telefono||'',email:d.email||'',genero:d.genero||'',direccion:d.direccion||'',ciudad:d.ciudad||'',empresa:d.empresa,cargo:d.cargo||'',fecha_nacimiento:d.fecha_nacimiento||''});
-    if(r&&r[0]){d.id=r[0].id;S.pts.push(d);render();return;}
+    try{
+      const r=await SB.post('pacientes',{nombre:d.nombre,cedula:d.cedula||'',telefono:d.telefono||'',email:d.email||'',genero:d.genero||'',direccion:d.direccion||'',ciudad:d.ciudad||'',empresa:d.empresa,cargo:d.cargo||'',fecha_nacimiento:d.fecha_nacimiento||''});
+      if(r&&r[0]){d.id=r[0].id;S.pts.push(d);render();showToast('✅ Paciente registrado correctamente','ok');return;}
+      else{addToOfflineQ(d);d.id=gid();S.pts.push(d);render();showToast('⚠️ Sin respuesta del servidor — guardado localmente','warn');}
+    }catch(e){
+      addToOfflineQ(d);d.id=gid();S.pts.push(d);render();
+      showToast('📴 Sin internet — guardado localmente, se sincronizará al reconectarse','warn');
+    }
+  }else{
+    addToOfflineQ(d);d.id=gid();S.pts.push(d);render();
+    showToast('📴 Sin conexión — guardado localmente, se sincronizará al reconectarse','warn');
   }
-  d.id=gid();S.pts.push(d);render();
 }
 async function updP(d){
   const i=S.pts.findIndex(p=>p.id===d.id);if(i>-1)S.pts[i]={...S.pts[i],...d};
@@ -489,11 +549,20 @@ function closeModal(){const m=document.getElementById('_modal');if(m)m.remove();
 // ═══ PATIENT MODAL ═══
 function pmMod(p){
   const d=p||{};
-  const nombres=d.nombre?d.nombre.split('||')[0]||d.nombre:'';
-  const apellidos=d.nombre?d.nombre.split('||')[1]||'':'';
+  // Separar nombre en 4 partes: "AP1 AP2 || N1 N2"
+  const _partes=(d.nombre||'').split('||');
+  const _aps=(_partes[0]||'').trim().split(' ');
+  const _nms=(_partes[1]||'').trim().split(' ');
+  const _ap1=_aps[0]||''; const _ap2=_aps.slice(1).join(' ')||'';
+  const _n1=_nms[0]||'';  const _n2=_nms.slice(1).join(' ')||'';
   openModal(`<div class="mhd"><h3>${p?'Editar':'Nuevo'} Paciente</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
   <div class="mbd">
-    <div class="fr"><div class="fg"><label>Nombres *</label><input class="fi" id="mn_nombres" value="${nombres}" placeholder="Ej: Jorge Leonardo" style="text-transform:uppercase"></div><div class="fg"><label>Apellidos *</label><input class="fi" id="mn_apellidos" value="${apellidos}" placeholder="Ej: Arias Espinoza" style="text-transform:uppercase"></div></div>
+    <div class="fr">
+      <div class="fg"><label>Primer Apellido <b style="color:red">*</b></label><input class="fi" id="mn_ap1" value="${_ap1}" placeholder="Ej: ARIAS" style="text-transform:uppercase" required></div>
+      <div class="fg"><label>Segundo Apellido <b style="color:red">*</b></label><input class="fi" id="mn_ap2" value="${_ap2}" placeholder="Ej: ESPINOZA" style="text-transform:uppercase" required></div>
+      <div class="fg"><label>Primer Nombre <b style="color:red">*</b></label><input class="fi" id="mn_n1" value="${_n1}" placeholder="Ej: JORGE" style="text-transform:uppercase" required></div>
+      <div class="fg"><label>Segundo Nombre</label><input class="fi" id="mn_n2" value="${_n2}" placeholder="Ej: LEONARDO" style="text-transform:uppercase"></div>
+    </div>
     <div class="fr"><div class="fg"><label>Cédula</label><input class="fi" id="mc" value="${d.cedula||''}"></div><div class="fg"><label>Género</label><select class="fi" id="mg"><option value="">—</option><option ${d.genero==='Masculino'?'selected':''}>Masculino</option><option ${d.genero==='Femenino'?'selected':''}>Femenino</option></select></div></div>
     <div class="fr"><div class="fg"><label>Teléfono</label><input class="fi" id="mt" value="${d.telefono||''}"></div><div class="fg"><label>Email</label><input class="fi" id="me" value="${d.email||''}"></div></div>
     <div class="fr"><div class="fg"><label>Dirección</label><input class="fi" id="md" value="${d.direccion||''}"></div><div class="fg"><label>Ciudad</label><input class="fi" id="mci" value="${d.ciudad||''}"></div></div>
@@ -502,10 +571,16 @@ function pmMod(p){
   </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svP('${d.id||''}')">${p?'Guardar':'Registrar'}</button></div>`);
 }
 function svP(eid){
-  const nombres=(document.getElementById('mn_nombres').value||'').trim().toUpperCase();
-  const apellidos=(document.getElementById('mn_apellidos').value||'').trim().toUpperCase();
-  const d={nombre:nombres+'||'+apellidos,cedula:document.getElementById('mc').value,genero:document.getElementById('mg').value,telefono:document.getElementById('mt').value,email:document.getElementById('me').value,direccion:document.getElementById('md').value,ciudad:document.getElementById('mci').value,empresa:document.getElementById('mem').value,cargo:document.getElementById('mcg').value,fecha_nacimiento:document.getElementById('mfn').value};
-  if(!nombres||!apellidos||!d.empresa){alert('Nombres, Apellidos y Empresa obligatorios');return;}
+  const ap1=(document.getElementById('mn_ap1').value||'').trim().toUpperCase();
+  const ap2=(document.getElementById('mn_ap2').value||'').trim().toUpperCase();
+  const n1=(document.getElementById('mn_n1').value||'').trim().toUpperCase();
+  const n2=(document.getElementById('mn_n2').value||'').trim().toUpperCase();
+  if(!ap1||!ap2||!n1){alert('⚠️ Primer Apellido, Segundo Apellido y Primer Nombre son obligatorios');return;}
+  // Guardar como "AP1 AP2 || N1 N2" para compatibilidad
+  const apellidos=ap2?ap1+' '+ap2:ap1;
+  const nombres=n2?n1+' '+n2:n1;
+  const d={nombre:apellidos+'||'+nombres,cedula:document.getElementById('mc').value,genero:document.getElementById('mg').value,telefono:document.getElementById('mt').value,email:document.getElementById('me').value,direccion:document.getElementById('md').value,ciudad:document.getElementById('mci').value,empresa:document.getElementById('mem').value,cargo:document.getElementById('mcg').value,fecha_nacimiento:document.getElementById('mfn').value};
+  if(!d.empresa){alert('⚠️ La Empresa es obligatoria');return;}
   closeModal();if(eid){d.id=eid;updP(d);}else addP(d);
 }
 
@@ -724,6 +799,32 @@ function render(){
   const newMain=document.querySelector('.main');
   if(newSide)newSide.scrollTop=sideScroll;
   if(newMain)newMain.scrollTop=mainScroll;
+  // Bloquear campos si soloLectura
+  if(FO.soloLectura && S.v==='ficha'){
+    setTimeout(()=>{
+      const body=document.getElementById('ficha_sec_body');
+      if(!body)return;
+      body.querySelectorAll('input,select,textarea').forEach(el=>{
+        el.disabled=true;
+        el.style.background='#f0f0f0';
+        el.style.color='#555';
+        el.style.cursor='not-allowed';
+        el.style.pointerEvents='none';
+      });
+      // Bloquear todos los botones EXCEPTO los de impresión
+      const printFns=['generarPDFOficial','generarConsentimiento','generarConfidencialidad'];
+      body.querySelectorAll('button').forEach(el=>{
+        const fn=el.getAttribute('onclick')||'';
+        const esPrint=printFns.some(p=>fn.includes(p));
+        if(!esPrint){
+          el.disabled=true;
+          el.style.opacity='0.35';
+          el.style.cursor='not-allowed';
+          el.style.pointerEvents='none';
+        }
+      });
+    },200);
+  }
 }
 
 function rLogin(a){
@@ -765,11 +866,7 @@ function rSide(){
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
-    <div class="ni" onclick="document.getElementById('csub1').style.display=document.getElementById('csub1').style.display==='none'?'block':'none'" style="cursor:pointer">📂 Códigos de Salud <span style="font-size:9px;opacity:.6">▼</span></div>
-    <div id="csub1" style="display:${['cargos','cie10'].includes(S.v)?'block':'none'}">
-      <div class="ni ${S.v==='cargos'?'on':''}" onclick="nav('cargos')" style="padding-left:28px;font-size:12px">💼 Cargos CIUO</div>
-      <div class="ni ${S.v==='cie10'?'on':''}" onclick="nav('cie10')" style="padding-left:28px;font-size:12px">🏥 Diagnósticos CIE-10</div>
-    </div>
+
     <div class="ni ${S.v==='umg'?'on':''}" onclick="nav('umg')">${ic('up')} Usuarios</div>
     <div class="ni ${S.v==='aord'?'on':''}" onclick="nav('aord')">${ic('clp')} Todas las Órdenes ${pO?`<span class="nbg">${pO}</span>`:''}</div>
     <div class="ni ${S.v==='bkp'?'on':''}" onclick="nav('bkp')">${ic('stg')} Configuración</div>
@@ -1166,6 +1263,26 @@ function rEmpCli(){
 }
 
 // ═══ CARGOS CIUO (vista sidebar) ═══
+function rCargosInline(){
+  const cargos=S.cargos_ciuo||[];
+  const cargoRows=cargos.map(c=>`<tr><td style="font-size:11px">${c.codigo||''}</td><td style="font-size:11px">${c.nombre||''}</td><td><button class="btn bsm bd" onclick="delCargo('${c.id}')">🗑️</button></td></tr>`).join('');
+  return`<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+    <input class="fi" id="cfg_cargo_cod" placeholder="Código CIUO" style="width:100px;padding:6px">
+    <input class="fi" id="cfg_cargo_nom" placeholder="Nombre del cargo" style="flex:1;min-width:150px;padding:6px">
+    <button class="btn bp" onclick="addCargo()">➕ Agregar</button>
+  </div>
+  <div class="tw"><table><thead><tr><th>Código</th><th>Nombre</th><th></th></tr></thead><tbody>${cargoRows||'<tr><td colspan=3 style="text-align:center;color:var(--tm)">Sin cargos registrados</td></tr>'}</tbody></table></div>`;
+}
+function rCie10Inline(){
+  const cie=S.cie10||[];
+  const cieRows=cie.map(c=>`<tr><td style="font-size:11px">${c.codigo||''}</td><td style="font-size:11px">${c.nombre||''}</td><td><button class="btn bsm bd" onclick="delCie10('${c.id}')">🗑️</button></td></tr>`).join('');
+  return`<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+    <input class="fi" id="cfg_cie_cod" placeholder="Código CIE-10 (Ej: J45)" style="width:120px;padding:6px">
+    <input class="fi" id="cfg_cie_nom" placeholder="Nombre del diagnóstico" style="flex:1;min-width:150px;padding:6px">
+    <button class="btn bp" onclick="addCie10()">➕ Agregar</button>
+  </div>
+  <div class="tw"><table><thead><tr><th>Código</th><th>Diagnóstico</th><th></th></tr></thead><tbody>${cieRows||'<tr><td colspan=3 style="text-align:center;color:var(--tm)">Sin diagnósticos registrados</td></tr>'}</tbody></table></div>`;
+}
 function rCargos(){
   const cargos=S.cargos_ciuo||[];
   return`<div class="ph"><div><h2>💼 Cargos CIUO</h2><p class="ph-s">${cargos.length} cargo${cargos.length!==1?'s':''} registrado${cargos.length!==1?'s':''}</p></div>
@@ -1333,16 +1450,31 @@ function rPsiO(){
 
 // ═══ MEDICO ORDERS (ficha, espirometría, audiometría, atención médica) ═══
 function rMedO(){
+  const medTab=S.medTab||'pendientes';
   const medCats=['ficha_ocupacional','espirometria','audiometria','atencion_medica'];
-  const o=S.ord.filter(x=>medCats.includes(x.cat)).sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1));
+  // Solo órdenes NO completadas para pestaña pendientes
+  const o=S.ord.filter(x=>medCats.includes(x.cat)&&x.estado!=='completado').sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1));
   const pend=o.filter(x=>x.estado==='pendiente').length;
   const fichas=o.filter(x=>x.cat==='ficha_ocupacional');
   const espiros=o.filter(x=>x.cat==='espirometria');
   const audios=o.filter(x=>x.cat==='audiometria');
   const atenciones=o.filter(x=>x.cat==='atencion_medica');
 
-  return`<div class="ph"><div><h2>🩺 Órdenes del Médico</h2><p class="ph-s">${pend} pendientes de ${o.length} total</p></div></div>
+  // Fichas finalizadas desde S.fichas (empresa real de la ficha)
+  const fichasFinalizadas=S.fichas||[];
+  const ffq=(S.ffq||'').toLowerCase().trim();
+  const listaFF=ffq
+    ?fichasFinalizadas.filter(f=>{const p=gP(f.pid);return(p?.nombre||'').toLowerCase().includes(ffq)||(f.empresa||'').toLowerCase().includes(ffq);})
+    :fichasFinalizadas;
 
+  return`<div class="ph"><div><h2>🩺 Órdenes del Médico</h2><p class="ph-s">${medTab==='pendientes'?pend+' pendientes':fichasFinalizadas.length+' fichas finalizadas'}</p></div></div>
+
+  <div class="cvtabs" style="margin-bottom:14px">
+    <button class="cvt ${medTab==='pendientes'?'on':''}" onclick="S.medTab='pendientes';render()">🩺 Órdenes Pendientes <span style="background:${medTab==='pendientes'?'rgba(255,255,255,.3)':'var(--bd)'};border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px">${pend}</span></button>
+    <button class="cvt ${medTab==='finalizadas'?'on':''}" onclick="S.medTab='finalizadas';S.ffq='';render()">🔒 Fichas Finalizadas <span style="background:${medTab==='finalizadas'?'rgba(255,255,255,.3)':'var(--bd)'};border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px">${fichasFinalizadas.length}</span></button>
+  </div>
+
+  ${medTab==='pendientes'?`
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
     <div class="cd" style="margin:0"><div class="cdb" style="text-align:center;padding:14px">
       <div style="font-size:24px">📋</div><div style="font-size:20px;font-weight:700;color:var(--p)">${fichas.filter(x=>x.estado==='pendiente').length}</div><div style="font-size:10px;color:var(--tm)">Fichas pendientes</div>
@@ -1357,16 +1489,42 @@ function rMedO(){
       <div style="font-size:24px">🩺</div><div style="font-size:20px;font-weight:700;color:var(--a)">${atenciones.filter(x=>x.estado==='pendiente').length}</div><div style="font-size:10px;color:var(--tm)">Atenciones pend.</div>
     </div></div>
   </div>
-
-  <div class="cd">${o.length===0?'<div class="es"><h4>Sin órdenes médicas</h4></div>':`<div class="tw"><table><thead><tr><th>Tipo</th><th>Paciente</th><th>Empresa</th><th>Estado</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
+  <div class="cd">${o.length===0?'<div class="es"><h4>Sin órdenes pendientes</h4></div>':`<div class="tw"><table><thead><tr><th>Tipo</th><th>Paciente</th><th>Empresa</th><th>Estado</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
   ${o.map(x=>{const p=gP(x.pid);return`<tr>
   <td>${cI[x.cat]||'📋'} <span style="font-size:10px;font-weight:600">${x.cat==='ficha_ocupacional'?'Ficha Ocup.':x.cat==='espirometria'?'Espirometría':x.cat==='audiometria'?'Audiometría':'Atención Médica'}</span></td>
   <td style="font-weight:500">${p?.nombre||'—'}</td>
   <td style="font-size:11px">${p?.empresa||''}</td>
   <td><span class="ba ${EB[x.estado]}">${EL[x.estado]}</span></td>
   <td style="text-align:center;white-space:nowrap">
-    ${(x.cat==='atencion_medica'||x.cat==='ficha_ocupacional')?`<button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="openFicha('${x.pid}','${x.aid}')">📋 Ficha</button><button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="FO.pid='${x.pid}';verHistorialFichas()">📂 Historial</button><button class="btn bsm" style="background:#38a169;color:#fff;font-size:9px" onclick="FO.pid='${x.pid}';nuevaAtencion()">➕ Nueva Ficha</button>`:''} 
-    ${x.estado!=='completado'?`<button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`}</div>`
+    ${(x.cat==='atencion_medica'||x.cat==='ficha_ocupacional')&&(isM()||isA())?`<button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="abrirFichaInteligente('${x.pid}','${x.aid}')">📋 Ficha</button>`:''} 
+    ${x.estado!=='completado'?`<button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button>`:''}</td></tr>`;}).join('')}</tbody></table></div>`}</div>
+  `:`
+  <div class="cd">
+    <div class="cdh"><h3>🔒 Pacientes Atendidos</h3></div>
+    <div class="cdb">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div class="sb" style="flex:1"><input class="fi" placeholder="🔍 Buscar por nombre o empresa..." value="${S.ffq||''}" oninput="S.ffq=this.value;render()" style="padding-left:10px"></div>
+        ${S.ffq?`<button class="btn bg" onclick="S.ffq='';render()">✕</button>`:''}
+      </div>
+      ${listaFF.length===0
+        ?`<div class="es"><h4>${ffq?'Sin resultados para "'+ffq+'"':'Sin fichas finalizadas aún'}</h4></div>`
+        :`<div class="tw"><table><thead><tr><th>Paciente</th><th>Empresa</th><th style="text-align:center">Acciones</th></tr></thead><tbody>
+        ${listaFF.map(f=>{const p=gP(f.pid);const empNombre=f.empresa||(p?.empresa||'—');return`<tr>
+          <td style="font-weight:600">${p?.nombre||'—'}</td>
+          <td style="font-size:12px">${empNombre}</td>
+          <td style="text-align:center;white-space:nowrap;display:flex;gap:3px;flex-wrap:wrap;justify-content:center">
+            <button class="btn bsm" style="background:#2b6cb0;color:#fff;font-size:9px" onclick="verFichaFinalizada('${f.id}')">👁️ Ver</button>
+            ${S.u?.rol==='medico'||S.u?.rol==='administrador'?`<button class="btn bsm" style="background:#ed8936;color:#fff;font-size:9px" onclick="editarFichaFinalizada('${f.id}','${f.pid}')">✏️ Editar</button>`:''}
+
+            <button class="btn bsm" style="background:#718096;color:#fff;font-size:9px" onclick="FO.pid='${f.pid}';verHistorialFichas()">📂 Historial</button>
+          </td>
+        </tr>`;}).join('')}
+        </tbody></table></div>`
+      }
+    </div>
+  </div>
+  `}
+`
 }
 
 // ═══ ALL ORDERS (admin/enfermería) ═══
@@ -1530,7 +1688,7 @@ render=_patchedRender;
 // ═══ MEDICAL APPOINTMENT CONFIG ═══
 function getMedCfg(){
   try{const v=localStorage.getItem('mediagenda_med_cfg');if(v)return JSON.parse(v);}catch(e){}
-  return {inicio_h:10,inicio_m:0,fin_h:17,fin_m:0,intervalo:20};
+  return {inicio_h:7,inicio_m:0,fin_h:17,fin_m:0,intervalo:5};
 }
 async function saveMedCfg(){
   const ih=+document.getElementById('cfg_med_ih').value;
@@ -1729,7 +1887,8 @@ function rBkp(){
     <button class="cvt ${t==='gsheet'?'on':''}" onclick="S.cfgTab='gsheet';render()">📊 Google Sheet</button>
     <button class="cvt ${t==='links'?'on':''}" onclick="S.cfgTab='links';render()">🔗 Links</button>
     <button class="cvt ${t==='respaldos'?'on':''}" onclick="S.cfgTab='respaldos';render()">💾 Respaldos</button>
-    <button class="cvt ${t==='gestion'?'on':''}" onclick="S.cfgTab='gestion';render()">🗑️ Gestión Datos</button>
+    <button class="cvt ${t==='gestion'?'on':''}" onclick="S.cfgTab='gestion';render()'">🗑️ Gestión Datos</button>
+    <button class="cvt ${t==='codigos_salud'?'on':''}" onclick="S.cfgTab='codigos_salud';render()">🏥 Códigos de Salud</button>
   </div>`;
 
   let body='';
@@ -1989,9 +2148,24 @@ function rBkp(){
       <div style="margin-top:16px;padding:14px;background:var(--ci);border:1px solid var(--bd);border-radius:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div style="font-size:22px">🧹</div>
         <div style="flex:1;min-width:120px"><div style="font-weight:600;font-size:14px">Limpiar pacientes sin citas</div><div style="font-size:11px;color:var(--tm)">Elimina pacientes que no tienen ninguna cita</div></div>
-        <button class="btn bsm bd" style="font-size:11px" onclick="eliminarPacientesSinCitas()">🗑️ Limpiar</button>
       </div>
     </div></div>`;
+    if(t==='codigos_salud'){
+    body=`
+    <div class="cd" style="margin-bottom:12px">
+      <div class="cdh"><h3>💼 Cargos / Puestos CIUO</h3></div>
+      <div class="cdb" style="padding:8px">
+        ${rCargosInline()}
+      </div>
+    </div>
+    <div class="cd">
+      <div class="cdh"><h3>🏥 Diagnósticos CIE-10</h3></div>
+      <div class="cdb" style="padding:8px">
+        ${rCie10Inline()}
+      </div>
+    </div>`;
+  }
+
   }
 
   return`<div class="ph"><div><h2>${ic('stg',20)} Configuración</h2><p class="ph-s">${DB_OK?'🟢 Supabase conectado':'🟡 Modo local'}</p></div></div>${tabs}${body}`;
@@ -2143,7 +2317,7 @@ function printCertApt(){
     .logo-c{text-align:center;margin-bottom:2px}
     .logo-c img{max-height:55px;object-fit:contain}
     .legal{border:none;padding:6px;font-size:7pt;line-height:1.5;font-style:italic}
-  </style></head><body onload="window.print()">
+  </style></head><body onload="window.print()" style="position:relative">
 
   ${ec.logo?`<div class="logo-c"><img src="${ec.logo}"></div>`:''}
   <table>
@@ -2227,7 +2401,7 @@ function printCertApt(){
       <td style="font-size:7pt;vertical-align:middle">CÓDIGO MÉDICO</td>
       <td class="val">${v('ca_codmed')}</td>
       <td colspan="3" style="vertical-align:middle;font-size:7pt">FIRMA Y SELLO</td>
-      <td colspan="3" style="height:60px"></td>
+      <td colspan="3" style="height:60px;text-align:center;vertical-align:middle">${getFirmaOverlayHtml('cert')}</td>
     </tr>
   </table>
   </body></html>`;
@@ -2241,16 +2415,44 @@ function printCertApt(){
 let FO={pid:null,fid:null,sec:'A',data:{}};
 
 function openFicha(pid,aid){
-  FO.pid=pid;FO.sec='A';FO.data={};FO.fid=null;
+  abrirFichaInteligente(pid,aid);
+}
+
+// Abre ficha prellenada con último historial si existe, si no en blanco
+async function abrirFichaInteligente(pid,aid){
+  FO.pid=pid;FO.sec='A';FO.data={};FO.fid=null;FO.soloLectura=false;
   const p=gP(pid);if(!p)return;
-  // Buscar ficha existente del paciente
   if(DB_OK){
-    SB.get('fichas_ocupacionales',`select=*&paciente_id=eq.${pid}&order=created_at.desc&limit=1`).then(r=>{
-      if(r&&r[0]){FO.fid=r[0].id;FO.data={a:r[0].seccion_a||{},b:r[0].seccion_b||{},c:r[0].seccion_c||{},d:r[0].seccion_d||{},e:r[0].seccion_e||{},f:r[0].seccion_f||{},g:r[0].seccion_g||{},h:r[0].seccion_h||{},i:r[0].seccion_i||{},j:r[0].seccion_j||{},k:r[0].seccion_k||{},l:r[0].seccion_l||{},m:r[0].seccion_m||{},n:r[0].seccion_n||{},r:r[0].seccion_r||{}};}
-      else{preloadFichaData(p);}
-      S.v='ficha';render();
-    });
-  }else{preloadFichaData(p);S.v='ficha';render();}
+    const r=await SB.get('fichas_ocupacionales',`select=*&paciente_id=eq.${pid}&order=created_at.desc&limit=1`);
+    if(r&&r[0]){
+      // Tiene historial: precargar datos de la última ficha pero crear una NUEVA (fid=null)
+      const uf=r[0];
+      FO.fid=null; // nueva ficha
+      FO.data={
+        a:{...uf.seccion_a||{}},
+        b:{...(uf.seccion_b||{}),fecha_atencion:TD,tipo_eval:(uf.seccion_b||{}).tipo_eval||'INGRESO'},
+        c:{...uf.seccion_c||{}},
+        d:{descripcion:''},
+        e:{temp:'36.5',pa_s:'120',pa_d:'80',fc:'70',fr:'16',sat:'98',peso:(uf.seccion_e||{}).peso||'',talla:(uf.seccion_e||{}).talla||'',imc:(uf.seccion_e||{}).imc||'',clasif_imc:(uf.seccion_e||{}).clasif_imc||'',perim_abd:(uf.seccion_e||{}).perim_abd||''},
+        f:{hallazgos:{},observaciones:''},
+        g:{...uf.seccion_g||{}},
+        h:{...uf.seccion_h||{}},
+        i:{actividades:[]},
+        j:{categorias:[],observaciones:''},
+        k:{diagnosticos:[]},
+        l:{aptitud:'',observaciones:''},
+        m:{estandar:[],medicas:''},
+        n:{...uf.seccion_n||{}},
+        r:{...uf.seccion_r||{}}
+      };
+    }else{
+      // Sin historial: ficha en blanco con datos básicos
+      preloadFichaData(p);
+    }
+  }else{
+    preloadFichaData(p);
+  }
+  S.v='ficha';render();
 }
 
 function preloadFichaData(p){
@@ -2326,8 +2528,9 @@ function rFichaOcup(){
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn bsm" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="nav('medord')">← Volver</button>
+      ${FO.soloLectura?`<span style="background:#e53e3e;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700">🔒 SOLO LECTURA</span>`:`
       <button class="btn bsm" style="background:#ed8936;color:#fff" onclick="verHistorialFichas()">📂 Historial</button>
-      <button class="btn bsm" style="background:#48bb78;color:#fff" onclick="saveFicha()">✓ Guardar</button>
+      <button class="btn bsm" style="background:#48bb78;color:#fff" onclick="saveFicha()">✓ Guardar</button>`}
     </div>
   </div>
 
@@ -3083,25 +3286,695 @@ function fichaSecN(n){
   <div class="fg" style="align-self:flex-end"><button class="btn bsm" onclick="guardarMedico()" style="font-size:11px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0;white-space:nowrap">💾 Guardar médico</button></div></div>
   ${medicos.length?`<div style="margin-top:6px"><button class="btn bsm" onclick="if(confirm('¿Eliminar todos los médicos guardados?')){localStorage.removeItem('vw_medicos_list');render()}" style="font-size:10px;color:#e53e3e;background:none;border:none;cursor:pointer">🗑 Limpiar lista de médicos</button></div>`:''}
   <p style="font-size:11px;color:var(--tm);margin:10px 0;background:var(--bg);padding:8px;border-radius:6px">ℹ️ Haz clic en "💾 Guardar médico" para agregar un profesional a la lista. El seleccionado se mantiene hasta que elijas otro.</p>
-  <div style="display:flex;gap:8px;margin-top:16px">
+  <div style="margin-top:12px;padding:12px;border:1px dashed var(--bd);border-radius:8px;background:var(--bg)">
+    <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--tx)">🖊️ Firma y Sello del Profesional</div>
+    ${(()=>{const firma=getFirmaActual();return firma?`
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <img src="${firma}" style="max-height:70px;max-width:200px;border:1px solid var(--bd);border-radius:6px;background:#fff;padding:4px;object-fit:contain">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:10px;color:var(--ok);font-weight:600">✅ Firma guardada</span>
+          <button class="btn bsm" onclick="subirFirma()" style="font-size:11px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0">🔄 Cambiar firma</button>
+          <button class="btn bsm" onclick="eliminarFirma()" style="font-size:10px;color:#e53e3e;background:none;border:1px solid #e53e3e">🗑 Eliminar</button>
+        </div>
+      </div>`:`
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:160px;height:60px;border:2px dashed #cbd5e0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#a0aec0;background:#f7fafc">Sin firma cargada</div>
+        <button class="btn bsm" onclick="subirFirma()" style="font-size:11px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0">📁 Subir firma/sello</button>
+      </div>`;})()}
+    <p style="font-size:10px;color:var(--tm);margin-top:6px">Sube una imagen PNG/JPG de tu firma y sello.</p>
+    <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;font-size:11px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;min-width:160px">
+          <input type="checkbox" id="firma_cert" ${getFirmaCfg().cert!==false?'checked':''} onchange="saveFirmaCfg()">
+          📄 Certificado
+        </label>
+        <button class="btn bsm" onclick="abrirConfigFirma('cert')" style="font-size:10px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0">📐 Posición</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;min-width:160px">
+          <input type="checkbox" id="firma_ficha" ${getFirmaCfg().ficha!==false?'checked':''} onchange="saveFirmaCfg()">
+          📋 Ficha Ocupacional
+        </label>
+        <button class="btn bsm" onclick="abrirConfigFirma('ficha')" style="font-size:10px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0">📐 Posición</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;min-width:160px">
+          <input type="checkbox" id="firma_conf" ${getFirmaCfg().conf!==false?'checked':''} onchange="saveFirmaCfg()">
+          🔒 Confidencialidad
+        </label>
+        <button class="btn bsm" onclick="abrirConfigFirma('conf')" style="font-size:10px;background:#ebf4ff;color:#2b6cb0;border:1px solid #2b6cb0">📐 Posición</button>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
     <button class="btn" style="background:#7c3aed;color:#fff" onclick="generarPDFOficial('certificado')">📄 Certificado</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="generarPDFOficial('formulario')">📋 Formulario PDF</button>
     <button class="btn" style="background:#38a169;color:#fff" onclick="generarConsentimiento()">✅ Consentimiento</button>
     <button class="btn" style="background:#718096;color:#fff" onclick="generarConfidencialidad()">🔒 Confidencialidad</button>
-  </div>`;
+    <button class="btn" style="background:#e53e3e;color:#fff;font-size:10px" onclick="debugFirma()">🔍 Debug Firma</button>
+  </div>
+  ${!FO.soloLectura?`
+  <div style="margin-top:28px;padding-top:20px;border-top:2px dashed #e53e3e">
+    <button class="btn" style="width:100%;background:#c53030;color:#fff;font-weight:700;font-size:15px;padding:14px;border-radius:10px;letter-spacing:.5px" onclick="finalizarFicha()">🔒 FINALIZAR Y CERRAR FICHA</button>
+    <p style="font-size:10px;color:#c53030;text-align:center;margin-top:6px;opacity:.8">Una vez finalizada, la ficha quedará bloqueada y aparecerá en Fichas Finalizadas</p>
+  </div>`:''}
+  `;
 }
 
+
+
+// ══ FICHAS FINALIZADAS: Ver, Editar, Descargar ══
+async function verFichaFinalizada(fichaId){
+  const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
+  if(!r||!r[0]){alert('No se encontró la ficha');return;}
+  const f=r[0];
+  FO.fid=f.id; FO.pid=f.paciente_id; FO.soloLectura=true;
+  FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
+  FO.sec='A';
+  S.v='ficha'; render();
+}
+async function editarFichaFinalizada(fichaId,pid){
+  const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
+  if(!r||!r[0]){alert('No se encontró la ficha');return;}
+  const f=r[0];
+  FO.fid=f.id; FO.pid=pid; FO.soloLectura=false;
+  FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
+  FO.sec='A';
+  S.v='ficha'; render();
+}
+async function descargarFichaFinalizada(fichaId){
+  // Abrir ficha en soloLectura directo en Sección N para imprimir
+  const r=await SB.get('fichas_ocupacionales',`select=*&id=eq.${fichaId}`);
+  if(!r||!r[0]){alert('No se encontró la ficha');return;}
+  const f=r[0];
+  FO.fid=f.id; FO.pid=f.paciente_id; FO.soloLectura=true;
+  FO.data={a:f.seccion_a||{},b:f.seccion_b||{},c:f.seccion_c||{},d:f.seccion_d||{},e:f.seccion_e||{},f:f.seccion_f||{},g:f.seccion_g||{},h:f.seccion_h||{},i:f.seccion_i||{},j:f.seccion_j||{},k:f.seccion_k||{},l:f.seccion_l||{},m:f.seccion_m||{},n:f.seccion_n||{},r:f.seccion_r||{}};
+  FO.sec='N'; // Abrir directo en sección N con botones de impresión
+  S.v='ficha'; render();
+}
+
+function printCertificadoYFicha(){
+  const d=FO.data,a=d.a||{},b=d.b||{},l=d.l||{},m=d.m||{},n=d.n||{};
+  const ec=getEmpCfg(),p=gP(FO.pid)||{};
+  const fecha=(b.fecha_atencion||TD).split('-');
+  const yy=fecha[0]||'',mm=fecha[1]||'',dd2=fecha[2]||'';
+  const tipo=b.tipo_eval||'INGRESO',aptitud=l.aptitud||'';
+  const ck=(v,m)=>v===m?'☒':'☐';
+
+  // ── HTML CERTIFICADO ──
+  const certHtml=`
+  ${ec.logo?`<div style="text-align:center;margin-bottom:4px"><img src="${ec.logo}" style="max-height:55px;object-fit:contain"></div>`:''}
+  <table>
+    <tr><td colspan="12" style="text-align:center;font-size:13pt;font-weight:bold;padding:10px;background:#dce6f1;border:1px solid #000">CERTIFICADO - EVALUACIÓN MÉDICA OCUPACIONAL</td></tr>
+    <tr><td colspan="12" style="background:#c5d9f1;font-weight:bold;font-size:8.5pt;padding:4px 6px;border:1px solid #000">A. DATOS DEL ESTABLECIMIENTO - DATOS DEL USUARIO</td></tr>
+    <tr>
+      <td colspan="3" style="font-size:6.5pt;color:#333;border:1px solid #000">INSTITUCIÓN</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">RUC</td>
+      <td style="font-size:6.5pt;color:#333;border:1px solid #000">CIIU</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">CENTRO DE TRABAJO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">N° FORMULARIO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">N° ARCHIVO</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="font-weight:bold;border:1px solid #000">${(a.empresa||'').toUpperCase()}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.ruc||''}</td>
+      <td style="font-weight:bold;border:1px solid #000">${a.ciiu||''}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${(a.centro||'').toUpperCase()}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.nform||''}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.narch||''}</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="font-size:6.5pt;color:#333;border:1px solid #000">PRIMER APELLIDO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">SEGUNDO APELLIDO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">PRIMER NOMBRE</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">SEGUNDO NOMBRE</td>
+      <td style="font-size:6.5pt;color:#333;border:1px solid #000">SEXO</td>
+      <td colspan="2" style="font-size:6.5pt;color:#333;border:1px solid #000">PUESTO CIUO</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="font-weight:bold;border:1px solid #000">${a.ap1||''}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.ap2||''}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.n1||''}</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${a.n2||''}</td>
+      <td style="font-weight:bold;text-align:center;border:1px solid #000">${a.sexo||''}</td>
+      <td colspan="2" style="font-weight:bold;font-size:7pt;border:1px solid #000">${(a.cargo||'').toUpperCase()}</td>
+    </tr>
+    <tr><td colspan="12" style="background:#c5d9f1;font-weight:bold;padding:4px 6px;border:1px solid #000">B. DATOS GENERALES</td></tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000">FECHA:</td>
+      <td style="font-weight:bold;text-align:center;border:1px solid #000">${yy}</td>
+      <td style="font-weight:bold;text-align:center;border:1px solid #000">${mm}</td>
+      <td style="font-weight:bold;text-align:center;border:1px solid #000">${dd2}</td>
+      <td style="font-size:6.5pt;text-align:center;color:#666;border:1px solid #000">aaaa/mm/dd</td>
+      <td colspan="6" style="border:1px solid #000"></td>
+    </tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000">EVALUACIÓN:</td>
+      <td colspan="2" style="text-align:center;border:1px solid #000">INGRESO ${ck(tipo,'INGRESO')}</td>
+      <td colspan="3" style="text-align:center;border:1px solid #000">PERIÓDICO ${ck(tipo,'PERIÓDICO')}</td>
+      <td colspan="2" style="text-align:center;border:1px solid #000">REINTEGRO ${ck(tipo,'REINTEGRO')}</td>
+      <td colspan="3" style="text-align:center;border:1px solid #000">RETIRO ${ck(tipo,'RETIRO')}</td>
+    </tr>
+    <tr><td colspan="12" style="background:#c5d9f1;font-weight:bold;padding:4px 6px;border:1px solid #000">C. APTITUD MÉDICA PARA EL TRABAJO</td></tr>
+    <tr><td colspan="12" style="font-size:7pt;font-style:italic;border:1px solid #000">Después de la valoración médica ocupacional se certifica que la persona en mención, es calificada como:</td></tr>
+    <tr>
+      <td colspan="3" style="text-align:center;font-weight:600;border:1px solid #000">APTO ${ck(aptitud,'APTO')}</td>
+      <td colspan="3" style="text-align:center;font-weight:600;font-size:7pt;border:1px solid #000">APTO EN OBSERVACIÓN ${ck(aptitud,'APTO EN OBSERVACIÓN')}</td>
+      <td colspan="3" style="text-align:center;font-weight:600;font-size:7pt;border:1px solid #000">APTO CON LIMITACIONES ${ck(aptitud,'APTO CON LIMITACIONES')}</td>
+      <td colspan="3" style="text-align:center;font-weight:600;border:1px solid #000">NO APTO ${ck(aptitud,'NO APTO')}</td>
+    </tr>
+    <tr><td colspan="12" style="font-size:7pt;color:#333;border:1px solid #000">DETALLE DE OBSERVACIONES:</td></tr>
+    <tr><td colspan="12" style="min-height:45px;padding:4px 6px;font-size:8pt;vertical-align:top;border:1px solid #000">${(l.observaciones||'').toUpperCase()}</td></tr>
+    <tr><td colspan="12" style="background:#c5d9f1;font-weight:bold;padding:4px 6px;border:1px solid #000">D. RECOMENDACIONES / OBSERVACIONES</td></tr>
+    <tr><td colspan="12" style="min-height:65px;padding:4px 6px;font-size:8pt;vertical-align:top;border:1px solid #000">${((m.estandar||[]).map(r=>'- '+r).join(' ')+(m.medicas?' - '+m.medicas.toUpperCase():'')).toUpperCase()}</td></tr>
+    <tr><td colspan="12" style="border:none;padding:6px;font-size:7pt;line-height:1.5;font-style:italic">Con este documento certifico que el trabajador se ha sometido a la evaluación médica requerida para (el ingreso / la ejecución / el reingreso y retiro) al puesto laboral y se le ha informado sobre los riesgos relacionados con el trabajo emitiendo recomendaciones relacionadas con su estado de salud.<br><br>La presente certificación se expide con base en el formulario de Evaluación Ocupacional, el cual tiene carácter de confidencial.</td></tr>
+    <tr><td colspan="6" style="background:#c5d9f1;font-weight:bold;padding:4px 6px;border:1px solid #000">E. DATOS DEL PROFESIONAL</td><td colspan="6" style="background:#c5d9f1;font-weight:bold;padding:4px 6px;border:1px solid #000">F. FIRMA DEL USUARIO</td></tr>
+    <tr style="height:60px">
+      <td colspan="2" style="font-size:7pt;vertical-align:middle;border:1px solid #000">NOMBRE</td>
+      <td colspan="2" style="font-weight:bold;border:1px solid #000">${(n.medico||'').toUpperCase()}</td>
+      <td style="font-size:7pt;vertical-align:middle;border:1px solid #000">CÓDIGO</td>
+      <td style="font-weight:bold;border:1px solid #000">${n.codigo||''}</td>
+      <td colspan="3" style="vertical-align:middle;font-size:7pt;border:1px solid #000">FIRMA Y SELLO</td>
+      <td colspan="3" style="border:1px solid #000;height:60px;text-align:center;vertical-align:middle">${getFirmaOverlayHtml('cert')}</td>
+    </tr>
+  </table>`;
+
+  // ── OBTENER HTML DE LA FICHA OFICIAL ──
+  // Llamar printFichaOficial pero capturar el HTML en lugar de abrirlo
+  const fichaHtml=getFichaHtml();
+
+  // ── COMBINAR EN UNA SOLA VENTANA ──
+  const estilos=`@page{size:A4;margin:8mm 6mm}*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:7.5pt;color:#000}table{border-collapse:collapse;width:100%}td,th{border:.5pt solid #000;padding:2px 3px;font-size:7.5pt;vertical-align:middle}.sec{background:#ccccff;font-weight:bold;font-size:8pt;padding:3px 5px}.tit{text-align:center;font-size:11pt;font-weight:bold;padding:6px;background:#ccccff}.lbl{background:#ccffcc;font-size:7pt;padding:2px 3px}.v{font-weight:bold}.c{text-align:center}.s{font-size:7pt;background:#ccffcc;padding:2px 3px}.chk{font-size:10pt}.obs{min-height:35px;vertical-align:top;padding:3px}.nb{border:none}.pbreak{page-break-before:always}.logo-c{text-align:center;margin-bottom:2px}.logo-c img{max-height:50px;object-fit:contain}`;
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ficha Completa - ${a.ap1||''} ${a.n1||''}</title>
+  <style>${estilos}</style></head><body onload="window.print()" style="position:relative">
+  ${certHtml}
+  <div class="pbreak"></div>
+  ${fichaHtml}
+  </body></html>`;
+
+  const win=window.open('','_blank','width=1000,height=800');
+  win.document.write(html);
+  win.document.close();
+}
+
+function getFichaHtml(){
+  // Extraer el HTML de la ficha sin abrir ventana
+  const d=FO.data,a=d.a||{},b=d.b||{},c=d.c||{},dd2=d.d||{},e=d.e||{},f=d.f||{},g=d.g||{},h=d.h||{},ii2=d.i||{},j=d.j||{},k=d.k||{},l=d.l||{},m=d.m||{},n=d.n||{};
+  const ec=getEmpCfg(),p=gP(FO.pid)||{};
+  const fa=(b.fecha_atencion||TD).split('-');
+  const tipo=b.tipo_eval||'INGRESO',apt=l.aptitud||'';
+  const edad=p.fecha_nacimiento?Math.floor((new Date()-new Date(p.fecha_nacimiento))/31557600000):'';
+  const fn=(p.fecha_nacimiento||'').split('-');
+  const ck=(v,match)=>v===match?'☒':'☐';
+  const hall=f.hallazgos||{};
+
+  return`
+  ${ec.logo?`<div class="logo-c"><img src="${ec.logo}"></div>`:''}
+  <table>
+    <tr><td colspan="12" class="tit">FORMULARIO DE EVALUACIÓN MÉDICA OCUPACIONAL</td></tr>
+    <tr><td colspan="12" class="sec">A. DATOS DEL ESTABLECIMIENTO - DATOS DEL USUARIO</td></tr>
+    <tr><td colspan="3" class="lbl">INSTITUCIÓN</td><td colspan="2" class="lbl">RUC</td><td class="lbl">CIIU</td><td colspan="2" class="lbl">CENTRO DE TRABAJO</td><td colspan="2" class="lbl">N° FORMULARIO</td><td colspan="2" class="lbl">N° ARCHIVO</td></tr>
+    <tr><td colspan="3" class="v">${(a.empresa||'').toUpperCase()}</td><td colspan="2" class="v">${a.ruc||''}</td><td class="v">${a.ciiu||''}</td><td colspan="2" class="v">${(a.centro||'').toUpperCase()}</td><td colspan="2" class="v">${a.nform||''}</td><td colspan="2" class="v">${a.narch||''}</td></tr>
+    <tr><td colspan="3" class="lbl">PRIMER APELLIDO</td><td colspan="2" class="lbl">SEGUNDO APELLIDO</td><td colspan="2" class="lbl">PRIMER NOMBRE</td><td colspan="2" class="lbl">SEGUNDO NOMBRE</td><td class="lbl">SEXO</td><td colspan="2" class="lbl">PUESTO CIUO</td></tr>
+    <tr><td colspan="3" class="v">${a.ap1||''}</td><td colspan="2" class="v">${a.ap2||''}</td><td colspan="2" class="v">${a.n1||''}</td><td colspan="2" class="v">${a.n2||''}</td><td class="v c">${a.sexo||''}</td><td colspan="2" class="v s">${(a.cargo||'').toUpperCase()}</td></tr>
+    <tr><td class="lbl">C.I.</td><td colspan="2" class="v">${p.cedula||''}</td><td class="lbl">F. NAC.</td><td colspan="2" class="v">${fn[2]||''} / ${fn[1]||''} / ${fn[0]||''}</td><td class="lbl">EDAD</td><td class="v">${edad}</td><td class="lbl">GRUPO SANG.</td><td class="v">${a.grupo_sang||''}</td><td class="lbl">LATERALIDAD</td><td class="v">${a.lateralidad||''}</td></tr>
+    <tr><td colspan="12" class="sec">B. DATOS GENERALES</td></tr>
+    <tr><td colspan="2" class="lbl">FECHA ATENCIÓN</td><td colspan="2" class="v">${fa[2]||''} / ${fa[1]||''} / ${fa[0]||''}</td><td colspan="2" class="lbl">EVALUACIÓN</td><td colspan="6" class="v">INGRESO ${ck(tipo,'INGRESO')} &nbsp; PERIÓDICO ${ck(tipo,'PERIÓDICO')} &nbsp; REINTEGRO ${ck(tipo,'REINTEGRO')} &nbsp; RETIRO ${ck(tipo,'RETIRO')}</td></tr>
+    <tr><td colspan="12" class="sec">C. ANTECEDENTES</td></tr>
+    <tr><td colspan="2" class="lbl">Clínicos</td><td colspan="10" class="obs">${c.ant_clinicos||''}</td></tr>
+    <tr><td colspan="2" class="lbl">Familiares</td><td colspan="10" class="obs">${c.ant_familiares||''}</td></tr>
+    <tr><td colspan="2" class="lbl">Medicación</td><td colspan="10" class="obs">${c.medicacion||''}</td></tr>
+    <tr><td colspan="12" class="sec">D. ENFERMEDAD ACTUAL</td></tr>
+    <tr><td colspan="12" class="obs" style="min-height:50px">${dd2.descripcion||''}</td></tr>
+    <tr><td colspan="12" class="sec">E. SIGNOS VITALES Y ANTROPOMETRÍA</td></tr>
+    <tr><td class="lbl">TEMP</td><td class="v">${e.temp||''}</td><td class="lbl">PA</td><td class="v">${e.pa_s||''}/${e.pa_d||''}</td><td class="lbl">FC</td><td class="v">${e.fc||''}</td><td class="lbl">FR</td><td class="v">${e.fr||''}</td><td class="lbl">SAT O2</td><td class="v">${e.sat||''}</td><td class="lbl">PESO</td><td class="v">${e.peso||''}</td></tr>
+    <tr><td class="lbl">TALLA</td><td class="v">${e.talla||''}</td><td class="lbl">IMC</td><td class="v">${e.imc||''}</td><td class="lbl">CLASIF.</td><td class="v">${e.clasif_imc||''}</td><td class="lbl">PERÍMETRO ABD.</td><td colspan="5" class="v">${e.perim_abd||''}</td></tr>
+    <tr><td colspan="12" class="sec">L. APTITUD MÉDICA</td></tr>
+    <tr><td colspan="3" class="c">APTO ${ck(apt,'APTO')}</td><td colspan="3" class="c s">APTO EN OBSERVACIÓN ${ck(apt,'APTO EN OBSERVACIÓN')}</td><td colspan="3" class="c s">APTO CON LIMITACIONES ${ck(apt,'APTO CON LIMITACIONES')}</td><td colspan="3" class="c">NO APTO ${ck(apt,'NO APTO')}</td></tr>
+    <tr><td colspan="12" class="obs">${(l.observaciones||'').toUpperCase()}</td></tr>
+    <tr><td colspan="12" class="sec">M. RECOMENDACIONES</td></tr>
+    <tr><td colspan="12" class="obs">${((m.estandar||[]).map(r=>'• '+r).join('  ')+(m.medicas?'  • '+m.medicas:'')).toUpperCase()}</td></tr>
+    <tr><td colspan="6" class="sec">N. DATOS DEL PROFESIONAL</td><td colspan="6" class="sec">FIRMA DEL USUARIO</td></tr>
+    <tr style="height:65px"><td colspan="2" class="lbl">NOMBRE</td><td colspan="2" class="v">${(n.medico||'').toUpperCase()}</td><td class="lbl">CÓDIGO</td><td class="v">${n.codigo||''}</td><td colspan="3" class="lbl">FIRMA Y SELLO</td><td colspan="3" style="text-align:center;vertical-align:middle">${getFirmaOverlayHtml('ficha')}</td></tr>
+  </table>`;
+}
+async function finalizarFicha(){
+  if(!confirm('⚠️ ¿FINALIZAR la ficha?\n\nUna vez finalizada:\n• Se guardará automáticamente\n• Quedará BLOQUEADA (solo lectura)\n• Desaparecerá del listado de órdenes pendientes\n\n¿Confirmar?')) return;
+  // Guardar sección actual primero
+  saveFichaSection();
+  const medNom=document.getElementById('fo_medico')?.value;
+  const medCod=document.getElementById('fo_codmed')?.value;
+  if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
+  const d=FO.data;
+  const payload={
+    paciente_id:FO.pid,medico_id:S.u?.id,fecha:d.b?.fecha_atencion||TD,tipo_eval:d.b?.tipo_eval||'INGRESO',
+    seccion_a:d.a||{},seccion_b:d.b||{},seccion_c:d.c||{},seccion_d:d.d||{},seccion_e:d.e||{},seccion_f:d.f||{},seccion_g:d.g||{},seccion_h:d.h||{},seccion_i:d.i||{},seccion_j:d.j||{},seccion_k:d.k||{},seccion_l:d.l||{},seccion_m:d.m||{},seccion_n:d.n||{},seccion_r:d.r||{},
+    aptitud:d.l?.aptitud||'',estado:'finalizado',updated_at:new Date().toISOString()
+  };
+  if(DB_OK){
+    try{
+      let ok=false;
+      if(FO.fid){
+        const r=await SB.patch('fichas_ocupacionales',payload,`id=eq.${FO.fid}`);
+        ok=!!r;
+      }else{
+        const r=await SB.post('fichas_ocupacionales',payload);
+        if(r&&r[0]){FO.fid=r[0].id;ok=true;}
+      }
+      if(!ok){alert('❌ Error al finalizar. Verifica la conexión.');return;}
+      // Marcar la orden como completada
+      const ord=S.ord.find(o=>o.pid===FO.pid&&(o.cat==='ficha_ocupacional'||o.cat==='atencion_medica')&&o.estado!=='completado');
+      if(ord){await updO(ord.id,{estado:'completado'});}
+      // Agregar a S.fichas para que aparezca en Fichas Finalizadas sin recargar
+      const pa=S.pts.find(p=>p.id===FO.pid);
+      const nuevaFicha={id:FO.fid,pid:FO.pid,fecha:d.b?.fecha_atencion||TD,tipo:d.b?.tipo_eval||'INGRESO',aptitud:d.l?.aptitud||'',estado:'finalizado',empresa:(d.a||{}).empresa||pa?.empresa||'',updated_at:new Date().toISOString()};
+      S.fichas=S.fichas.filter(f=>f.id!==FO.fid);
+      S.fichas.unshift(nuevaFicha);
+      alert('✅ Ficha FINALIZADA y bloqueada correctamente.');
+      S.medTab='finalizadas';
+      nav('medord');
+    }catch(e){alert('❌ Error: '+e.message);}
+  }else{
+    // Sin Supabase: solo marcar en memoria
+    const ord=S.ord.find(o=>o.pid===FO.pid&&(o.cat==='ficha_ocupacional'||o.cat==='atencion_medica'));
+    if(ord)ord.estado='completado';
+    alert('⚠️ Sin conexión a Supabase. Ficha marcada como finalizada en memoria.');
+    nav('medord');
+  }
+}
 function guardarMedico(){
   const nombre=gv('fo_medico')?.trim(),codigo=gv('fo_codmed')?.trim();
   if(!nombre||!codigo){alert('Ingrese nombre y código del médico');return;}
   const list=JSON.parse(localStorage.getItem('vw_medicos_list')||'[]');
   if(list.find(m=>m.nombre===nombre&&m.codigo===codigo)){alert('Este médico ya está guardado');return;}
-  list.push({nombre,codigo});
+  const firma=getMedCfg().firma||'';
+  list.push({nombre,codigo,firma});
   localStorage.setItem('vw_medicos_list',JSON.stringify(list));
-  // También guardar en med_cfg para que esté siempre disponible
   localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));
   FO.data.n={medico:nombre,codigo:codigo};
   render();
+}
+
+function subirFirma(){
+  // Usar input fijo en el DOM para evitar bloqueo del navegador
+  const inp = document.getElementById('input_firma_file');
+  if(inp){ inp.value=''; inp.click(); }
+}
+
+async function procesarFirmaSeleccionada(inp){
+  const file = inp.files[0];
+  if(!file) return;
+  if(file.size > 2*1024*1024){ alert('La imagen es muy grande. Máximo 2MB.'); return; }
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    const base64 = ev.target.result;
+    // Guardar en memoria
+    if(S.u) S.u.firma = base64;
+    localStorage.setItem('mediagenda_med_cfg', JSON.stringify({...getMedCfg(), firma:base64}));
+    // Backup por cedula (garantizado)
+    if(S.u?.cedula) localStorage.setItem('vw_firma_'+S.u.cedula, base64);
+    // Guardar en Supabase
+    if(DB_OK && S.u?.id){
+      try{
+        await SB.patch('usuarios', {firma:base64}, `id=eq.${S.u.id}`);
+        alert('✅ Firma guardada en servidor');
+      }catch(e){ alert('✅ Firma guardada localmente (error: '+e.message+')'); }
+    } else {
+      alert('✅ Firma guardada localmente');
+    }
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+function eliminarFirma(){
+  if(!confirm('¿Eliminar la firma/sello guardado?'))return;
+  if(S.u)delete S.u.firma;
+  const cfg={...getMedCfg()};delete cfg.firma;
+  localStorage.setItem('mediagenda_med_cfg',JSON.stringify(cfg));
+  if(DB_OK&&S.u?.id)SB.patch('usuarios',{firma:null},`id=eq.${S.u.id}`);
+  if(S.u?.cedula)localStorage.removeItem('vw_firma_'+S.u.cedula);
+  render();
+}
+
+function getFirmaActual(){
+  // Prioridad 1: S.u.firma (Supabase)
+  if(S.u?.firma)return S.u.firma;
+  // Prioridad 2: localStorage backup por cedula
+  if(S.u?.cedula){
+    try{
+      const k='vw_firma_'+S.u.cedula;
+      const f=localStorage.getItem(k);
+      if(f){S.u.firma=f;return f;}
+    }catch(e){}
+  }
+  // Prioridad 3: legacy
+  return getMedCfg().firma||'';
+}
+
+
+function abrirConfigFirma(doc){
+  const firma=getFirmaActual();
+  if(!firma){alert('Primero sube una imagen de firma/sello');return;}
+  const cfg=getFirmaCfg();
+  const pos=cfg['pos_'+doc]||{x:60,y:80,w:120,h:55};
+  const docLabel=doc==='cert'?'Certificado de Aptitud':doc==='ficha'?'Ficha Ocupacional (3 hojas)':'Confidencialidad (2 hojas)';
+
+  // Dimensiones reales según documento
+  // cert: A4 horizontal = 297x210mm
+  // ficha: A4 vertical 3 hojas = 210x(297*3)mm — mostramos solo la hoja donde va la firma (hoja 3)
+  // conf: A4 vertical 2 hojas = 210x(297*2)mm — mostramos solo hoja 2
+
+  const docCfg={
+    cert: {mmW:297,mmH:210,label:'Hoja única — Horizontal (297×210mm)',pagesLabel:'',firmaLabel:'Sección E — parte inferior',defaultPos:{x:180,y:140,w:100,h:50}},
+    ficha:{mmW:210,mmH:297,label:'Hoja 3 de 3 — Vertical (210×297mm)',pagesLabel:'La firma va en la última hoja',firmaLabel:'Sección N — parte inferior',defaultPos:{x:120,y:240,w:100,h:50}},
+    conf: {mmW:210,mmH:297,label:'Hoja 2 de 2 — Vertical (210×297mm)',pagesLabel:'La firma va en la segunda hoja',firmaLabel:'Parte inferior',defaultPos:{x:30,y:220,w:100,h:50}}
+  };
+  const dc=docCfg[doc];
+  const finalPos=cfg['pos_'+doc]||dc.defaultPos;
+
+  // Escalar para pantalla — máx 500px en el lado largo
+  const MAX=480;
+  const scale=MAX/Math.max(dc.mmW,dc.mmH);
+  const W=Math.round(dc.mmW*scale);
+  const H=Math.round(dc.mmH*scale);
+  const scaleX=W/dc.mmW, scaleY=H/dc.mmH;
+
+  // Reglas cada 10mm
+  const hMarks=[], vMarks=[];
+  for(let m=0;m<=dc.mmW;m+=10){
+    const x=Math.round(m*scaleX);
+    const big=m%50===0;
+    hMarks.push(`<div style="position:absolute;left:${x}px;top:0;bottom:0;border-left:1px ${big?'solid #ccc':'dashed #ebebeb'};pointer-events:none">${big&&m>0?`<span style="position:absolute;top:2px;left:2px;font-size:6px;color:#bbb">${m}</span>`:''}</div>`);
+  }
+  for(let m=0;m<=dc.mmH;m+=10){
+    const y=Math.round(m*scaleY);
+    const big=m%50===0;
+    vMarks.push(`<div style="position:absolute;top:${y}px;left:0;right:0;border-top:1px ${big?'solid #ccc':'dashed #ebebeb'};pointer-events:none">${big&&m>0?`<span style="position:absolute;top:2px;left:4px;font-size:6px;color:#bbb">${m}mm</span>`:''}</div>`);
+  }
+
+  // Zonas del documento según tipo
+  let zonas='';
+  if(doc==='cert'){
+    // Certificado horizontal: secciones A,B,C,D,E
+    const secs=[
+      {label:'A. Datos Establecimiento',y:0,h:18},
+      {label:'B. Datos Generales',y:18,h:10},
+      {label:'C. Aptitud Médica',y:28,h:35},
+      {label:'D. Recomendaciones',y:63,h:20},
+      {label:'Legal',y:83,h:10},
+      {label:'E. Datos Profesional ← FIRMA AQUÍ',y:93,h:7,highlight:true},
+    ];
+    secs.forEach(s=>{
+      const ty=Math.round(s.y/100*H), th=Math.round(s.h/100*H);
+      zonas+=`<div style="position:absolute;left:0;right:0;top:${ty}px;height:${th}px;border-bottom:1px solid #e2e8f0;pointer-events:none;background:${s.highlight?'rgba(49,130,206,.08)':'transparent'}">
+        <span style="font-size:7px;color:${s.highlight?'#3182ce':'#ccc'};padding:1px 3px;font-weight:${s.highlight?'700':'400'}">${s.label}</span>
+      </div>`;
+    });
+  } else if(doc==='ficha'){
+    // Ficha: mostramos hoja 3 con secciones H,I,J,K,L,M,N
+    const secs=[
+      {label:'H. Act. Laboral',y:0,h:20},
+      {label:'I. Act. Extra',y:20,h:10},
+      {label:'J. Resultados',y:30,h:18},
+      {label:'K. Diagnóstico',y:48,h:15},
+      {label:'L. Aptitud',y:63,h:10},
+      {label:'M. Recomendaciones',y:73,h:9},
+      {label:'N. Datos Profesional ← FIRMA AQUÍ',y:82,h:18,highlight:true},
+    ];
+    secs.forEach(s=>{
+      const ty=Math.round(s.y/100*H), th=Math.round(s.h/100*H);
+      zonas+=`<div style="position:absolute;left:0;right:0;top:${ty}px;height:${th}px;border-bottom:1px solid #e2e8f0;pointer-events:none;background:${s.highlight?'rgba(49,130,206,.08)':'transparent'}">
+        <span style="font-size:7px;color:${s.highlight?'#3182ce':'#ccc'};padding:1px 3px;font-weight:${s.highlight?'700':'400'}">${s.label}</span>
+      </div>`;
+    });
+  } else {
+    // Confidencialidad: hoja 2
+    const secs=[
+      {label:'Texto del documento',y:0,h:75},
+      {label:'Firma médico ← FIRMA AQUÍ',y:75,h:25,highlight:true},
+    ];
+    secs.forEach(s=>{
+      const ty=Math.round(s.y/100*H), th=Math.round(s.h/100*H);
+      zonas+=`<div style="position:absolute;left:0;right:0;top:${ty}px;height:${th}px;border-bottom:1px solid #e2e8f0;pointer-events:none;background:${s.highlight?'rgba(49,130,206,.08)':'transparent'}">
+        <span style="font-size:7px;color:${s.highlight?'#3182ce':'#ccc'};padding:1px 3px;font-weight:${s.highlight?'700':'400'}">${s.label}</span>
+      </div>`;
+    });
+  }
+
+  openModal(`<div class="mhd">
+    <h3>📐 Posición firma — ${docLabel}</h3>
+    <button class="btn bic bg" onclick="closeModal()">${ic('x')}</button>
+  </div>
+  <div style="padding:12px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;max-height:85vh;overflow-y:auto">
+    <div style="flex-shrink:0">
+      <div style="font-size:10px;color:var(--a);font-weight:600;margin-bottom:2px">${dc.label}</div>
+      ${dc.pagesLabel?`<div style="font-size:9px;color:var(--tm);margin-bottom:4px">ℹ️ ${dc.pagesLabel}</div>`:''}
+      <div style="font-size:9px;color:#38a169;margin-bottom:6px">🎯 ${dc.firmaLabel}</div>
+      <div style="display:flex">
+        <!-- Regla vertical -->
+        <div style="width:16px;height:${H}px;position:relative;background:#f7f7f7;border:1px solid #ddd;border-right:none;flex-shrink:0;overflow:hidden">
+          ${Array.from({length:Math.floor(dc.mmH/50)+1},(_,i)=>i*50).map(m=>`<div style="position:absolute;top:${Math.round(m*scaleY)}px;right:1px;font-size:5px;color:#bbb;line-height:1">${m}</div>`).join('')}
+          ${Array.from({length:Math.floor(dc.mmH/10)+1},(_,i)=>i*10).map(m=>`<div style="position:absolute;top:${Math.round(m*scaleY)}px;right:0;width:${m%50===0?8:4}px;height:1px;background:#ccc"></div>`).join('')}
+        </div>
+        <div>
+          <!-- Regla horizontal -->
+          <div style="height:16px;width:${W}px;position:relative;background:#f7f7f7;border:1px solid #ddd;border-bottom:none;overflow:hidden">
+            ${Array.from({length:Math.floor(dc.mmW/50)+1},(_,i)=>i*50).map(m=>`<div style="position:absolute;left:${Math.round(m*scaleX)}px;bottom:1px;font-size:5px;color:#bbb">${m}mm</div>`).join('')}
+            ${Array.from({length:Math.floor(dc.mmW/10)+1},(_,i)=>i*10).map(m=>`<div style="position:absolute;left:${Math.round(m*scaleX)}px;bottom:0;height:${m%50===0?8:4}px;width:1px;background:#ccc"></div>`).join('')}
+          </div>
+          <!-- Hoja -->
+          <div id="hoja_preview" tabindex="0" style="position:relative;width:${W}px;height:${H}px;background:#fff;border:1px solid #ccc;box-shadow:2px 2px 8px rgba(0,0,0,.15);overflow:hidden;outline:none;cursor:default">
+            ${zonas}
+            ${hMarks.join('')}${vMarks.join('')}
+            <!-- Firma arrastrable -->
+            <img id="firma_drag" src="${firma}"
+              style="position:absolute;left:${finalPos.x}px;top:${finalPos.y}px;width:${finalPos.w}px;height:${finalPos.h}px;object-fit:contain;cursor:move;border:2px dashed #3182ce;border-radius:3px;background:rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(49,130,206,.3);z-index:10"
+              draggable="false">
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Controles -->
+    <div style="min-width:185px">
+      <div style="background:var(--bg);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:8px">📏 Tamaño</div>
+        <label style="font-size:10px">Ancho: <b><span id="lbl_w">${finalPos.w}</span>px</b></label>
+        <input type="range" id="ctrl_w" min="30" max="300" value="${finalPos.w}" oninput="document.getElementById('lbl_w').textContent=this.value;actualizarFirmaDrag()" style="width:100%;margin:4px 0 8px">
+        <label style="font-size:10px">Alto: <b><span id="lbl_h">${finalPos.h}</span>px</b></label>
+        <input type="range" id="ctrl_h" min="15" max="200" value="${finalPos.h}" oninput="document.getElementById('lbl_h').textContent=this.value;actualizarFirmaDrag()" style="width:100%;margin:4px 0">
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:8px">🕹️ Mover</div>
+        <div style="display:grid;grid-template-columns:repeat(3,34px);gap:4px;justify-content:center;margin-bottom:4px">
+          <div></div>
+          <button class="btn bsm" style="padding:5px;font-size:15px" onmousedown="startMover(0,-1)" onmouseup="stopMover()" ontouchstart="startMover(0,-1)" ontouchend="stopMover()">↑</button>
+          <div></div>
+          <button class="btn bsm" style="padding:5px;font-size:15px" onmousedown="startMover(-1,0)" onmouseup="stopMover()" ontouchstart="startMover(-1,0)" ontouchend="stopMover()">←</button>
+          <button class="btn bsm" style="padding:5px;font-size:9px;background:#e2e8f0" onclick="centrarFirma()">◎</button>
+          <button class="btn bsm" style="padding:5px;font-size:15px" onmousedown="startMover(1,0)" onmouseup="stopMover()" ontouchstart="startMover(1,0)" ontouchend="stopMover()">→</button>
+          <div></div>
+          <button class="btn bsm" style="padding:5px;font-size:15px" onmousedown="startMover(0,1)" onmouseup="stopMover()" ontouchstart="startMover(0,1)" ontouchend="stopMover()">↓</button>
+          <div></div>
+        </div>
+        <div style="font-size:9px;color:var(--tm);text-align:center">Flechas del teclado • Shift = ×10</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:8px;margin-bottom:8px;font-size:10px">
+        📍 X:<b><span id="lbl_x">${finalPos.x}</span></b> Y:<b><span id="lbl_y">${finalPos.y}</span></b> px
+      </div>
+      <button class="btn bp" style="width:100%;margin-bottom:6px" onclick="guardarPosicionFirma('${doc}')">💾 Guardar posición</button>
+      <button class="btn bg" style="width:100%;font-size:11px" onclick="resetPosicionFirma('${doc}')">↩ Restablecer</button>
+    </div>
+  </div>`);
+
+  setTimeout(()=>{
+    const hoja=document.getElementById('hoja_preview');
+    const img=document.getElementById('firma_drag');
+    if(!hoja||!img)return;
+    function updateLabels(){
+      document.getElementById('lbl_x').textContent=img.offsetLeft;
+      document.getElementById('lbl_y').textContent=img.offsetTop;
+    }
+    // DRAG con mouse
+    let dragging=false,ox=0,oy=0;
+    img.addEventListener('mousedown',e=>{
+      dragging=true;
+      ox=e.clientX-img.offsetLeft; oy=e.clientY-img.offsetTop;
+      img.style.border='2px solid #3182ce';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove',e=>{
+      if(!dragging)return;
+      const hr=hoja.getBoundingClientRect();
+      let nx=e.clientX-hr.left-ox;
+      let ny=e.clientY-hr.top-oy;
+      nx=Math.max(0,Math.min(nx,hoja.offsetWidth-img.offsetWidth));
+      ny=Math.max(0,Math.min(ny,hoja.offsetHeight-img.offsetHeight));
+      img.style.left=nx+'px'; img.style.top=ny+'px';
+      updateLabels();
+    });
+    document.addEventListener('mouseup',()=>{dragging=false;img.style.border='2px dashed #3182ce';});
+    // TECLADO
+    hoja.focus();
+    hoja.addEventListener('keydown',e=>{
+      const step=e.shiftKey?10:1;
+      let nx=img.offsetLeft,ny=img.offsetTop;
+      if(e.key==='ArrowLeft')nx-=step;
+      else if(e.key==='ArrowRight')nx+=step;
+      else if(e.key==='ArrowUp')ny-=step;
+      else if(e.key==='ArrowDown')ny+=step;
+      else return;
+      e.preventDefault();
+      nx=Math.max(0,Math.min(nx,hoja.offsetWidth-img.offsetWidth));
+      ny=Math.max(0,Math.min(ny,hoja.offsetHeight-img.offsetHeight));
+      img.style.left=nx+'px'; img.style.top=ny+'px';
+      updateLabels();
+    });
+    // BOTONES continuo
+    window._moverInterval=null;
+    window.startMover=(dx,dy)=>{stopMover();window._moverInterval=setInterval(()=>{
+      let nx=img.offsetLeft+dx,ny=img.offsetTop+dy;
+      nx=Math.max(0,Math.min(nx,hoja.offsetWidth-img.offsetWidth));
+      ny=Math.max(0,Math.min(ny,hoja.offsetHeight-img.offsetHeight));
+      img.style.left=nx+'px';img.style.top=ny+'px';updateLabels();
+    },30);};
+    window.stopMover=()=>clearInterval(window._moverInterval);
+    window.centrarFirma=()=>{img.style.left=Math.round((hoja.offsetWidth-img.offsetWidth)/2)+'px';updateLabels();};
+  },150);
+}
+
+function actualizarFirmaDrag(){
+  const img=document.getElementById('firma_drag');
+  if(!img)return;
+  img.style.width=document.getElementById('ctrl_w').value+'px';
+  img.style.height=document.getElementById('ctrl_h').value+'px';
+}
+
+function guardarPosicionFirma(doc){
+  const img=document.getElementById('firma_drag');
+  const hoja=document.getElementById('hoja_preview');
+  if(!img||!hoja)return;
+  const x=img.offsetLeft, y=img.offsetTop;
+  const xp=Math.round((x/hoja.offsetWidth)*100);
+  const yp=Math.round((y/hoja.offsetHeight)*100);
+  const w=+document.getElementById('ctrl_w').value;
+  const h=+document.getElementById('ctrl_h').value;
+  const cfg=getFirmaCfg();
+  cfg['pos_'+doc]={x,y,xp,yp,w,h};
+  // Guardar en memoria y persistir
+  if(S.u)S.u.firma_cfg=cfg;
+  localStorage.setItem('vw_firma_cfg',JSON.stringify(cfg));
+  if(DB_OK&&S.u?.id){
+    SB.patch('usuarios',{firma_cfg:cfg},`id=eq.${S.u.id}`)
+      .then(()=>alert('✅ Posición guardada en servidor — '+(doc==='cert'?'Certificado':doc==='ficha'?'Ficha':'Confidencialidad')))
+      .catch(()=>alert('✅ Posición guardada localmente'));
+  }else{
+    alert('✅ Posición guardada — '+(doc==='cert'?'Certificado':doc==='ficha'?'Ficha':'Confidencialidad'));
+  }
+  closeModal();
+  render();
+}
+
+function resetPosicionFirma(doc){
+  const cfg=getFirmaCfg();
+  delete cfg['pos_'+doc];
+  if(S.u)S.u.firma_cfg=cfg;
+  localStorage.setItem('vw_firma_cfg',JSON.stringify(cfg));
+  if(DB_OK&&S.u?.id)SB.patch('usuarios',{firma_cfg:cfg},`id=eq.${S.u.id}`);
+  closeModal();
+  setTimeout(()=>abrirConfigFirma(doc),100);
+}
+function getFirmaCfg(){
+  // Prioridad: S.u.firma_cfg (Supabase) → localStorage (fallback)
+  if(S.u?.firma_cfg&&typeof S.u.firma_cfg==='object'&&Object.keys(S.u.firma_cfg).length>0)
+    return S.u.firma_cfg;
+  try{const v=localStorage.getItem('vw_firma_cfg');if(v)return JSON.parse(v);}catch(e){}
+  return {cert:true,ficha:true,conf:true};
+}
+
+function saveFirmaCfg(){
+  const prev=getFirmaCfg();
+  const ec=document.getElementById('firma_cert');
+  const ef=document.getElementById('firma_ficha');
+  const eco=document.getElementById('firma_conf');
+  const cfg={...prev,
+    cert:ec?ec.checked:prev.cert!==false,
+    ficha:ef?ef.checked:prev.ficha!==false,
+    conf:eco?eco.checked:prev.conf!==false
+  };
+  if(S.u)S.u.firma_cfg=cfg;
+  localStorage.setItem('vw_firma_cfg',JSON.stringify(cfg));
+  if(DB_OK&&S.u?.id)SB.patch('usuarios',{firma_cfg:cfg},`id=eq.${S.u.id}`);
+  alert('✅ Configuración guardada');
+}
+
+function getFirmaDoc(doc){
+  const cfg=getFirmaCfg();
+  if(!cfg[doc])return null;
+  const img=getFirmaActual();
+  if(!img)return null;
+  const pos=cfg['pos_'+doc]||{x:60,y:75,w:120,h:55};
+  return {img,pos};
+}
+
+function firmaImgTag(doc){
+  // Solo retorna la imagen simple para celdas de tabla (fallback)
+  const f=getFirmaDoc(doc);
+  if(!f)return '';
+  return `<img src="${f.img}" style="max-width:${f.pos.w}px;max-height:${f.pos.h}px;object-fit:contain">`;
+}
+
+function firmaOverlayStyle(doc){
+  // Retorna CSS para posicionar la firma como overlay absoluto en la página impresa
+  const f=getFirmaDoc(doc);
+  if(!f)return '';
+  const p=f.pos;
+  // El configurador usa escala sobre hoja de pantalla
+  // Convertir px de pantalla a % de página para impresión
+  // Hoja pantalla: cert=480×339px (297×210mm), ficha/conf=339×480px (210×297mm)
+  const hojaW = doc==='cert'?480:339;
+  const hojaH = doc==='cert'?339:480;
+  const xPct = Math.round((p.x/hojaW)*100*10)/10;
+  const yPct = Math.round((p.y/hojaH)*100*10)/10;
+  const wPct = Math.round((p.w/hojaW)*100*10)/10;
+  const hPct = Math.round((p.h/hojaH)*100*10)/10;
+  return `position:absolute;left:${xPct}%;top:${yPct}%;width:${wPct}%;height:${hPct}%;object-fit:contain;z-index:100`;
+}
+
+function debugFirma(){
+  const cfg = JSON.parse(localStorage.getItem('vw_firma_cfg')||'{}');
+  const medCfg = JSON.parse(localStorage.getItem('mediagenda_med_cfg')||'{}');
+  const lista = JSON.parse(localStorage.getItem('vw_medicos_list')||'[]');
+  const imgLen = medCfg.firma ? medCfg.firma.length : 0;
+  const posCert = cfg['pos_cert'];
+  const posFicha = cfg['pos_ficha'];
+  const activoCert = cfg['cert'];
+  const activoFicha = cfg['ficha'];
+  const overlay = getFirmaOverlayHtml('cert');
+
+  let msg = '=== DEBUG FIRMA ===\n';
+  msg += `vw_firma_cfg: ${JSON.stringify(cfg,null,2)}\n`;
+  msg += `firma en med_cfg: ${imgLen} chars\n`;
+  msg += `medicos en lista: ${lista.length}\n`;
+  msg += `pos_cert: ${JSON.stringify(posCert)}\n`;
+  msg += `pos_ficha: ${JSON.stringify(posFicha)}\n`;
+  msg += `cert activo: ${activoCert}\n`;
+  msg += `ficha activo: ${activoFicha}\n`;
+  msg += `overlay HTML generado: ${overlay ? 'SÍ ('+overlay.length+' chars)' : 'NO — VACÍO'}\n`;
+  msg += `getFirmaActual: ${getFirmaActual() ? 'TIENE IMAGEN' : 'SIN IMAGEN'}\n`;
+  alert(msg);
+}
+
+function getFirmaOverlayHtml(doc){
+  try{
+    const cfg=getFirmaCfg();
+    if(cfg[doc]===false)return '';
+    const img=getFirmaActual();
+    console.log('[FIRMA] doc='+doc+' img='+(img?'OK ('+img.length+' chars)':'VACÍO')+' S.u.firma='+(S.u?.firma?'OK':'VACÍO'));
+    if(!img)return '';
+    return `<img src="${img}" style="max-width:140px;max-height:65px;object-fit:contain;display:block;margin:auto">`;
+  }catch(e){console.error('[FIRMA] error:',e);return '';}
 }
 function saveMedCfgFromCert2(){const nombre=gv('fo_medico'),codigo=gv('fo_codmed');if(nombre||codigo)localStorage.setItem('mediagenda_med_cfg',JSON.stringify({...getMedCfg(),nombre,codigo}));}
 
@@ -3121,7 +3994,7 @@ function printCertAptFromFicha(){
   const tipo=b.tipo_eval||'INGRESO';const aptitud=l.aptitud||'';const ec=getEmpCfg();
   // Reusar printCertApt pero con datos de FO
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificado de Aptitud - ${a.ap1} ${a.n1}</title>
-  <style>@page{size:A4;margin:12mm 10mm}*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:8pt;color:#000}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:3px 5px;font-size:8pt;vertical-align:middle}.sec{background:#c5d9f1;font-weight:bold;font-size:8.5pt;padding:4px 6px}.tit{text-align:center;font-size:13pt;font-weight:bold;padding:10px;background:#dce6f1}.val{font-weight:bold}.chk{font-size:11pt}.obs{min-height:45px;padding:4px 6px;font-size:8pt;vertical-align:top}.legal{border:none;padding:6px;font-size:7pt;line-height:1.5;font-style:italic}.firma-row td{height:60px;vertical-align:bottom;text-align:center;font-size:7.5pt}.logo-c{text-align:center;margin-bottom:2px}.logo-c img{max-height:55px;object-fit:contain}</style></head><body onload="window.print()">
+  <style>@page{size:A4;margin:12mm 10mm}*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:8pt;color:#000}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:3px 5px;font-size:8pt;vertical-align:middle}.sec{background:#c5d9f1;font-weight:bold;font-size:8.5pt;padding:4px 6px}.tit{text-align:center;font-size:13pt;font-weight:bold;padding:10px;background:#dce6f1}.val{font-weight:bold}.chk{font-size:11pt}.obs{min-height:45px;padding:4px 6px;font-size:8pt;vertical-align:top}.legal{border:none;padding:6px;font-size:7pt;line-height:1.5;font-style:italic}.firma-row td{height:60px;vertical-align:bottom;text-align:center;font-size:7.5pt}.logo-c{text-align:center;margin-bottom:2px}.logo-c img{max-height:55px;object-fit:contain}</style></head><body onload="window.print()" style="position:relative">
   ${ec.logo?`<div class="logo-c"><img src="${ec.logo}"></div>`:''}
   <table>
     <tr><td colspan="12" class="tit">CERTIFICADO - EVALUACIÓN MÉDICA OCUPACIONAL</td></tr>
@@ -3142,7 +4015,7 @@ function printCertAptFromFicha(){
     <tr><td colspan="12" class="obs" style="min-height:65px">${((m.estandar||[]).map(r=>'- '+r).join(' ')+(m.medicas?' - '+m.medicas.toUpperCase():'')).toUpperCase()}</td></tr>
     <tr><td colspan="12" class="legal">Con este documento certifico que el trabajador se ha sometido a la evaluación médica requerida para (el ingreso / la ejecución / el reingreso y retiro) al puesto laboral y se le ha informado sobre los riesgos relacionados con el trabajo emitiendo recomendaciones relacionadas con su estado de salud.<br><br>La presente certificación se expide con base en el formulario de Evaluación Ocupacional, el cual tiene carácter de confidencial.</td></tr>
     <tr><td colspan="6" class="sec">E. DATOS DEL PROFESIONAL</td><td colspan="6" class="sec">F. FIRMA DEL USUARIO</td></tr>
-    <tr class="firma-row"><td colspan="2" style="font-size:7pt;vertical-align:middle">NOMBRE</td><td colspan="2" class="val">${(n.medico||'').toUpperCase()}</td><td style="font-size:7pt;vertical-align:middle">CÓDIGO</td><td class="val">${n.codigo||''}</td><td colspan="3" style="vertical-align:middle;font-size:7pt">FIRMA Y SELLO</td><td colspan="3" style="height:60px"></td></tr>
+    <tr class="firma-row"><td colspan="2" style="font-size:7pt;vertical-align:middle">NOMBRE</td><td colspan="2" class="val">${(n.medico||'').toUpperCase()}</td><td style="font-size:7pt;vertical-align:middle">CÓDIGO</td><td class="val">${n.codigo||''}</td><td colspan="3" style="vertical-align:middle;font-size:7pt">FIRMA Y SELLO</td><td colspan="3" style="height:60px;text-align:center;vertical-align:middle">${getFirmaOverlayHtml('cert')}</td></tr>
   </table></body></html>`;
   const win=window.open('','_blank','width=900,height=700');win.document.write(html);win.document.close();
 }
@@ -3162,9 +4035,24 @@ function printStyles(){
   .logo-c{text-align:center;margin-bottom:2px}.logo-c img{max-height:50px;object-fit:contain}`;
 }
 function ck(val,match){return val===match?'☒':'☐';}
-function printOpen(html){const w=window.open('','_blank','width=900,height=700');w.document.write(html);w.document.close();}
+function printOpen(html){
+  // Asegurar position:relative en body para que overlay funcione
+  html=html.replace('<body ','<body style="position:relative" ').replace('<body>','<body style="position:relative">');
+  const w=window.open('','_blank','width=900,height=700');w.document.write(html);w.document.close();
+}
 
 function printCertOficial(){
+  // === DIAGNÓSTICO FIRMA ===
+  const _firmaDebug = getFirmaActual();
+  const _cfgDebug = getFirmaCfg();
+  console.log('[FIRMA DEBUG] S.u.firma:', S.u?.firma ? 'OK ('+Math.round((S.u.firma.length/1024))+'KB)' : 'VACÍO');
+  console.log('[FIRMA DEBUG] getFirmaActual():', _firmaDebug ? 'OK ('+Math.round((_firmaDebug.length/1024))+'KB)' : 'VACÍO');
+  console.log('[FIRMA DEBUG] cfg.cert:', _cfgDebug.cert);
+  console.log('[FIRMA DEBUG] localStorage vw_firma_'+(S.u?.cedula||'?')+':', localStorage.getItem('vw_firma_'+(S.u?.cedula||''))? 'OK':'VACÍO');
+  if(!_firmaDebug){
+    if(!confirm('⚠️ No se encontró firma/sello.\n\nEl certificado se generará SIN firma.\n\n¿Continuar de todas formas?')) return;
+  }
+  // === FIN DIAGNÓSTICO ===
   saveFichaSection();
   const medNom=document.getElementById('fo_medico')?.value;
   const medCod=document.getElementById('fo_codmed')?.value;
@@ -3172,7 +4060,7 @@ function printCertOficial(){
   const d=FO.data,a=d.a||{},b=d.b||{},l=d.l||{},m=d.m||{},n=d.n||{},ec=getEmpCfg();
   const f=(b.fecha_atencion||TD).split('-'),apt=l.aptitud||'',tipo=b.tipo_eval||'INGRESO';
   const recs=((m.estandar||[]).join(' - ')+(m.medicas?' - '+m.medicas:'')).toUpperCase();
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificado Aptitud</title><style>${printStyles()}</style></head><body onload="window.print()">
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificado Aptitud</title><style>${printStyles()}</style></head><body onload="window.print()" style="position:relative">
   ${ec.logo?`<div class="logo-c"><img src="${ec.logo}"></div>`:''}
   <table>
   <tr><td colspan="35" class="tit">CERTIFICADO  - EVALUACIÓN MÉDICA  OCUPACIONAL</td></tr>
@@ -3194,7 +4082,7 @@ function printCertOficial(){
   <tr><td colspan="35" class="obs" style="min-height:60px">${recs}</td></tr>
   <tr><td colspan="35" class="nb" style="font-size:6.5pt;font-style:italic;padding:5px;line-height:1.6">Con este documento certifico que el trabajador se ha sometido a la evaluación médica requerida para el ingreso / la ejecución / el reingreso y retiro al puesto laboral y se le ha informado sobre los riesgos relacionados con el trabajo emitiendo recomendaciones relacionadas con su estado de salud.<br><br>La presente certificación se expide con base en el formulario de Evaluación Ocupacional, el cual tiene carácter de confidencial.</td></tr>
   <tr><td colspan="18" class="sec">E. DATOS DEL PROFESIONAL</td><td colspan="17" class="sec">F. FIRMA DEL USUARIO</td></tr>
-  <tr style="height:50px"><td colspan="6" class="s" style="vertical-align:middle">NOMBRE Y APELLIDO</td><td colspan="6" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="3" class="s" style="vertical-align:middle">CÓDIGO MEDICO</td><td colspan="3" class="v">${n.codigo||''}</td><td colspan="9" class="c s">FIRMA Y SELLO</td><td colspan="8"></td></tr>
+  <tr style="height:65px"><td colspan="6" class="s" style="vertical-align:middle">NOMBRE Y APELLIDO</td><td colspan="6" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="3" class="s" style="vertical-align:middle">CÓDIGO MEDICO</td><td colspan="3" class="v">${n.codigo||''}</td><td colspan="9" class="c s">FIRMA Y SELLO</td><td colspan="8" style="text-align:center;vertical-align:middle">${getFirmaOverlayHtml('cert')}</td></tr>
   </table></body></html>`;
   printOpen(html);
 }
@@ -3210,7 +4098,8 @@ async function generarConfidencialidad(){
     cargo: 'Médico Ocupacional',
     empresa: a.empresa||p.empresa||'',
     ciudad: p.ciudad||'Machala',
-    fecha: b.fecha_atencion||TD
+    fecha: b.fecha_atencion||TD,
+    firma: getFirmaDoc('conf')?.img||''
   };
   const btn=event?.target;
   if(btn){btn.disabled=true;btn.textContent='⏳ Generando...';}
@@ -3280,6 +4169,7 @@ async function generarPDFOficial(modo='formulario'){
     m:d.m||{},
     n:d.n||{medico:mc.nombre||'',codigo:mc.codigo||''},
     r:d.r||{},
+    _firma:getFirmaActual()||'',
   };
   
   const btn=event?.target;
@@ -3299,7 +4189,7 @@ async function generarPDFOficial(modo='formulario'){
     link.download=`formulario_${(d.a?.ap1||'').toUpperCase()}_${(d.a?.n1||'').toUpperCase()}_${(d.b?.fecha_atencion||'').replace(/-/g,'')}.pdf`;
     link.click();
     URL.revokeObjectURL(url);
-    toast('✅ PDF generado correctamente');
+    alert('✅ PDF generado correctamente');
   }catch(err){
     console.error('Error generando PDF:',err);
     alert('❌ Error generando PDF: '+err.message+'\n\nSi el servicio está iniciando, espera 1 minuto e intenta de nuevo.');
@@ -3308,11 +4198,20 @@ async function generarPDFOficial(modo='formulario'){
   }
 }
 
+function printFichaOficialDirecto(){
+  // Llama printFichaOficial pero sin leer inputs del DOM
+  // (los datos ya están en FO.data cargados desde Supabase)
+  printFichaOficial();
+}
+
 function printFichaOficial(){
-  saveFichaSection();
-  const medNom=document.getElementById('fo_medico')?.value;
-  const medCod=document.getElementById('fo_codmed')?.value;
-  if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
+  // Solo guardar sección y leer inputs si estamos en vista de ficha
+  if(S.v==='ficha'){
+    saveFichaSection();
+    const medNom=document.getElementById('fo_medico')?.value;
+    const medCod=document.getElementById('fo_codmed')?.value;
+    if(medNom||medCod) FO.data.n={medico:medNom||'',codigo:medCod||''};
+  }
   const d=FO.data,a=d.a||{},b=d.b||{},c=d.c||{},dd2=d.d||{},e=d.e||{},f=d.f||{},g=d.g||{},h=d.h||{},ii2=d.i||{},j=d.j||{},k=d.k||{},l=d.l||{},m=d.m||{},n=d.n||{};
   const ec=getEmpCfg(),p=gP(FO.pid)||{};
   const fa=(b.fecha_atencion||TD).split('-');
@@ -3539,12 +4438,12 @@ function printFichaOficial(){
 
   // O. Datos profesional
   pg3+=`<tr><td colspan="33" class="sec">O. DATOS DEL PROFESIONAL</td><td colspan="29" class="sec">P. FIRMA DEL TRABAJADOR</td></tr>
-  <tr style="height:50px"><td colspan="12" class="s">NOMBRES Y APELLIDOS</td><td colspan="8" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="6" class="s">CÓDIGO MEDICO</td><td colspan="7" class="v">${n.codigo||''}</td><td colspan="15" class="c s">FIRMA Y SELLO</td><td colspan="14"></td></tr>
+  <tr style="height:50px"><td colspan="12" class="s">NOMBRES Y APELLIDOS</td><td colspan="8" class="v">${(n.medico||'').toUpperCase()}</td><td colspan="6" class="s">CÓDIGO MEDICO</td><td colspan="7" class="v">${n.codigo||''}</td><td colspan="15" class="c s">FIRMA Y SELLO</td><td colspan="14" style="text-align:center;vertical-align:middle">${getFirmaOverlayHtml('ficha')}</td></tr>
   </table>`;
 
   // Unir todo
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ficha Ocupacional</title>
-  <style>${printStyles()}</style></head><body onload="window.print()">
+  <style>${printStyles()}</style></head><body onload="window.print()" style="position:relative">
   ${pg1}
   <div class="pbreak"></div>
   ${pg2}
@@ -4360,30 +5259,7 @@ async function descargarYEliminar(tabla,campo){
   await eliminarRegistros(tabla,campo);
 }
 
-async function eliminarPacientesSinCitas(){
-  if(!DB_OK){alert('⚠️ Sin conexión a Supabase');return;}
-  
-  // Buscar pacientes que no tienen citas
-  const pacientes=S.pts||[];
-  const citasPids=new Set((S.apt||[]).map(a=>a.pid));
-  const sinCitas=pacientes.filter(p=>!citasPids.has(p.id));
-  
-  if(sinCitas.length===0){alert('✅ Todos los pacientes tienen al menos una cita. No hay nada que limpiar.');return;}
-  
-  if(!confirm(`🗑️ Se encontraron ${sinCitas.length} pacientes sin citas.\n\n¿Eliminarlos?\n\nEsta acción es PERMANENTE.`))return;
-  
-  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='⏳ Eliminando...';}
-  try{
-    for(const p of sinCitas){
-      await SB.del('pacientes',`id=eq.${p.id}`);
-      await SB.del('fichas_ocupacionales',`paciente_id=eq.${p.id}`);
-    }
-    S.pts=S.pts.filter(p=>citasPids.has(p.id));
-    alert(`✅ ${sinCitas.length} pacientes sin citas eliminados`);
-    render();
-  }catch(e){alert('❌ Error: '+e.message);}
-  finally{if(btn){btn.disabled=false;btn.textContent='🗑️ Limpiar pacientes sin citas';}}
-}
+
 
 // ═══ INIT ═══
 applyTheme();
