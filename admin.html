@@ -5375,7 +5375,7 @@ async function downloadExcelAtendidos(periodo){
     });
 
     const row=ws.addRow(rowData);
-    row.height=18;
+    // altura automática según contenido
     const isEven=idx%2===0;
     const bgBase=item.conCita?(isEven?'FFF8FAFC':'FFFFFFFF'):'FFFFF9E6';
 
@@ -5384,8 +5384,9 @@ async function downloadExcelAtendidos(periodo){
       c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bgBase}};
       c.border={top:{style:'thin',color:{argb:'FFE2E8F0'}},bottom:{style:'thin',color:{argb:'FFE2E8F0'}},left:{style:'thin',color:{argb:'FFE2E8F0'}},right:{style:'thin',color:{argb:'FFE2E8F0'}}};
       // Centrar columnas cortas
-      const centradas=[1,2,4,6,9,...colsDinamicas.map((_,i)=>10+i)];
-      c.alignment={vertical:'middle',horizontal:centradas.includes(col)?'center':'left',wrapText:col===7};
+      const centradas=[1,2,4,5,6,9,...colsDinamicas.map((_,i)=>10+i)];
+      const wrapCols=[7,8]; // Lab y RX con wrap
+      c.alignment={vertical:'middle',horizontal:centradas.includes(col)?'center':'left',wrapText:wrapCols.includes(col)};
       // Color ✓
       if(c.value==='✓'){c.font={name:'Arial',size:11,bold:true,color:{argb:'FF16A34A'}};}
       // Color ✗
