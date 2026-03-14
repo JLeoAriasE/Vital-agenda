@@ -1337,7 +1337,25 @@ function rNrs(){
     </div>
   </div></div>
 
-  ${tA.length===0?'<div class="cd"><div class="es"><h4>Sin citas pendientes</h4></div></div>':cards}`;
+  ${(()=>{
+    // Pacientes sin cita registrados hoy
+    const pidsCon=new Set(tA.map(a=>a.pid));
+    const sinCita=S.pts.filter(p=>!pidsCon.has(p.id)&&(p.created_at?p.created_at.split('T')[0]===TD:fd===TD));
+    const cardsSin=sinCita.map(p=>`<div class="cd" style="margin-bottom:10px;border-left:3px solid var(--ws)">
+      <div class="cdh" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="uav uav-e" style="width:36px;height:36px;font-size:12px">${ini(p.nombre||'?')}</div>
+          <div>
+            <div style="font-weight:700;font-size:14px">${(p.nombre||'').replace('||',' ')}</div>
+            <div style="font-size:11px;color:var(--tm)">${p.empresa||''} · ${p.cedula||''}</div>
+          </div>
+        </div>
+        <span class="ba ba-w" style="font-size:10px">Sin cita agendada</span>
+      </div>
+    </div>`).join('');
+    if(tA.length===0&&sinCita.length===0)return '<div class="cd"><div class="es"><h4>Sin pacientes registrados hoy</h4></div></div>';
+    return (tA.length>0?cards:'')+(sinCita.length>0?`<div style="margin-top:16px"><div style="font-size:12px;font-weight:700;color:var(--tm);margin-bottom:8px;padding:6px 10px;background:var(--ws);border-radius:6px">⚠️ ${sinCita.length} paciente(s) registrados SIN cita agendada</div>${cardsSin}</div>`:'');
+  })()}`
 }
 
 // ═══ LAB ORDERS (lab role: only lab) ═══
@@ -5234,8 +5252,25 @@ async function downloadExcelAtendidos(periodo){
     desde='2020-01-01';hasta='2099-12-31';
   }
 
+  // Pacientes con cita en el período
   const citas=S.apt.filter(a=>a.fecha>=desde&&a.fecha<=hasta&&a.estado!=='cancelada');
-  if(citas.length===0){alert('No hay pacientes atendidos en ese período');return;}
+  const pidsCitas=new Set(citas.map(a=>a.pid));
+
+  // Pacientes sin cita registrados en el período (por created_at si disponible)
+  // Incluir todos los pacientes que no tienen cita pero están en el sistema
+  // Para el reporte: combinar pacientes con cita + pacientes registrados hoy sin cita
+  const ptsSinCita=S.pts.filter(p=>{
+    if(pidsCitas.has(p.id))return false; // ya está en citas
+    // Si tiene created_at verificar fecha, si no incluir en "hoy"
+    if(p.created_at){
+      const fc=p.created_at.split('T')[0];
+      return fc>=desde&&fc<=hasta;
+    }
+    // Sin fecha de creación: incluir solo si el período es "hoy" o "todo"
+    return periodo==='hoy'||periodo==='todo';
+  });
+
+  if(citas.length===0&&ptsSinCita.length===0){alert('No hay pacientes registrados en ese período');return;}
 
   // Crear libro
   const wb=new ExcelJS.Workbook();
@@ -5263,25 +5298,36 @@ async function downloadExcelAtendidos(periodo){
     c.border={top:{style:'thin',color:{argb:'FF2B6CB0'}},bottom:{style:'thin',color:{argb:'FF2B6CB0'}},left:{style:'thin',color:{argb:'FF2B6CB0'}},right:{style:'thin',color:{argb:'FF2B6CB0'}}};
   });
 
-  // Datos
-  citas.sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).forEach((a,idx)=>{
+  // Combinar: pacientes con cita + pacientes sin cita
+  const filasConCita=citas.sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).map(a=>{
     const p=gP(a.pid)||{};
+    return{p,fecha:a.fecha,tipo:a.tipo,conCita:true};
+  });
+  const filasSinCita=ptsSinCita.map(p=>{
+    const fc=p.created_at?p.created_at.split('T')[0]:TD;
+    return{p,fecha:fc,tipo:'Sin cita',conCita:false};
+  });
+  const todasFilas=[...filasConCita,...filasSinCita].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+
+  // Datos
+  todasFilas.forEach((item,idx)=>{
+    const p=item.p;
     let fnac='';
     if(p.fecha_nacimiento){const pts=p.fecha_nacimiento.split('-');if(pts.length===3)fnac=pts[2]+'/'+pts[1]+'/'+pts[0];}
     const row=ws.addRow({
       n:idx+1,
-      nombre:(p.nombre||'').toUpperCase(),
+      nombre:(p.nombre||'').replace('||',' ').toUpperCase(),
       cedula:p.cedula||'',
       celular:p.telefono||'',
       ciudad:(p.ciudad||'').toUpperCase(),
-      fregistro:a.fecha,
+      fregistro:item.fecha,
       fnac:fnac,
       empresa:(p.empresa||'').toUpperCase()
     });
     const isEven=(idx%2===0);
     row.eachCell({includeEmpty:true},(c,col)=>{
       c.font={name:'Arial',size:10};
-      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:isEven?'FFF0F4F8':'FFFFFFFF'}};
+      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:item.conCita?(isEven?'FFF0F4F8':'FFFFFFFF'):'FFFFF9E6'}};
       c.border={top:{style:'thin',color:{argb:'FFE2E8F0'}},bottom:{style:'thin',color:{argb:'FFE2E8F0'}},left:{style:'thin',color:{argb:'FFE2E8F0'}},right:{style:'thin',color:{argb:'FFE2E8F0'}}};
       c.alignment={vertical:'middle',horizontal:(col===1||col===3||col===4||col===5||col===6||col===7)?'center':'left'};
     });
@@ -5289,7 +5335,7 @@ async function downloadExcelAtendidos(periodo){
 
   // Congelar encabezado + filtro
   ws.views=[{state:'frozen',ySplit:1}];
-  ws.autoFilter={from:'A1',to:`H${citas.length+1}`};
+  ws.autoFilter={from:'A1',to:`H${todasFilas.length+1}`};
 
   // Auto-ajustar ancho de NOMBRE (col 2) y EMPRESA (col 8)
   let maxNombre=8,maxEmpresa=8;
