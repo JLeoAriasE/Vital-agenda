@@ -1149,7 +1149,6 @@ function rSide(){
     <div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">🦴 Radiología</div>
     <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Médico</div>
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
-    <div class="ni ${S.v==='psisocial'?'on':''}" onclick="nav('psisocial')">📊 Test Psicosociales</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
 
@@ -1169,7 +1168,6 @@ function rSide(){
     <div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">🦴 Radiología</div>
     <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Médico</div>
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
-    <div class="ni ${S.v==='psisocial'?'on':''}" onclick="nav('psisocial')">📊 Test Psicosociales</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
     <div class="ni ${S.v==='umg'?'on':''}" onclick="nav('umg')">${ic('up')} Usuarios</div>
@@ -1181,9 +1179,9 @@ function rSide(){
   }else if(isR()){
     items=`<div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">🦴 Mis Órdenes RX</div>`;
   }else if(isM()){
-    items=`<div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Mis Órdenes</div><div class="ni ${S.v==='psisocial'?'on':''}" onclick="nav('psisocial')">📊 Test Psicosociales</div>`;
+    items=`<div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Mis Órdenes</div>`;
   }else if(isPsi()){
-    items=`<div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Mis Órdenes Psicología</div><div class="ni ${S.v==='psisocial'?'on':''}" onclick="nav('psisocial')">📊 Test Psicosociales</div>`;
+    items=`<div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Mis Órdenes Psicología</div>`;
   }
   return `<aside class="side ${S.so?'open':''}">
     <div class="brand">${getEmpCfg().logo?`<img src="${getEmpCfg().logo}" style="width:${Math.min(getEmpCfg().logo_size||36,50)}px;height:${Math.min(getEmpCfg().logo_size||36,50)}px;object-fit:contain;border-radius:9px">`:`<div class="brand-i">${ic('cal',18)}</div>`}<div><h1>${getEmpCfg().nombre||'MediAgenda'}</h1><small>${getEmpCfg().direccion||'Salud Ocupacional'}</small></div></div>
@@ -1744,13 +1742,20 @@ async function delCie10(cid){
 
 // ═══ PSICOLOGÍA ORDERS ═══
 function rPsiO(){
+  const psiTab=S.psiTab||'ordenes';
+  if(psiTab==='test')return rPsiSocial();
+
   const psiCats=['psico_ocupacional','psico_clinica'];
   const o=S.ord.filter(x=>psiCats.includes(x.cat)).sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1));
   const pend=o.filter(x=>x.estado==='pendiente').length;
   const ocup=o.filter(x=>x.cat==='psico_ocupacional');
   const clin=o.filter(x=>x.cat==='psico_clinica');
 
-  return`<div class="ph"><div><h2>🧠 Órdenes de Psicología</h2><p class="ph-s">${pend} pendientes de ${o.length} total</p></div></div>
+  return`<div class="ph"><div><h2>🧠 Psicología</h2><p class="ph-s">${pend} pendientes de ${o.length} total</p></div></div>
+  <div class="cvtabs" style="margin-bottom:14px">
+    <button class="cvt ${psiTab==='ordenes'?'on':''}" onclick="S.psiTab='ordenes';render()">🧠 Órdenes Psicológicas</button>
+    <button class="cvt ${psiTab==='test'?'on':''}" onclick="S.psiTab='test';S.psiSocialTab='lista';render()">📊 Test Psicosociales</button>
+  </div>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px">
     <div class="cd" style="margin:0"><div class="cdb" style="text-align:center;padding:14px">
