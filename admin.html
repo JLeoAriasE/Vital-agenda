@@ -2071,7 +2071,7 @@ async function descargarInformePsi(eid){
   if(typeof PptxGenJS==='undefined'){
     await new Promise((resolve,reject)=>{
       const s=document.createElement('script');
-      s.src='https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js';
+      s.src='https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
       s.onload=resolve;s.onerror=reject;
       document.head.appendChild(s);
     });
