@@ -2281,13 +2281,20 @@ async function crearEval(){
 async function guardarRespuesta(eid){
   // Recoger respuestas
   const resp={};
-  let incompleto=false;
+  const sinResponder=[];
   for(let n=1;n<=58;n++){
     const sel=document.querySelector(`input[name="p${n}"]:checked`);
-    if(!sel){incompleto=true;break;}
-    resp[n]=parseInt(sel.value);
+    if(!sel){sinResponder.push(n);}
+    else resp[n]=parseInt(sel.value);
   }
-  if(incompleto){alert('⚠️ Debes responder todas las preguntas (1 a 58) antes de guardar.');return;}
+  if(sinResponder.length>0){
+    const preg=MINTE_PREGUNTAS.find(p=>p.n===sinResponder[0]);
+    alert(`⚠️ Faltan ${sinResponder.length} pregunta(s) por responder.\n\nPrimera sin responder:\nPregunta ${sinResponder[0]}: "${preg?.txt||''}"\n\nTodas las pendientes: ${sinResponder.join(', ')}`);
+    // Hacer scroll a la primera pregunta sin responder
+    const el=document.querySelector(`input[name="p${sinResponder[0]}"]`);
+    if(el){el.closest('div[style]')?.scrollIntoView({behavior:'smooth',block:'center'});}
+    return;
+  }
   const dg={
     area:document.getElementById('dg_area')?.value||'',
     genero:document.getElementById('dg_genero')?.value||'',
