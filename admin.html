@@ -599,9 +599,13 @@ function openModal(h){
   closeModal();
   const o=document.createElement('div');o.className='mo';o.id='_modal';
   o.innerHTML=`<div class="ml" onclick="event.stopPropagation()">${h}</div>`;
+  // Cerrar al hacer clic fuera del modal
+  o.addEventListener('click',closeModal);
   document.body.appendChild(o);
 }
 function closeModal(){const m=document.getElementById('_modal');if(m)m.remove();}
+// Cerrar modal con tecla ESC
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
 
 // ═══ PATIENT MODAL ═══
 function pmMod(p){
@@ -5378,10 +5382,10 @@ function sendWA(aid,tipo){
           📋 Recordatorio cita ficha ocupacional
           ${sugerido==='ficha'?'<span style="font-size:9px;background:rgba(255,255,255,.3);padding:2px 6px;border-radius:4px;margin-left:6px">✨ Sugerido</span>':''}
         </button>`:''}
-        <button class="btn" style="text-align:left;padding:10px 14px;background:#0369a1;color:#fff" onclick="closeModal();_enviarWA('${aid}','consulta')">
+        ${tieneMed?`<button class="btn" style="text-align:left;padding:10px 14px;background:#0369a1;color:#fff" onclick="closeModal();_enviarWA('${aid}','consulta')">
           🩺 Recordatorio consulta médica ${a.empresa==='Particular'?'(particular)':''}
           ${sugerido==='consulta'?'<span style="font-size:9px;background:rgba(255,255,255,.3);padding:2px 6px;border-radius:4px;margin-left:6px">✨ Sugerido</span>':''}
-        </button>
+        </button>`:''} 
         <button class="btn" style="text-align:left;padding:10px 14px;background:#16a34a;color:#fff" onclick="closeModal();_enviarWA('${aid}','completado')">
           🤩 Proceso completado + calificación
           ${sugerido==='completado'?'<span style="font-size:9px;background:rgba(255,255,255,.3);padding:2px 6px;border-radius:4px;margin-left:6px">✨ Sugerido</span>':''}
