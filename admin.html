@@ -225,7 +225,7 @@ async function loadAll(){
     // Si hay usuario logueado, actualizar su firma desde la lista recargada
     if(S.u){const uu=S.usrs.find(x=>x.id===S.u.id);if(uu){S.u.firma=uu.firma;S.u.firma_cfg=uu.firma_cfg;}}
     S.pts=pts?pts.map(p=>({id:p.id,nombre:p.nombre,cedula:p.cedula,telefono:p.telefono||'',email:p.email||'',genero:p.genero||'',direccion:p.direccion||'',ciudad:p.ciudad||'',empresa:p.empresa,cargo:p.cargo||'',fecha_nacimiento:p.fecha_nacimiento||'',created_at:p.created_at||''})):[];
-    S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin'})):[];
+    S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin',empresa:a.empresa||''})):[];
     S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado})):[];
     S.empresas_cli=emps?emps.map(e=>({id:e.id,nombre:e.nombre,ruc:e.ruc||'',ciiu:e.ciiu||'',direccion:e.direccion||'',telefono:e.telefono||'',contacto:e.contacto||''})):[];
     S.cargos_ciuo=cargos?cargos.map(c=>({id:c.id,codigo:c.codigo,nombre:c.nombre})):[];
@@ -377,7 +377,7 @@ async function addA(d){
   d.estado='pendiente';d.asistio=null;d.exAsig=false;
   if(DB_OK){
     try{
-      const r=await SB.post('citas',{pid:d.pid,tipo:d.tipo,fecha:d.fecha,hora:d.hora,estado:d.estado,asistio:d.asistio,ex_asig:d.exAsig,origen:d.origen||'admin'});
+      const r=await SB.post('citas',{pid:d.pid,tipo:d.tipo,fecha:d.fecha,hora:d.hora,estado:d.estado,asistio:d.asistio,ex_asig:d.exAsig,origen:d.origen||'admin',empresa:d.empresa||''});
       if(r&&r[0]){d.id=r[0].id;S.apt.push(d);render();showToast('✅ Cita agendada correctamente','ok');return;}
       else{d._ts=Date.now();getOfflineQCitas().concat([d]);saveOfflineQCitas([...getOfflineQCitas(),d]);d.id=gid();S.apt.push(d);render();showToast('⚠️ Sin respuesta — cita guardada localmente','warn');}
     }catch(e){
@@ -689,14 +689,19 @@ function svP(eid){
   const nombres=n2?n1+' '+n2:n1;
   const d={nombre:apellidos+'||'+nombres,cedula:document.getElementById('mc').value,genero:document.getElementById('mg').value,telefono:document.getElementById('mt').value,email:document.getElementById('me').value,direccion:document.getElementById('md').value,ciudad:document.getElementById('mci').value,empresa:document.getElementById('mem').value,cargo:document.getElementById('mcg').value,fecha_nacimiento:document.getElementById('mfn').value};
   if(!d.empresa){alert('⚠️ La Empresa es obligatoria');return;}
+  const empresaVisita=(document.getElementById('mem')?.value||'').trim().toUpperCase();
   closeModal();
   if(eid){
-    // Paciente existente — actualizar datos y mostrar confirmación
+    // Paciente existente — actualizar datos Y crear nueva cita independiente
     d.id=eid;
     updP(d);
-    showToast('✅ Datos actualizados. Visita registrada.','ok');
+    // Crear cita nueva independiente con la empresa de esta visita
+    const nuevaCita={pid:eid,tipo:'Consulta General',fecha:TD,hora:'07:00',empresa:empresaVisita||d.empresa};
+    addA(nuevaCita);
+    showToast('✅ Visita registrada correctamente','ok');
   }else{
-    addP(d);
+    // Paciente nuevo — registrar y crear cita
+    addP(d).then&&addP(d);
   }
 }
 
@@ -706,17 +711,30 @@ function amMod(pre){
   const medSlots=getMedSlots();
   const tO=medSlots.map(t=>`<option value="${t}">${fT(t)}</option>`).join('');
   const mc=getMedCfg();
+  // Pre-cargar empresa del paciente seleccionado
+  const pPre=pre?S.pts.find(x=>x.id===pre):null;
   openModal(`<div class="mhd"><h3>Nueva Cita Médica</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
   <div class="mbd">
     <div style="background:var(--as);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:var(--tm)">
       🩺 Horario médico: <strong style="color:var(--t)">${mc.inicio_h>12?mc.inicio_h-12:mc.inicio_h}:${String(mc.inicio_m).padStart(2,'0')} ${mc.inicio_h>=12?'PM':'AM'} — ${mc.fin_h>12?mc.fin_h-12:mc.fin_h}:${String(mc.fin_m).padStart(2,'0')} ${mc.fin_h>=12?'PM':'AM'}</strong> · Cada <strong style="color:var(--t)">${mc.intervalo} min</strong> · ${medSlots.length} cupos
     </div>
-    <div class="fg"><label>Paciente *</label><select class="fi" id="ap"><option value="">Seleccionar...</option>${opts}</select></div>
+    <div class="fg"><label>Paciente *</label><select class="fi" id="ap" onchange="onPacienteChange(this)"><option value="">Seleccionar...</option>${opts}</select></div>
+    <div class="fg"><label>Empresa / Motivo de visita *</label><input class="fi" id="a_empresa" value="${pPre?.empresa||''}" placeholder="Ej: ABC S.A. o Particular"></div>
     <div class="fg"><label>Tipo *</label><select class="fi" id="at"><option>Pre-ocupacional</option><option>Periódico</option><option>Retiro</option><option>Consulta General</option><option>Reintegro</option><option>Especial</option></select></div>
     <div class="fr"><div class="fg"><label>Fecha *</label><input type="date" class="fi" id="af" min="${TD}"></div><div class="fg"><label>Hora *</label><select class="fi" id="ah"><option value="">—</option>${tO}</select></div></div>
   </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svA()">Agendar</button></div>`);
 }
-function svA(){const d={pid:document.getElementById('ap').value,tipo:document.getElementById('at').value,fecha:document.getElementById('af').value,hora:document.getElementById('ah').value};if(!d.pid||!d.fecha||!d.hora){alert('Completa los campos');return;}closeModal();addA(d);}
+function onPacienteChange(sel){
+  const pid=sel.value;
+  const p=S.pts.find(x=>x.id===pid);
+  const emp=document.getElementById('a_empresa');
+  if(emp&&p)emp.value=p.empresa||'';
+}
+function svA(){
+  const d={pid:document.getElementById('ap').value,tipo:document.getElementById('at').value,fecha:document.getElementById('af').value,hora:document.getElementById('ah').value,empresa:document.getElementById('a_empresa')?.value||''};
+  if(!d.pid||!d.fecha||!d.hora){alert('Completa los campos obligatorios');return;}
+  closeModal();addA(d);
+}
 
 // ═══ USER MODAL ═══
 function umMod(uid){
@@ -1293,7 +1311,7 @@ function rNrs(){
           <div class="uav uav-e" style="width:36px;height:36px;font-size:12px">${ini(p?.nombre||'?')}</div>
           <div>
             <div style="font-weight:700;font-size:14px">${p?.nombre||'—'}</div>
-            <div style="font-size:11px;color:var(--tm)">${p?.empresa||''} · ${a.tipo} · <span class="mono">${fT(a.hora)}</span> · ${fD(a.fecha)}</div>
+            <div style="font-size:11px;color:var(--tm)">${a.empresa||p?.empresa||''} · ${a.tipo} · <span class="mono">${fT(a.hora)}</span> · ${fD(a.fecha)}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
@@ -5276,7 +5294,7 @@ async function downloadExcelAtendidos(periodo){
   const filasConCita=citas.sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora)).map(a=>{
     const p=gP(a.pid)||{};
     const ords=S.ord.filter(o=>o.aid===a.id);
-    return{p,fecha:a.fecha,tipo:a.tipo,conCita:true,ords};
+    return{p,fecha:a.fecha,tipo:a.tipo,conCita:true,ords,empresa:a.empresa||p.empresa||''};
   });
   const filasSinCita=ptsSinCita.map(p=>{
     const fc=p.created_at?p.created_at.split('T')[0]:TD;
@@ -5362,7 +5380,7 @@ async function downloadExcelAtendidos(periodo){
       fecha:item.fecha,
       nombre:nombreFmt,
       cedula:p.cedula||'',
-      empresa:(p.empresa||'').toUpperCase(),
+      empresa:(item.empresa||p.empresa||'').toUpperCase(),
       tipo:item.tipo||'-',
       lab:labTxt,
       rx:rxTxt,
