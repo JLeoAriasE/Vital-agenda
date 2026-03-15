@@ -2000,9 +2000,10 @@ function rIngresarRespuesta(eid){
     </div>
   </div></div>
   <div id="ps_preguntas">${html}</div>
-  <div class="cd" style="margin-top:14px"><div class="cdb" style="display:flex;gap:8px;justify-content:flex-end">
+  <div class="cd" style="margin-top:14px"><div class="cdb" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
     <button class="btn bg" onclick="S.psiSocialTab='lista';render()">Cancelar</button>
-    <button class="btn bp" onclick="guardarRespuesta('${eid}')">✅ Guardar Test #${nTest}</button>
+    <button class="btn bt" onclick="guardarRespuesta('${eid}','continuar')">✅ Guardar y continuar</button>
+    <button class="btn bp" onclick="guardarRespuesta('${eid}','finalizar')">🔒 Guardar y finalizar</button>
   </div></div>`;
 }
 
@@ -2278,7 +2279,7 @@ async function crearEval(){
   alert('❌ Error al crear la evaluación. Verifica la conexión.');
 }
 
-async function guardarRespuesta(eid){
+async function guardarRespuesta(eid, accion='continuar'){
   // Recoger respuestas
   const resp={};
   const sinResponder=[];
@@ -2306,7 +2307,12 @@ async function guardarRespuesta(eid){
     if(r&&r[0]){
       const e=(S.evalPsi||[]).find(x=>x.id===eid);
       if(e){if(!e._respuestas)e._respuestas=[];e._respuestas.push({id:r[0].id,respuestas:resp,datos_generales:dg});}
-      render();showToast('✅ Test guardado correctamente','ok');return;
+      if(accion==='finalizar'){
+        S.psiSocialTab='ver';S.evalVerId=eid;
+      }else{
+        S.psiSocialTab='ingresar';S.evalIngresarId=eid;
+      }
+      render();showToast(`✅ Test #${e._respuestas.length} guardado correctamente`,'ok');return;
     }
   }
   alert('❌ Error al guardar. Verifica la conexión.');
