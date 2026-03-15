@@ -247,6 +247,12 @@ async function loadAll(){
       if(c.clave==='dias_bloqueados'&&Array.isArray(v))localStorage.setItem('mediagenda_dias_bloqueados',JSON.stringify(v));
       if(c.clave==='dash_cfg'&&v&&Object.keys(v).length>0)localStorage.setItem('mediagenda_dash_cfg',JSON.stringify(v));
     });}
+    // Cargar evaluaciones psicosociales con respuestas
+    const evalPsi=await SB.get('eval_psicosocial','select=*&order=created_at.desc');
+    if(evalPsi&&evalPsi.length>0){
+      const evalResp=await SB.get('eval_psicosocial_respuestas','select=*&order=created_at.asc');
+      S.evalPsi=evalPsi.map(e=>({...e,_respuestas:(evalResp||[]).filter(r=>r.eval_id===e.id)}));
+    }else{S.evalPsi=[];}
     console.log('✅ Datos cargados desde Supabase');
     // Sincronizar datos guardados offline
     setTimeout(()=>{syncOfflineQ();syncOfflineQCitas();syncOfflineQOrd();}, 1500);
@@ -1143,6 +1149,7 @@ function rSide(){
     <div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">🦴 Radiología</div>
     <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Médico</div>
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
+    <div class="ni ${S.v==='psisocial'?'on':''}" onclick="nav('psisocial')">📊 Test Psicosociales</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
 
@@ -1162,6 +1169,7 @@ function rSide(){
     <div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">🦴 Radiología</div>
     <div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Médico</div>
     <div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Psicología</div>
+    <div class="ni ${S.v==='psisocial'?'on':''}" onclick="nav('psisocial')">📊 Test Psicosociales</div>
     <div class="nsc">Sistema</div>
     <div class="ni ${S.v==='empcli'?'on':''}" onclick="nav('empcli')">🏢 Empresas Clientes</div>
     <div class="ni ${S.v==='umg'?'on':''}" onclick="nav('umg')">${ic('up')} Usuarios</div>
@@ -1175,7 +1183,7 @@ function rSide(){
   }else if(isM()){
     items=`<div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Mis Órdenes</div>`;
   }else if(isPsi()){
-    items=`<div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Mis Órdenes Psicología</div>`;
+    items=`<div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Mis Órdenes Psicología</div><div class="ni ${S.v==='psisocial'?'on':''}" onclick="nav('psisocial')">📊 Test Psicosociales</div>`;
   }
   return `<aside class="side ${S.so?'open':''}">
     <div class="brand">${getEmpCfg().logo?`<img src="${getEmpCfg().logo}" style="width:${Math.min(getEmpCfg().logo_size||36,50)}px;height:${Math.min(getEmpCfg().logo_size||36,50)}px;object-fit:contain;border-radius:9px">`:`<div class="brand-i">${ic('cal',18)}</div>`}<div><h1>${getEmpCfg().nombre||'MediAgenda'}</h1><small>${getEmpCfg().direccion||'Salud Ocupacional'}</small></div></div>
@@ -1190,7 +1198,7 @@ function rView(){
   if(S.v==='umg'&&!(isA()||isE())){return rDash();}
   switch(S.v){
     case'dash':return rDash();case'cal':return rCal();case'pts':return rPts();case'apt':return rApt();case'det':return rDet();
-    case'nrs':return rNrs();case'lord':return rLabO();case'rxord':return rRxO();case'medord':return rMedO();case'psiord':return rPsiO();case'empcli':return rEmpCli();case'cargos':return rCargos();case'cie10':return rCie10();case'ficha':return rFichaOcup();case'aord':return rAllO();case'umg':return rUsr();case'bkp':return rBkp();default:return(isA()||isE())?rDash():isL()?rLabO():isR()?rRxO():isM()?rMedO():isPsi()?rPsiO():rDash();
+    case'nrs':return rNrs();case'lord':return rLabO();case'rxord':return rRxO();case'medord':return rMedO();case'psiord':return rPsiO();case'psisocial':return rPsiSocial();case'empcli':return rEmpCli();case'cargos':return rCargos();case'cie10':return rCie10();case'ficha':return rFichaOcup();case'aord':return rAllO();case'umg':return rUsr();case'bkp':return rBkp();default:return(isA()||isE())?rDash():isL()?rLabO():isR()?rRxO():isM()?rMedO():isPsi()?rPsiO():rDash();
   }
 }
 
@@ -1759,6 +1767,540 @@ function rPsiO(){
   <td style="font-weight:500">${p?.nombre||'—'}</td><td style="font-size:11px">${p?.empresa||''}</td>
   <td><span class="ba ${EB[x.estado]}">${EL[x.estado]}</span></td>
   ${(isA()||isE()||isPsi())&&x.estado!=='completado'?`<td><button class="btn bsm bs" onclick="updO('${x.id}',{estado:'completado'})">✅ Completar</button></td>`:''}</tr>`;}).join('')}</tbody></table></div>`}</div>`;
+}
+
+// ═══ TEST PSICOSOCIALES ═══
+// Dimensiones Ministerio de Trabajo Ecuador
+const MINTE_DIMS=[
+  {id:'carga',label:'Carga y Ritmo de Trabajo',items:[1,2,3,4],bajo:'13 a 16',medio:'8 a 12',alto:'4 a 7',bajR:[13,16],medR:[8,12],altR:[4,7]},
+  {id:'competencias',label:'Desarrollo de Competencias',items:[5,6,7,8],bajo:'13 a 16',medio:'8 a 12',alto:'4 a 7',bajR:[13,16],medR:[8,12],altR:[4,7]},
+  {id:'liderazgo',label:'Liderazgo',items:[9,10,11,12,13,14],bajo:'18 a 24',medio:'12 a 17',alto:'6 a 11',bajR:[18,24],medR:[12,17],altR:[6,11]},
+  {id:'margen',label:'Margen de Acción y Control',items:[15,16,17,18],bajo:'13 a 16',medio:'8 a 12',alto:'4 a 7',bajR:[13,16],medR:[8,12],altR:[4,7]},
+  {id:'organizacion',label:'Organización del Trabajo',items:[19,20,21,22,23,24],bajo:'18 a 24',medio:'12 a 17',alto:'6 a 11',bajR:[18,24],medR:[12,17],altR:[6,11]},
+  {id:'recuperacion',label:'Recuperación',items:[25,26,27,28,29],bajo:'16 a 20',medio:'10 a 15',alto:'5 a 9',bajR:[16,20],medR:[10,15],altR:[5,9]},
+  {id:'soporte',label:'Soporte y Apoyo',items:[30,31,32,33,34],bajo:'16 a 20',medio:'10 a 15',alto:'5 a 9',bajR:[16,20],medR:[10,15],altR:[5,9]},
+  {id:'otros',label:'Otros Puntos Importantes',items:[35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58],bajo:'73 a 96',medio:'49 a 72',alto:'24 a 48',bajR:[73,96],medR:[49,72],altR:[24,48]},
+];
+const MINTE_PREGUNTAS=[
+  {n:1,txt:'Considero que son aceptables las solicitudes y requerimientos que me piden otras personas (compañeros de trabajo, usuarios, clientes)'},
+  {n:2,txt:'Decido el ritmo de trabajo en mis actividades'},
+  {n:3,txt:'Las actividades y/o responsabilidades que me fueron asignadas no me causan estrés'},
+  {n:4,txt:'Tengo suficiente tiempo para realizar todas las actividades que me han sido encomendadas dentro de mi jornada laboral'},
+  {n:5,txt:'Considero que tengo los suficientes conocimientos, habilidades y destrezas para desarrollar el trabajo para el cual fui contratado'},
+  {n:6,txt:'En mi trabajo aprendo y adquiero nuevos conocimientos, habilidades y destrezas de mis compañeros de trabajo'},
+  {n:7,txt:'En mi trabajo se cuenta con un plan de carrera, capacitación y/o entrenamiento para el desarrollo de mis conocimientos, habilidades y destrezas'},
+  {n:8,txt:'En mi trabajo se evalúa objetiva y periódicamente las actividades que realizo'},
+  {n:9,txt:'En mi trabajo se reconoce y se da crédito a la persona que realiza un buen trabajo o logran sus objetivos'},
+  {n:10,txt:'Mi jefe inmediato está dispuesto a escuchar propuestas de cambio e iniciativas de trabajo'},
+  {n:11,txt:'Mi jefe inmediato establece metas, plazos claros y factibles para el cumplimiento de mis funciones o actividades'},
+  {n:12,txt:'Mi jefe inmediato interviene, brinda apoyo, soporte y se preocupa cuando tengo demasiado trabajo que realizar'},
+  {n:13,txt:'Mi jefe inmediato me brinda suficientes lineamientos y retroalimentación para el desempeño de mi trabajo'},
+  {n:14,txt:'Mi jefe inmediato pone en consideración del equipo de trabajo, las decisiones que pueden afectar a todos'},
+  {n:15,txt:'En mi trabajo existen espacios de discusión para debatir abiertamente los problemas comunes y diferencias de opinión'},
+  {n:16,txt:'Me es permitido realizar el trabajo con colaboración de mis compañeros de trabajo y/u otras áreas'},
+  {n:17,txt:'Mi opinión es tomada en cuenta con respecto a fechas límites en el cumplimiento de mis actividades o cuando exista cambio en mis funciones'},
+  {n:18,txt:'Se me permite aportar con ideas para mejorar las actividades y la organización del trabajo'},
+  {n:19,txt:'Considero que las formas de comunicación en mi trabajo son adecuados, accesibles y de fácil comprensión'},
+  {n:20,txt:'En mi trabajo se informa regularmente de la gestión y logros de la empresa o institución a todos los trabajadores y servidores'},
+  {n:21,txt:'En mi trabajo se respeta y se toma en consideración las limitaciones de las personas con discapacidad para la asignación de roles y tareas'},
+  {n:22,txt:'En mi trabajo tenemos reuniones suficientes y significantes para el cumplimiento de los objetivos'},
+  {n:23,txt:'Las metas y objetivos en mi trabajo son claros y alcanzables'},
+  {n:24,txt:'Siempre dispongo de tareas y actividades a realizar en mi jornada y lugar de trabajo'},
+  {n:25,txt:'Después del trabajo tengo la suficiente energía como para realizar otras actividades'},
+  {n:26,txt:'En mi trabajo se me permite realizar pausas de periodo corto para renovar y recuperar la energía'},
+  {n:27,txt:'En mi trabajo tengo tiempo para dedicarme a reflexionar sobre mi desempeño en el trabajo'},
+  {n:28,txt:'Tengo un horario y jornada de trabajo que se ajusta a mis expectativas y exigencias laborales'},
+  {n:29,txt:'Todos los días siento que he descansado lo suficiente y que tengo la energía para iniciar mi trabajo'},
+  {n:30,txt:'El trabajo está organizado de tal manera que fomenta la colaboración de equipo y el diálogo con otras personas'},
+  {n:31,txt:'En mi trabajo percibo un sentimiento de compañerismo y bienestar con mis colegas'},
+  {n:32,txt:'En mi trabajo se brinda el apoyo necesario a los trabajadores sustitutos o trabajadores con algún grado de discapacidad y enfermedad'},
+  {n:33,txt:'En mi trabajo se me brinda ayuda técnica y administrativa cuando lo requiero'},
+  {n:34,txt:'En mi trabajo tengo acceso a la atención de un médico, psicólogo, trabajadora social, consejero, etc. en situaciones de crisis y/o rehabilitación'},
+  {n:35,txt:'En mi trabajo tratan por igual a todos, indistintamente la edad que tengan'},
+  {n:36,txt:'Las directrices y metas que me autoimpongo, las cumplo dentro de mi jornada y horario de trabajo'},
+  {n:37,txt:'En mi trabajo existe un buen ambiente laboral'},
+  {n:38,txt:'Tengo un trabajo donde los hombres y mujeres tienen las mismas oportunidades'},
+  {n:39,txt:'En mi trabajo me siento aceptado y valorado'},
+  {n:40,txt:'Los espacios y ambientes físicos en mi trabajo brindan las facilidades para el acceso de las personas con discapacidad'},
+  {n:41,txt:'Considero que mi trabajo está libre de amenazas, humillaciones, ridiculizaciones, burlas, calumnias o difamaciones reiteradas con el fin de causarme daño'},
+  {n:42,txt:'Me siento estable a pesar de cambios que se presentan en mi trabajo'},
+  {n:43,txt:'En mi trabajo estoy libre de conductas sexuales que afecten mi integridad física, psicológica y moral'},
+  {n:44,txt:'Considero que el trabajo que realizo no me causa efectos negativos a mi salud física y mental'},
+  {n:45,txt:'Me resulta fácil relajarme cuando no estoy trabajando'},
+  {n:46,txt:'Siento que mis problemas familiares o personales no influyen en el desempeño de las actividades en el trabajo'},
+  {n:47,txt:'Las instalaciones, ambientes, equipos, maquinaria y herramientas que utilizo para realizar el trabajo son las adecuadas para no sufrir accidentes de trabajo y enfermedades profesionales'},
+  {n:48,txt:'Mi trabajo está libre de acoso sexual'},
+  {n:49,txt:'En mi trabajo se me permite solucionar mis problemas familiares y personales'},
+  {n:50,txt:'Tengo un trabajo libre de conflictos estresantes, rumores maliciosos o calumniosos sobre mi persona'},
+  {n:51,txt:'Tengo un equilibrio y separo bien el trabajo de mi vida personal'},
+  {n:52,txt:'Estoy orgulloso de trabajar en mi empresa o institución'},
+  {n:53,txt:'En mi trabajo se respeta mi ideología, opinión política, religiosa, nacionalidad y orientación sexual'},
+  {n:54,txt:'Mi trabajo y los aportes que realizo son valorados y me generan motivación'},
+  {n:55,txt:'Me siento libre de culpa cuando no estoy trabajando en algo'},
+  {n:56,txt:'En mi trabajo no existen espacios de uso exclusivo de un grupo determinado de personas ligados a un privilegio'},
+  {n:57,txt:'Puedo dejar de pensar en el trabajo durante mi tiempo libre (pasatiempos, actividades de recreación, otros)'},
+  {n:58,txt:'Considero que me encuentro física y mentalmente saludable'},
+];
+
+function getRiesgo(dim,puntaje){
+  if(puntaje>=dim.bajR[0]&&puntaje<=dim.bajR[1])return{nivel:'Bajo',color:'#16a34a',bg:'#dcfce7'};
+  if(puntaje>=dim.medR[0]&&puntaje<=dim.medR[1])return{nivel:'Medio',color:'#d97706',bg:'#fef9c3'};
+  return{nivel:'Alto',color:'#dc2626',bg:'#fee2e2'};
+}
+function getRiesgoGlobal(total){
+  if(total>=175)return{nivel:'Bajo',color:'#16a34a',bg:'#dcfce7'};
+  if(total>=117)return{nivel:'Medio',color:'#d97706',bg:'#fef9c3'};
+  return{nivel:'Alto',color:'#dc2626',bg:'#fee2e2'};
+}
+
+function calcularResultadosMinte(respuestas){
+  // respuestas = array de arrays (una por trabajador) [{1:4,2:3,...}]
+  const n=respuestas.length;
+  if(n===0)return null;
+  const resultados=MINTE_DIMS.map(dim=>{
+    const suma=respuestas.reduce((acc,r)=>{
+      return acc+dim.items.reduce((s,i)=>s+(r[i]||0),0);
+    },0);
+    const promedio=Math.round(suma/n);
+    const riesgo=getRiesgo(dim,promedio);
+    return{...dim,promedio,suma,riesgo};
+  });
+  const totalGlobal=resultados.reduce((s,d)=>s+d.promedio,0);
+  const riesgoGlobal=getRiesgoGlobal(totalGlobal);
+  return{resultados,totalGlobal,riesgoGlobal,n};
+}
+
+function rPsiSocial(){
+  const tab=S.psiSocialTab||'lista';
+  const evals=S.evalPsi||[];
+  const minteEvals=evals.filter(e=>e.tipo==='ministerio');
+
+  if(tab==='nueva'){
+    return rNuevaEval();
+  }else if(tab==='ver'&&S.evalVerId){
+    return rVerEval(S.evalVerId);
+  }else if(tab==='ingresar'&&S.evalIngresarId){
+    return rIngresarRespuesta(S.evalIngresarId);
+  }
+
+  return`<div class="ph">
+    <div><h2>📊 Test Psicosociales</h2><p class="ph-s">${minteEvals.length} evaluaciones registradas</p></div>
+    <button class="btn bp" onclick="S.psiSocialTab='nueva';render()">➕ Nueva Evaluación</button>
+  </div>
+
+  <div class="cvtabs" style="margin-bottom:14px">
+    <button class="cvt on">📋 Ministerio de Trabajo Ecuador</button>
+    <button class="cvt" style="opacity:.5" title="Próximamente">🔬 FPsico (próximamente)</button>
+  </div>
+
+  ${minteEvals.length===0?`<div class="cd"><div class="es"><h4>No hay evaluaciones registradas</h4><p style="color:var(--tm)">Crea una nueva evaluación para comenzar</p></div></div>`:`
+  <div class="cd"><div class="cdh"><h3>Evaluaciones registradas</h3></div>
+  <div class="tw"><table><thead><tr><th>Empresa</th><th>RUC</th><th>Fecha</th><th>Universo</th><th>Riesgo Global</th><th>Acciones</th></tr></thead><tbody>
+  ${minteEvals.map(e=>{
+    const resp=e._respuestas||[];
+    const res=resp.length>0?calcularResultadosMinte(resp.map(r=>r.respuestas)):null;
+    const rg=res?res.riesgoGlobal:{nivel:'Sin datos',color:'var(--tm)',bg:'var(--ci)'};
+    return`<tr>
+      <td style="font-weight:600">${e.empresa_nombre||'—'}</td>
+      <td style="font-size:11px">${e.empresa_ruc||'—'}</td>
+      <td style="font-size:11px">${fD(e.fecha)}</td>
+      <td style="text-align:center"><span class="ba ba-t">${resp.length} test</span></td>
+      <td><span style="background:${rg.bg};color:${rg.color};padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700">${rg.nivel}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn bsm bp" onclick="S.psiSocialTab='ingresar';S.evalIngresarId='${e.id}';render()">➕ Ingresar</button>
+        <button class="btn bsm bg" onclick="S.psiSocialTab='ver';S.evalVerId='${e.id}';render()">📊 Ver</button>
+        ${isA()?`<button class="btn bsm bd" onclick="eliminarEval('${e.id}')">🗑️</button>`:''}
+      </td>
+    </tr>`;
+  }).join('')}
+  </tbody></table></div></div>`}`;
+}
+
+function rNuevaEval(){
+  const emps=S.empresas_cli||[];
+  return`<div class="ph">
+    <div><h2>➕ Nueva Evaluación Psicosocial</h2></div>
+    <button class="btn bg" onclick="S.psiSocialTab='lista';render()">◀ Volver</button>
+  </div>
+  <div class="cd"><div class="cdb">
+    <div class="fg"><label>Test a aplicar</label>
+      <select class="fi" id="ps_tipo">
+        <option value="ministerio">Ministerio de Trabajo Ecuador</option>
+      </select>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Empresa *</label>
+        <input class="fi" id="ps_empresa" placeholder="Nombre de la empresa" list="ps_emp_list">
+        <datalist id="ps_emp_list">${emps.map(e=>`<option value="${e.nombre}">`).join('')}</datalist>
+      </div>
+      <div class="fg"><label>RUC</label><input class="fi" id="ps_ruc" placeholder="RUC de la empresa"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Actividad Económica</label><input class="fi" id="ps_actividad" placeholder="Ej: Manufactura, Servicios..."></div>
+      <div class="fg"><label>Representante Legal</label><input class="fi" id="ps_representante" placeholder="Nombre del representante"></div>
+    </div>
+    <div class="fg"><label>Fecha de evaluación</label><input type="date" class="fi" id="ps_fecha" value="${TD}"></div>
+  </div>
+  <div class="mft" style="padding:14px"><button class="btn bg" onclick="S.psiSocialTab='lista';render()">Cancelar</button><button class="btn bp" onclick="crearEval()">✅ Crear Evaluación</button></div>
+  </div>`;
+}
+
+function rIngresarRespuesta(eid){
+  const e=(S.evalPsi||[]).find(x=>x.id===eid);
+  if(!e)return'';
+  const resp=e._respuestas||[];
+  const nTest=resp.length+1;
+
+  let html='';
+  MINTE_DIMS.forEach(dim=>{
+    html+=`<div style="background:var(--ci);border-radius:8px;padding:12px;margin-bottom:14px;border-left:4px solid var(--a)">
+      <div style="font-weight:700;font-size:13px;color:var(--a);margin-bottom:10px">${dim.label}</div>`;
+    dim.items.forEach(n=>{
+      const preg=MINTE_PREGUNTAS.find(p=>p.n===n);
+      html+=`<div style="margin-bottom:10px;padding:8px;background:var(--bg);border-radius:6px">
+        <div style="font-size:11px;margin-bottom:6px;color:var(--t)"><strong>${n}.</strong> ${preg.txt}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${[{v:4,l:'Completamente de acuerdo'},{v:3,l:'Parcialmente de acuerdo'},{v:2,l:'Poco de acuerdo'},{v:1,l:'En desacuerdo'}].map(op=>`
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid var(--bd);font-size:10px;background:var(--ci)">
+            <input type="radio" name="p${n}" value="${op.v}" style="margin:0"> ${op.v}. ${op.l}
+          </label>`).join('')}
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+
+  return`<div class="ph">
+    <div><h2>➕ Ingresar Test #${nTest}</h2><p class="ph-s">${e.empresa_nombre} · ${resp.length} test ingresados</p></div>
+    <button class="btn bg" onclick="S.psiSocialTab='lista';render()">◀ Volver</button>
+  </div>
+  <div style="background:var(--as);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px">
+    📋 <strong>Datos generales del trabajador</strong> (anónimos)
+  </div>
+  <div class="cd"><div class="cdb">
+    <div class="fr">
+      <div class="fg"><label>Área</label>
+        <select class="fi" id="dg_area"><option value="">—</option><option>Administrativa</option><option>Operativa</option></select>
+      </div>
+      <div class="fg"><label>Género</label>
+        <select class="fi" id="dg_genero"><option value="">—</option><option>Masculino</option><option>Femenino</option></select>
+      </div>
+      <div class="fg"><label>Edad</label>
+        <select class="fi" id="dg_edad"><option value="">—</option><option>18-24 años</option><option>25-34 años</option><option>35-44 años</option><option>45-54 años</option><option>55 años en adelante</option></select>
+      </div>
+      <div class="fg"><label>Antigüedad</label>
+        <select class="fi" id="dg_antiguedad"><option value="">—</option><option>0-2 años</option><option>3-10 años</option><option>11-20 años</option><option>≥21 años</option></select>
+      </div>
+    </div>
+  </div></div>
+  <div id="ps_preguntas">${html}</div>
+  <div class="cd" style="margin-top:14px"><div class="cdb" style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn bg" onclick="S.psiSocialTab='lista';render()">Cancelar</button>
+    <button class="btn bp" onclick="guardarRespuesta('${eid}')">✅ Guardar Test #${nTest}</button>
+  </div></div>`;
+}
+
+function rVerEval(eid){
+  const e=(S.evalPsi||[]).find(x=>x.id===eid);
+  if(!e)return'';
+  const resp=e._respuestas||[];
+  if(resp.length===0){
+    return`<div class="ph"><div><h2>📊 ${e.empresa_nombre}</h2></div><button class="btn bg" onclick="S.psiSocialTab='lista';render()">◀ Volver</button></div>
+    <div class="cd"><div class="es"><h4>Sin respuestas ingresadas</h4><p style="color:var(--tm)">Ingresa al menos un test para ver resultados</p></div></div>`;
+  }
+  const res=calcularResultadosMinte(resp.map(r=>r.respuestas));
+
+  let dimHtml=res.resultados.map(d=>{
+    const riesgo=d.riesgo;
+    const pct=Math.round((d.promedio/d.bajR[1])*100);
+    return`<div style="background:var(--ci);border-radius:8px;padding:12px;border-left:4px solid ${riesgo.color}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-weight:600;font-size:12px">${d.label}</span>
+        <span style="background:${riesgo.bg};color:${riesgo.color};padding:2px 10px;border-radius:6px;font-size:11px;font-weight:700">${riesgo.nivel}</span>
+      </div>
+      <div style="font-size:11px;color:var(--tm)">Puntaje promedio: <strong style="color:var(--t)">${d.promedio}</strong> · Rango bajo: ${d.bajo} · Medio: ${d.medio} · Alto: ${d.alto}</div>
+      <div style="height:6px;background:var(--bd);border-radius:4px;margin-top:6px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(pct,100)}%;background:${riesgo.color};border-radius:4px;transition:width .3s"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return`<div class="ph">
+    <div><h2>📊 ${e.empresa_nombre}</h2><p class="ph-s">Universo: ${res.n} trabajadores · ${fD(e.fecha)}</p></div>
+    <button class="btn bg" onclick="S.psiSocialTab='lista';render()">◀ Volver</button>
+  </div>
+
+  <div class="cd" style="margin-bottom:14px"><div class="cdb">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:10px">
+      <div><span style="font-size:11px;color:var(--tm)">Empresa</span><div style="font-weight:700">${e.empresa_nombre||'—'}</div></div>
+      <div><span style="font-size:11px;color:var(--tm)">RUC</span><div style="font-weight:600">${e.empresa_ruc||'—'}</div></div>
+      <div><span style="font-size:11px;color:var(--tm)">Actividad</span><div style="font-weight:600">${e.empresa_actividad||'—'}</div></div>
+      <div><span style="font-size:11px;color:var(--tm)">Representante Legal</span><div style="font-weight:600">${e.empresa_representante||'—'}</div></div>
+      <div><span style="font-size:11px;color:var(--tm)">Universo</span><div style="font-weight:700;font-size:20px;color:var(--a)">${res.n}</div></div>
+      <div><span style="font-size:11px;color:var(--tm)">Puntaje Global</span><div style="font-weight:700;font-size:20px;color:${res.riesgoGlobal.color}">${res.totalGlobal}</div></div>
+      <div><span style="font-size:11px;color:var(--tm)">Riesgo Global</span><div style="background:${res.riesgoGlobal.bg};color:${res.riesgoGlobal.color};padding:4px 12px;border-radius:8px;font-weight:700;display:inline-block;margin-top:2px">${res.riesgoGlobal.nivel}</div></div>
+    </div>
+  </div></div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;margin-bottom:14px">
+    ${dimHtml}
+  </div>
+
+  <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+    <button class="btn bp" onclick="S.psiSocialTab='ingresar';S.evalIngresarId='${eid}';render()">➕ Ingresar más test</button>
+    <button class="btn" style="background:#7c3aed;color:#fff" onclick="descargarInformePsi('${eid}')">📊 Descargar Informe PPTX</button>
+  </div>`;
+}
+
+async function descargarInformePsi(eid){
+  const e=(S.evalPsi||[]).find(x=>x.id===eid);
+  if(!e)return;
+  const resp=e._respuestas||[];
+  if(resp.length===0){alert('⚠️ No hay respuestas ingresadas para generar el informe');return;}
+  const res=calcularResultadosMinte(resp.map(r=>r.respuestas));
+  const ec=getEmpCfg();
+
+  // Cargar PptxGenJS
+  if(typeof PptxGenJS==='undefined'){
+    await new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js';
+      s.onload=resolve;s.onerror=reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  const pptx=new PptxGenJS();
+  pptx.layout='LAYOUT_WIDE';
+  pptx.title=`Informe Psicosocial - ${e.empresa_nombre}`;
+
+  // Colores
+  const C={azul:'1A5276',azulClaro:'AED6F1',verde:'1E8449',verdeClaro:'A9DFBF',
+    rojo:'C0392B',rojoClaro:'FADBD8',amarillo:'D4AC0D',amarilloClaro:'FDEBD0',
+    blanco:'FFFFFF',gris:'F2F3F4',grisOscuro:'717D7E',negro:'1C2833',
+    morado:'6C3483',moradoClaro:'D7BDE2'};
+
+  // Stats generales de datos demográficos
+  const dgs=resp.map(r=>r.datos_generales||{});
+  const totalN=resp.length;
+  const masc=dgs.filter(d=>d.genero==='Masculino').length;
+  const fem=dgs.filter(d=>d.genero==='Femenino').length;
+  const edades={'18-24 años':0,'25-34 años':0,'35-44 años':0,'45-54 años':0,'55 años en adelante':0};
+  dgs.forEach(d=>{if(d.edad&&edades[d.edad]!==undefined)edades[d.edad]++;});
+  const areas={Administrativa:dgs.filter(d=>d.area==='Administrativa').length,Operativa:dgs.filter(d=>d.area==='Operativa').length};
+
+  // Helper slide base
+  function baseSlide(slide, titulo=''){
+    slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:1.2,fill:{color:C.azul}});
+    slide.addShape(pptx.ShapeType.rect,{x:0,y:6.8,w:'100%',h:0.7,fill:{color:C.azul}});
+    slide.addText(ec.nombre||'VitalWork SAS',{x:0.3,y:6.82,w:4,h:0.4,fontSize:10,color:C.blanco,bold:false});
+    slide.addText('Centro de Vigilancia de la Salud',{x:5,y:6.82,w:4.7,h:0.4,fontSize:10,color:C.blanco,align:'right'});
+    if(titulo){
+      slide.addText(titulo,{x:0.4,y:0.18,w:9.2,h:0.9,fontSize:28,bold:true,color:C.blanco,valign:'middle'});
+    }
+  }
+
+  // ═══ SLIDE 1: PORTADA ═══
+  const s1=pptx.addSlide();
+  s1.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:'100%',fill:{color:C.azul}});
+  s1.addShape(pptx.ShapeType.rect,{x:0,y:4.5,w:'100%',h:3,fill:{color:C.morado}});
+  s1.addText(e.empresa_nombre||'',{x:0.5,y:0.6,w:9,h:1.2,fontSize:36,bold:true,color:C.blanco,align:'center'});
+  s1.addText('INFORME DE EVALUACIÓN DE RIESGOS PSICOSOCIALES',{x:0.5,y:2.0,w:9,h:0.8,fontSize:20,bold:true,color:C.azulClaro,align:'center'});
+  s1.addText('Ministerio de Trabajo del Ecuador',{x:0.5,y:2.9,w:9,h:0.5,fontSize:14,color:C.blanco,align:'center'});
+  s1.addText(`Universo: ${totalN} trabajadores`,{x:0.5,y:3.6,w:9,h:0.5,fontSize:14,color:C.amarilloClaro,align:'center'});
+  s1.addText(`Fecha: ${fD(e.fecha)}`,{x:0.5,y:4.7,w:9,h:0.5,fontSize:13,color:C.blanco,align:'center'});
+  s1.addText(`RUC: ${e.empresa_ruc||'—'}  |  Actividad: ${e.empresa_actividad||'—'}`,{x:0.5,y:5.2,w:9,h:0.4,fontSize:11,color:C.azulClaro,align:'center'});
+  s1.addText(`Representante Legal: ${e.empresa_representante||'—'}`,{x:0.5,y:5.7,w:9,h:0.4,fontSize:11,color:C.azulClaro,align:'center'});
+
+  // ═══ SLIDE 2: GÉNERO ═══
+  const s2=pptx.addSlide();
+  baseSlide(s2,'Género de los Trabajadores');
+  s2.addShape(pptx.ShapeType.rect,{x:0.3,y:1.4,w:4.5,h:4.8,fill:{color:C.gris},line:{color:C.gris}});
+  s2.addText('Total trabajadores:',{x:0.5,y:1.6,w:4,h:0.4,fontSize:13,color:C.grisOscuro});
+  s2.addText(`${totalN}`,{x:0.5,y:2.0,w:4,h:0.8,fontSize:48,bold:true,color:C.azul});
+  s2.addShape(pptx.ShapeType.rect,{x:0.5,y:2.9,w:2,h:0.9,fill:{color:C.azul},line:{color:C.azul},rounding:0.1});
+  s2.addText(`Masculino: ${masc}`,{x:0.5,y:2.95,w:2,h:0.8,fontSize:13,bold:true,color:C.blanco,align:'center'});
+  s2.addShape(pptx.ShapeType.rect,{x:2.7,y:2.9,w:2,h:0.9,fill:{color:C.morado},line:{color:C.morado},rounding:0.1});
+  s2.addText(`Femenino: ${fem}`,{x:2.7,y:2.95,w:2,h:0.8,fontSize:13,bold:true,color:C.blanco,align:'center'});
+  // Gráfico de barras género
+  const mascPct=totalN>0?Math.round(masc/totalN*100):0;
+  const femPct=100-mascPct;
+  s2.addShape(pptx.ShapeType.rect,{x:5.2,y:1.5,w:4.3,h:4.5,fill:{color:C.gris},line:{color:C.gris}});
+  s2.addText('Distribución por Género',{x:5.3,y:1.6,w:4,h:0.4,fontSize:12,bold:true,color:C.azul});
+  const bW=1.5;
+  s2.addShape(pptx.ShapeType.rect,{x:5.8,y:2.2,w:bW,h:mascPct/100*3,fill:{color:C.azul},line:{color:C.azul}});
+  s2.addText(`${mascPct}%`,{x:5.8,y:2.1,w:bW,h:0.3,fontSize:11,bold:true,color:C.azul,align:'center'});
+  s2.addText('Masculino',{x:5.8,y:5.3,w:bW,h:0.3,fontSize:10,color:C.negro,align:'center'});
+  s2.addShape(pptx.ShapeType.rect,{x:7.7,y:2.2,w:bW,h:femPct/100*3,fill:{color:C.morado},line:{color:C.morado}});
+  s2.addText(`${femPct}%`,{x:7.7,y:2.1,w:bW,h:0.3,fontSize:11,bold:true,color:C.morado,align:'center'});
+  s2.addText('Femenino',{x:7.7,y:5.3,w:bW,h:0.3,fontSize:10,color:C.negro,align:'center'});
+
+  // ═══ SLIDE 3: EDADES ═══
+  const s3=pptx.addSlide();
+  baseSlide(s3,'Distribución por Edades');
+  const edadKeys=Object.keys(edades);
+  const edadColors=[C.azul,C.morado,C.verde,C.amarillo,C.rojo];
+  s3.addShape(pptx.ShapeType.rect,{x:0.3,y:1.4,w:3.5,h:5,fill:{color:C.gris},line:{color:C.gris}});
+  s3.addText('Total trabajadores:',{x:0.5,y:1.6,w:3,h:0.4,fontSize:12,color:C.grisOscuro});
+  s3.addText(`${totalN}`,{x:0.5,y:2.0,w:3,h:0.7,fontSize:40,bold:true,color:C.azul});
+  edadKeys.forEach((k,i)=>{
+    s3.addShape(pptx.ShapeType.rect,{x:0.5,y:2.9+i*0.7,w:0.3,h:0.4,fill:{color:edadColors[i]},line:{color:edadColors[i]}});
+    s3.addText(`${k}: ${edades[k]}`,{x:0.9,y:2.9+i*0.7,w:2.7,h:0.4,fontSize:11,color:C.negro});
+  });
+  // Barras horizontales
+  s3.addShape(pptx.ShapeType.rect,{x:4.0,y:1.4,w:5.5,h:5,fill:{color:C.gris},line:{color:C.gris}});
+  const maxEdad=Math.max(...Object.values(edades),1);
+  edadKeys.forEach((k,i)=>{
+    const bLen=(edades[k]/maxEdad)*4.5;
+    s3.addText(k.replace(' años',''),{x:4.1,y:1.7+i*0.85,w:2.2,h:0.5,fontSize:9,color:C.grisOscuro});
+    s3.addShape(pptx.ShapeType.rect,{x:6.2,y:1.8+i*0.85,w:Math.max(bLen,0.1),h:0.4,fill:{color:edadColors[i]},line:{color:edadColors[i]}});
+    s3.addText(`${edades[k]}`,{x:6.2+(Math.max(bLen,0.1))+0.05,y:1.8+i*0.85,w:0.5,h:0.4,fontSize:10,bold:true,color:edadColors[i]});
+  });
+
+  // ═══ SLIDE 4: RESULTADO GLOBAL ═══
+  const s4=pptx.addSlide();
+  baseSlide(s4,'Resultado Global');
+  const rg=res.riesgoGlobal;
+  const rgColor=rg.nivel==='Bajo'?C.verde:rg.nivel==='Medio'?C.amarillo:C.rojo;
+  s4.addShape(pptx.ShapeType.rect,{x:2,y:1.5,w:6,h:2.5,fill:{color:rgColor},line:{color:rgColor},rounding:0.15});
+  s4.addText('RIESGO GLOBAL',{x:2,y:1.7,w:6,h:0.6,fontSize:16,bold:true,color:C.blanco,align:'center'});
+  s4.addText(rg.nivel.toUpperCase(),{x:2,y:2.3,w:6,h:1.2,fontSize:52,bold:true,color:C.blanco,align:'center'});
+  s4.addText(`Puntaje: ${res.totalGlobal} / 232  |  Universo: ${totalN} trabajadores`,{x:1,y:4.2,w:8,h:0.5,fontSize:13,color:C.grisOscuro,align:'center'});
+  s4.addText('Rangos: Bajo (175-232) | Medio (117-174) | Alto (58-116)',{x:1,y:4.8,w:8,h:0.4,fontSize:11,color:C.grisOscuro,align:'center'});
+
+  // ═══ SLIDE 5: RESULTADOS POR DIMENSIÓN ═══
+  const s5=pptx.addSlide();
+  baseSlide(s5,'Resultados por Dimensión');
+  const dimColors={Bajo:C.verde,Medio:C.amarillo,Alto:C.rojo};
+  const cols=[[0,1,2,3],[4,5,6,7]];
+  cols[0].forEach((di,i)=>{
+    const d=res.resultados[di];
+    const dc=dimColors[d.riesgo.nivel];
+    const x=0.3+i*2.35;
+    s5.addShape(pptx.ShapeType.rect,{x,y:1.4,w:2.2,h:2.4,fill:{color:C.gris},line:{color:C.gris},rounding:0.08});
+    s5.addShape(pptx.ShapeType.rect,{x,y:1.4,w:2.2,h:0.35,fill:{color:dc},line:{color:dc},rounding:0.08});
+    s5.addText(d.riesgo.nivel,{x,y:1.4,w:2.2,h:0.35,fontSize:10,bold:true,color:C.blanco,align:'center'});
+    s5.addText(d.label,{x:x+0.05,y:1.8,w:2.1,h:0.9,fontSize:9,bold:true,color:C.negro,wrap:true});
+    s5.addText(`${d.promedio} pts`,{x:x+0.05,y:2.9,w:2.1,h:0.5,fontSize:16,bold:true,color:dc,align:'center'});
+    s5.addText(`Bajo:${d.bajo}`,{x:x+0.05,y:3.5,w:2.1,h:0.25,fontSize:7,color:C.grisOscuro,align:'center'});
+  });
+  cols[1].forEach((di,i)=>{
+    const d=res.resultados[di];
+    const dc=dimColors[d.riesgo.nivel];
+    const x=0.3+i*2.35;
+    s5.addShape(pptx.ShapeType.rect,{x,y:4.1,w:2.2,h:2.4,fill:{color:C.gris},line:{color:C.gris},rounding:0.08});
+    s5.addShape(pptx.ShapeType.rect,{x,y:4.1,w:2.2,h:0.35,fill:{color:dc},line:{color:dc},rounding:0.08});
+    s5.addText(d.riesgo.nivel,{x,y:4.1,w:2.2,h:0.35,fontSize:10,bold:true,color:C.blanco,align:'center'});
+    s5.addText(d.label,{x:x+0.05,y:4.5,w:2.1,h:0.9,fontSize:9,bold:true,color:C.negro,wrap:true});
+    s5.addText(`${d.promedio} pts`,{x:x+0.05,y:5.5,w:2.1,h:0.5,fontSize:16,bold:true,color:dc,align:'center'});
+    s5.addText(`Bajo:${d.bajo}`,{x:x+0.05,y:6.2,w:2.1,h:0.25,fontSize:7,color:C.grisOscuro,align:'center'});
+  });
+
+  // ═══ SLIDE 6: DIMENSIONES EN RIESGO ALTO/MEDIO ═══
+  const s6=pptx.addSlide();
+  baseSlide(s6,'Análisis de Dimensiones Críticas');
+  const criticas=res.resultados.filter(d=>d.riesgo.nivel==='Alto'||d.riesgo.nivel==='Medio');
+  if(criticas.length===0){
+    s6.addShape(pptx.ShapeType.rect,{x:1,y:2,w:8,h:3,fill:{color:C.verdeClaro},line:{color:C.verde},rounding:0.15});
+    s6.addText('Todas las dimensiones se encuentran en nivel de RIESGO BAJO',{x:1,y:2.5,w:8,h:2,fontSize:20,bold:true,color:C.verde,align:'center',valign:'middle'});
+  }else{
+    criticas.forEach((d,i)=>{
+      const dc=d.riesgo.nivel==='Alto'?C.rojo:C.amarillo;
+      const dcL=d.riesgo.nivel==='Alto'?C.rojoClaro:C.amarilloClaro;
+      s6.addShape(pptx.ShapeType.rect,{x:0.3,y:1.4+i*1.1,w:9.4,h:0.95,fill:{color:dcL},line:{color:dc},rounding:0.08});
+      s6.addShape(pptx.ShapeType.rect,{x:0.3,y:1.4+i*1.1,w:1.5,h:0.95,fill:{color:dc},line:{color:dc},rounding:0.08});
+      s6.addText(d.riesgo.nivel,{x:0.3,y:1.4+i*1.1,w:1.5,h:0.95,fontSize:12,bold:true,color:C.blanco,align:'center',valign:'middle'});
+      s6.addText(d.label,{x:2.0,y:1.5+i*1.1,w:5,h:0.75,fontSize:12,bold:true,color:C.negro,valign:'middle'});
+      s6.addText(`Puntaje: ${d.promedio}  |  Rango alto: ${d.alto}`,{x:7.0,y:1.5+i*1.1,w:2.5,h:0.75,fontSize:10,color:C.grisOscuro,valign:'middle',align:'right'});
+    });
+  }
+
+  // ═══ SLIDE 7: RECOMENDACIONES ═══
+  const s7=pptx.addSlide();
+  baseSlide(s7,'Recomendaciones');
+  const recs=[
+    'Promover espacios de comunicación y retroalimentación entre líderes y equipos de trabajo.',
+    'Implementar pausas activas y programas de bienestar laboral.',
+    'Fortalecer el plan de capacitación y desarrollo de competencias.',
+    'Establecer mecanismos de seguimiento periódico de los factores psicosociales.',
+    'Socializar los resultados con todos los trabajadores y áreas involucradas.',
+  ];
+  const dimAlto=res.resultados.filter(d=>d.riesgo.nivel==='Alto').map(d=>d.label);
+  if(dimAlto.length>0){
+    recs.unshift(`Atención prioritaria en: ${dimAlto.join(', ')}.`);
+  }
+  recs.forEach((r,i)=>{
+    s7.addShape(pptx.ShapeType.rect,{x:0.3,y:1.5+i*0.85,w:0.4,h:0.5,fill:{color:C.azul},line:{color:C.azul},rounding:0.05});
+    s7.addText(`${i+1}`,{x:0.3,y:1.5+i*0.85,w:0.4,h:0.5,fontSize:12,bold:true,color:C.blanco,align:'center',valign:'middle'});
+    s7.addText(r,{x:0.85,y:1.5+i*0.85,w:8.8,h:0.6,fontSize:11,color:C.negro,valign:'middle',wrap:true});
+  });
+
+  // Descargar
+  const nombreEmp=(e.empresa_nombre||'empresa').replace(/[^a-zA-Z0-9]/g,'_');
+  await pptx.writeFile({fileName:`informe_psicosocial_${nombreEmp}_${e.fecha||TD}.pptx`});
+  showToast('✅ Informe PPTX descargado correctamente','ok');
+}
+
+async function crearEval(){
+  const tipo=document.getElementById('ps_tipo')?.value||'ministerio';
+  const empresa=document.getElementById('ps_empresa')?.value?.trim()||'';
+  const ruc=document.getElementById('ps_ruc')?.value?.trim()||'';
+  const actividad=document.getElementById('ps_actividad')?.value?.trim()||'';
+  const representante=document.getElementById('ps_representante')?.value?.trim()||'';
+  const fecha=document.getElementById('ps_fecha')?.value||TD;
+  if(!empresa){alert('⚠️ El nombre de la empresa es obligatorio');return;}
+  const d={tipo,empresa_nombre:empresa,empresa_ruc:ruc,empresa_actividad:actividad,empresa_representante:representante,fecha,creado_por:S.u?.id||null};
+  if(DB_OK){
+    const r=await SB.post('eval_psicosocial',d);
+    if(r&&r[0]){
+      d.id=r[0].id;d._respuestas=[];
+      if(!S.evalPsi)S.evalPsi=[];
+      S.evalPsi.unshift(d);
+      S.psiSocialTab='ingresar';S.evalIngresarId=d.id;
+      render();showToast('✅ Evaluación creada. Ahora ingresa los test.','ok');return;
+    }
+  }
+  alert('❌ Error al crear la evaluación. Verifica la conexión.');
+}
+
+async function guardarRespuesta(eid){
+  // Recoger respuestas
+  const resp={};
+  let incompleto=false;
+  for(let n=1;n<=58;n++){
+    const sel=document.querySelector(`input[name="p${n}"]:checked`);
+    if(!sel){incompleto=true;break;}
+    resp[n]=parseInt(sel.value);
+  }
+  if(incompleto){alert('⚠️ Debes responder todas las preguntas (1 a 58) antes de guardar.');return;}
+  const dg={
+    area:document.getElementById('dg_area')?.value||'',
+    genero:document.getElementById('dg_genero')?.value||'',
+    edad:document.getElementById('dg_edad')?.value||'',
+    antiguedad:document.getElementById('dg_antiguedad')?.value||''
+  };
+  if(DB_OK){
+    const r=await SB.post('eval_psicosocial_respuestas',{eval_id:eid,respuestas:resp,datos_generales:dg});
+    if(r&&r[0]){
+      const e=(S.evalPsi||[]).find(x=>x.id===eid);
+      if(e){if(!e._respuestas)e._respuestas=[];e._respuestas.push({id:r[0].id,respuestas:resp,datos_generales:dg});}
+      render();showToast('✅ Test guardado correctamente','ok');return;
+    }
+  }
+  alert('❌ Error al guardar. Verifica la conexión.');
+}
+
+async function eliminarEval(eid){
+  const e=(S.evalPsi||[]).find(x=>x.id===eid);
+  if(!e)return;
+  const resp=e._respuestas||[];
+  if(!confirm(`⚠️ ¿Eliminar la evaluación de "${e.empresa_nombre}"?\n\nSe eliminarán también ${resp.length} test ingresados.\n\nEsta acción no se puede deshacer.`))return;
+  if(DB_OK){
+    await SB.del('eval_psicosocial',`id=eq.${eid}`);
+    S.evalPsi=(S.evalPsi||[]).filter(x=>x.id!==eid);
+  }
+  S.psiSocialTab='lista';render();
+  showToast('✅ Evaluación eliminada','ok');
 }
 
 // ═══ MEDICO ORDERS (ficha, espirometría, audiometría, atención médica) ═══
