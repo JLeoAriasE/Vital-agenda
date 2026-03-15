@@ -1181,7 +1181,7 @@ function rSide(){
   }else if(isR()){
     items=`<div class="ni ${S.v==='rxord'?'on':''}" onclick="nav('rxord')">🦴 Mis Órdenes RX</div>`;
   }else if(isM()){
-    items=`<div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Mis Órdenes</div>`;
+    items=`<div class="ni ${S.v==='medord'?'on':''}" onclick="nav('medord')">🩺 Mis Órdenes</div><div class="ni ${S.v==='psisocial'?'on':''}" onclick="nav('psisocial')">📊 Test Psicosociales</div>`;
   }else if(isPsi()){
     items=`<div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Mis Órdenes Psicología</div><div class="ni ${S.v==='psisocial'?'on':''}" onclick="nav('psisocial')">📊 Test Psicosociales</div>`;
   }
@@ -1872,6 +1872,7 @@ function calcularResultadosMinte(respuestas){
 
 function rPsiSocial(){
   const tab=S.psiSocialTab||'lista';
+  if(!S.evalPsi)S.evalPsi=[];
   const evals=S.evalPsi||[];
   const minteEvals=evals.filter(e=>e.tipo==='ministerio');
 
