@@ -225,7 +225,7 @@ async function loadAll(){
     // Si hay usuario logueado, actualizar su firma desde la lista recargada
     if(S.u){const uu=S.usrs.find(x=>x.id===S.u.id);if(uu){S.u.firma=uu.firma;S.u.firma_cfg=uu.firma_cfg;}}
     S.pts=pts?pts.map(p=>({id:p.id,nombre:p.nombre,cedula:p.cedula,telefono:p.telefono||'',email:p.email||'',genero:p.genero||'',direccion:p.direccion||'',ciudad:p.ciudad||'',empresa:p.empresa,cargo:p.cargo||'',fecha_nacimiento:p.fecha_nacimiento||'',created_at:p.created_at||''})):[];
-    S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin',empresa:a.empresa||''})):[];
+    S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin',empresa:a.empresa||'',calificacion:a.calificacion||null})):[];
     S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado,fecha_prog:o.fecha_prog||'',hora_prog:o.hora_prog||''})):[];
     S.empresas_cli=emps?emps.map(e=>({id:e.id,nombre:e.nombre,ruc:e.ruc||'',ciiu:e.ciiu||'',direccion:e.direccion||'',telefono:e.telefono||'',contacto:e.contacto||''})):[];
     S.cargos_ciuo=cargos?cargos.map(c=>({id:c.id,codigo:c.codigo,nombre:c.nombre})):[];
@@ -979,6 +979,15 @@ function svEx(){
   showToast('✅ Órdenes guardadas correctamente','ok');
 }
 
+async function calificarCita(aid, valor){
+  const i=S.apt.findIndex(a=>a.id===aid);
+  if(i>-1)S.apt[i].calificacion=valor;
+  if(DB_OK)await SB.patch('citas',{calificacion:valor},`id=eq.${aid}`);
+  render();
+  const caritas=['😞','😐','🙂','😊','🤩'];
+  showToast(`✅ Calificación guardada: ${caritas[valor-1]}`,'ok');
+}
+
 async function eliminarOrden(oid){
   const o=S.ord.find(x=>x.id===oid);if(!o)return;
   const p=gP(o.pid);
@@ -1447,6 +1456,19 @@ function rNrs(){
           ${p?.telefono?`<button class="btn bsm" style="background:#25d366;color:#fff" onclick="sendWA('${a.id}')">📱 WhatsApp</button>`:''}
           <button class="btn bsm bd" style="font-size:10px" onclick="eliminarVisita('${a.id}')">🗑️</button>
         </div>
+      </div>
+      ${(()=>{
+        const calif=a.calificacion;
+        const caritas=['😞','😐','🙂','😊','🤩'];
+        const labels=['Mala','Regular','Buena','Muy buena','¡Excelente!'];
+        const todoComp=o.length>0&&o.every(x=>x.estado==='completado');
+        if(!todoComp&&!calif)return '';
+        return`<div style="padding:8px 12px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11px;color:var(--tm);font-weight:600">⭐ Calificación:</span>
+          ${caritas.map((c,i)=>`<button onclick="calificarCita('${a.id}',${i+1})" title="${labels[i]}" style="font-size:22px;background:none;border:none;cursor:pointer;opacity:${calif===i+1?'1':'0.3'};transform:${calif===i+1?'scale(1.3)':'scale(1)'};transition:all .2s;padding:2px">${c}</button>`).join('')}
+          ${calif?`<span style="font-size:11px;color:var(--ok);font-weight:600">${labels[calif-1]}</span>`:'<span style="font-size:10px;color:var(--tm);font-style:italic">Pendiente respuesta del paciente</span>'}
+        </div>`;
+      })()`
       </div>
       ${total>0?`<div class="cdb">
         ${pct>0?`<div style="height:4px;background:var(--ci);border-radius:4px;margin-bottom:10px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct===100?'var(--ok)':'var(--a)'};border-radius:4px;transition:width .3s"></div></div>`:''}
@@ -5326,9 +5348,13 @@ function sendWA(aid,tipo){
     const tieneAud=ordsPend.some(o=>o.cat==='audiometria');
     const sinOrds=ordsPend.length===0;
 
+    // Verificar si todo está completado
+    const todoCompletado=ords.length>0&&ords.every(o=>o.estado==='completado');
+
     // Sugerir automáticamente el tipo más adecuado
     let sugerido='examenes';
-    if(tieneFicha&&!tieneLab&&!tieneRX&&!tieneEco&&!tieneEkg)sugerido='ficha';
+    if(todoCompletado)sugerido='completado';
+    else if(tieneFicha&&!tieneLab&&!tieneRX&&!tieneEco&&!tieneEkg)sugerido='ficha';
     else if(tieneMed&&!tieneLab&&!tieneRX&&!tieneFicha)sugerido='consulta';
     else if(!tieneLab&&(tieneRX||tieneEco||tieneEkg||tieneEsp||tieneAud))sugerido='examenes_sin_ayuno';
 
@@ -5353,6 +5379,10 @@ function sendWA(aid,tipo){
         <button class="btn" style="text-align:left;padding:10px 14px;background:#0369a1;color:#fff" onclick="closeModal();_enviarWA('${aid}','consulta')">
           🩺 Recordatorio consulta médica ${a.empresa==='Particular'?'(particular)':''}
           ${sugerido==='consulta'?'<span style="font-size:9px;background:rgba(255,255,255,.3);padding:2px 6px;border-radius:4px;margin-left:6px">✨ Sugerido</span>':''}
+        </button>
+        <button class="btn" style="text-align:left;padding:10px 14px;background:#16a34a;color:#fff" onclick="closeModal();_enviarWA('${aid}','completado')">
+          🤩 Proceso completado + calificación
+          ${sugerido==='completado'?'<span style="font-size:9px;background:rgba(255,255,255,.3);padding:2px 6px;border-radius:4px;margin-left:6px">✨ Sugerido</span>':''}
         </button>
         <button class="btn bg" style="text-align:left;padding:10px 14px" onclick="closeModal();_enviarWA('${aid}','confirmacion')">
           ✅ Confirmación de registro
@@ -5464,6 +5494,38 @@ function _enviarWA(aid,tipo){
       +_antes
       +_cedula
       +`\n¡Le esperamos! 🙌`;
+
+  }else if(tipo==='completado'){
+    // Detectar qué servicios tuvo
+    const servicios=ords.map(o=>{
+      if(o.cat==='laboratorio')return'✅ Exámenes de laboratorio';
+      if(o.cat==='radiologia')return`✅ Radiografía — ${o.parte}`;
+      if(o.cat==='ficha_ocupacional')return'✅ Ficha Médica Ocupacional';
+      if(o.cat==='atencion_medica')return'✅ Consulta médica';
+      if(o.cat==='ecografia')return'✅ Ecografía';
+      if(o.cat==='electrocardiograma')return'✅ Electrocardiograma (EKG)';
+      if(o.cat==='espirometria')return'✅ Espirometría';
+      if(o.cat==='audiometria')return'✅ Audiometría';
+      if(o.cat==='psico_ocupacional')return'✅ Valoración Psicológica Ocupacional';
+      if(o.cat==='psico_clinica')return'✅ Valoración Psicológica Clínica';
+      return'✅ '+o.cat;
+    });
+    const esParticular=empresa.toLowerCase().includes('particular');
+    msg=`🏥 *${ec.nombre||'VitalWork S.A.S.'}*\n_Salud Ocupacional_\n\n`
+      +`Estimado/a *${p.nombre}*, nos complace informarle que ha completado satisfactoriamente su proceso de atención médica ${esParticular?'':'ocupacional'} ✅\n\n`
+      +(servicios.length>0?`*Servicios realizados:*\n${servicios.join('\n')}\n\n`:'')
+      +`Su salud es nuestra prioridad y trabajamos cada día para brindarle la mejor atención 💙\n\n`
+      +`━━━━━━━━━━━━━━━━━━\n`
+      +`*¿Cómo fue tu experiencia?*\n`
+      +`_Responde con el número_ 😊\n\n`
+      +`1️⃣ 😞 Mala\n`
+      +`2️⃣ 😐 Regular\n`
+      +`3️⃣ 🙂 Buena\n`
+      +`4️⃣ 😊 Muy buena\n`
+      +`5️⃣ 🤩 ¡Excelente!\n`
+      +`━━━━━━━━━━━━━━━━━━\n\n`
+      +_wa
+      +`🙏 ¡Gracias por confiar en *${ec.nombre||'VitalWork S.A.S.'}*!`;
 
   }else if(tipo==='confirmacion'){
     msg=`🏥 *${ec.nombre||'VitalWork S.A.S.'}*\n_Salud Ocupacional_\n\n`
@@ -5590,7 +5652,8 @@ async function downloadExcelAtendidos(periodo){
     {header:'LABORATORIO',key:'lab',width:40},
     {header:'RADIOLOGÍA',key:'rx',width:20},
     {header:'FICHA OCUP.',key:'ficha',width:13},
-    ...colsDinamicas.map(cd=>({header:cd.label,key:cd.cat,width:16}))
+    ...colsDinamicas.map(cd=>({header:cd.label,key:cd.cat,width:16})),
+    {header:'CALIFICACIÓN',key:'calif',width:14}
   ];
   ws.columns=colsDef;
 
@@ -5648,6 +5711,10 @@ async function downloadExcelAtendidos(periodo){
       const o=ords.find(x=>x.cat===cd.cat);
       rowData[cd.cat]=o?'✓':'-';
     });
+    // Calificación
+    const califVal=item.conCita?(S.apt.find(a=>a.pid===p.id&&a.fecha===item.fecha)?.calificacion||null):null;
+    const califCaritas=['','😞','😐','🙂','😊','🤩'];
+    rowData.calif=califVal?`${califVal} ${califCaritas[califVal]}`:'-';
 
     const row=ws.addRow(rowData);
     // altura automática según contenido
