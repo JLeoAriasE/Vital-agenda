@@ -839,9 +839,11 @@ function exMod(aid){
       ${existing.map(o=>{
         const label=o.cat==='radiologia'?`🦴 RX: ${o.parte} — ${o.proy}`:o.cat==='laboratorio'?`🧪 Lab: ${(o.exams||[]).join(', ')}`:cI[o.cat]+(o.exams||[]).join(', ');
         const fechaExtra=o.fecha_prog?` · 📅 ${o.fecha_prog} ${o.hora_prog||''}`.trim():'';
+        const puedeReagendar=['radiologia','ecografia','electrocardiograma','ficha_ocupacional','atencion_medica'].includes(o.cat)&&o.estado!=='completado';
         return`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;padding:6px;background:var(--bg);border-radius:6px;border:1px solid var(--bd)">
           <span style="font-size:11px;flex:1">${label}${fechaExtra}</span>
           <span class="ba ${EB[o.estado]}" style="font-size:9px">${EL[o.estado]}</span>
+          ${puedeReagendar?`<button class="btn bsm bt" style="font-size:10px;padding:3px 8px" onclick="reagendarOrden('${o.id}')">📅 Reagendar</button>`:''}
           <button class="btn bsm bd" style="font-size:10px;padding:3px 8px" onclick="eliminarOrden('${o.id}')">🗑️</button>
         </div>`;
       }).join('')}
@@ -859,7 +861,16 @@ function exMod(aid){
     <div id="t-lab">${labH}</div>
     <div id="t-rx" class="hid">${rxH}</div>
     <div id="t-otr" class="hid">
-      <div class="ei" style="padding:8px;background:var(--as);border-radius:6px;margin-bottom:6px;border:1px solid rgba(59,130,246,.2)" onclick="tgO(this,'med')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:600;color:var(--a)">🩺 Atención Médica (consulta con el Dr.)</span></div>
+      <div style="background:var(--as);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div class="ei" style="padding:4px 0;margin-bottom:8px" onclick="tgO(this,'med');document.getElementById('med_fecha_box').style.display=window._ex.med?'block':'none'"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:600;color:var(--a)">🩺 Atención Médica (consulta con el Dr.)</span></div>
+        <div id="med_fecha_box" style="display:none">
+          <div style="font-size:11px;color:var(--tm);margin-bottom:6px">📅 Fecha y hora de la consulta médica:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="date" class="fi" id="med_fecha" style="flex:1;min-width:130px">
+            <input type="time" class="fi" id="med_hora" style="flex:1;min-width:100px">
+          </div>
+        </div>
+      </div>
 
       <div style="background:var(--ps);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:10px;margin-bottom:8px">
         <div class="ei" style="padding:4px 0;margin-bottom:8px" onclick="tgO(this,'ficha');document.getElementById('ficha_fecha_box').style.display=window._ex.ficha?'block':'none'"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:600;color:var(--p)">📋 Ficha Ocupacional</span></div>
@@ -944,6 +955,8 @@ function svEx(){
   const ecoHora=document.getElementById('eco_hora')?.value||'';
   const ekgFecha=document.getElementById('ekg_fecha')?.value||'';
   const ekgHora=document.getElementById('ekg_hora')?.value||'';
+  const medFecha=document.getElementById('med_fecha')?.value||'';
+  const medHora=document.getElementById('med_hora')?.value||'';
   // Collect RX rows
   const rxStudies=[];
   for(let i=0;i<(window._rxCount||1);i++){
@@ -959,7 +972,7 @@ function svEx(){
   if(s.aud)addO({aid:s.aid,pid:s.pid,cat:'audiometria',exams:['Audiometría']});
   if(s.psiocu)addO({aid:s.aid,pid:s.pid,cat:'psico_ocupacional',exams:['Valoración Psicológica Ocupacional']});
   if(s.psicli)addO({aid:s.aid,pid:s.pid,cat:'psico_clinica',exams:['Valoración Psicológica Clínica']});
-  if(s.med)addO({aid:s.aid,pid:s.pid,cat:'atencion_medica',exams:['Atención Médica']});
+  if(s.med)addO({aid:s.aid,pid:s.pid,cat:'atencion_medica',exams:['Atención Médica'],fecha_prog:medFecha,hora_prog:medHora});
   if(s.ficha)addO({aid:s.aid,pid:s.pid,cat:'ficha_ocupacional',exams:['Ficha Ocupacional'],fecha_prog:fichaFecha,hora_prog:fichaHora});
   updA(s.aid,{exAsig:true,estado:'en_proceso'});
   closeModal();
@@ -978,6 +991,39 @@ async function eliminarOrden(oid){
   if(DB_OK)await SB.del('ordenes',`id=eq.${oid}`);
   render();
   showToast('✅ Orden eliminada','ok');
+}
+
+function reagendarOrden(oid){
+  const o=S.ord.find(x=>x.id===oid);if(!o)return;
+  const p=gP(o.pid);
+  const label=o.cat==='radiologia'?`🦴 RX: ${o.parte} — ${o.proy}`:o.cat==='laboratorio'?`🧪 Lab: ${(o.exams||[]).join(', ')}`:o.cat==='ficha_ocupacional'?'📋 Ficha Ocupacional':o.cat==='atencion_medica'?'🩺 Atención Médica':o.cat==='ecografia'?'🔊 Ecografía':o.cat==='electrocardiograma'?'❤️ EKG':'📋 '+o.cat;
+  openModal(`<div class="mhd"><h3>📅 Reagendar</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
+  <div class="mbd">
+    <div style="background:var(--ci);border-radius:8px;padding:10px;margin-bottom:14px;font-size:12px">
+      <strong>${p?.nombre||''}</strong><br>
+      <span style="color:var(--tm)">${label}</span>
+      ${o.fecha_prog?`<br><span style="color:var(--tm)">Fecha anterior: ${o.fecha_prog} ${o.hora_prog||''}</span>`:''}
+    </div>
+    <div class="fg"><label>Nueva Fecha *</label><input type="date" class="fi" id="reag_fecha" value="${o.fecha_prog||''}"></div>
+    <div class="fg"><label>Nueva Hora</label><input type="time" class="fi" id="reag_hora" value="${o.hora_prog||''}"></div>
+    <div class="fg"><label>Motivo del reagendamiento</label><input class="fi" id="reag_motivo" placeholder="Ej: No se presentó el técnico, paciente ausente..."></div>
+  </div>
+  <div class="mft">
+    <button class="btn bg" onclick="closeModal()">Cancelar</button>
+    <button class="btn bp" onclick="confirmarReagendar('${oid}')">📅 Guardar nueva fecha</button>
+  </div>`);
+}
+
+async function confirmarReagendar(oid){
+  const fecha=document.getElementById('reag_fecha')?.value||'';
+  const hora=document.getElementById('reag_hora')?.value||'';
+  if(!fecha){alert('⚠️ Selecciona una nueva fecha');return;}
+  const i=S.ord.findIndex(x=>x.id===oid);
+  if(i>-1){S.ord[i].fecha_prog=fecha;S.ord[i].hora_prog=hora;}
+  if(DB_OK)await SB.patch('ordenes',{fecha_prog:fecha,hora_prog:hora},`id=eq.${oid}`);
+  closeModal();
+  render();
+  showToast('✅ Examen reagendado correctamente','ok');
 }
 
 async function eliminarVisita(aid){
@@ -1398,7 +1444,7 @@ function rNrs(){
           <span class="ba ${EB[a.estado]}">${EL[a.estado]}</span>
           ${total>0?`<span style="font-size:10px;color:${pct===100?'var(--ok)':'var(--tm)'};font-weight:600">${done}/${total} (${pct}%)</span>`:''}
           <button class="btn bsm ${a.exAsig?'bg':'bt'}" onclick="exMod('${a.id}')">${a.exAsig?'✏️ Editar':'➕ Asignar'}</button>
-          ${p?.telefono?`<button class="btn bsm" style="background:#25d366;color:#fff" onclick="sendWA('${a.id}','confirmacion')">📱 WhatsApp</button>`:''}
+          ${p?.telefono?`<button class="btn bsm" style="background:#25d366;color:#fff" onclick="sendWA('${a.id}')">📱 WhatsApp</button>`:''}
           <button class="btn bsm bd" style="font-size:10px" onclick="eliminarVisita('${a.id}')">🗑️</button>
         </div>
       </div>
@@ -5264,8 +5310,67 @@ function sendWA(aid,tipo){
   const ec=getEmpCfg();
   const tel=p.telefono?p.telefono.replace(/\D/g,''):'';
   if(!tel||tel.length<7){alert('⚠️ Este paciente no tiene número de celular registrado');return;}
-  
-  // Formatear número para Ecuador (agregar 593 si empieza con 0)
+
+  // Si no se especifica tipo, mostrar menú de selección inteligente
+  if(!tipo){
+    const ords=gAO(aid);
+    const tieneLab=ords.some(o=>o.cat==='laboratorio');
+    const tieneRX=ords.some(o=>o.cat==='radiologia');
+    const tieneFicha=ords.some(o=>o.cat==='ficha_ocupacional');
+    const tieneMed=ords.some(o=>o.cat==='atencion_medica');
+    const tieneEco=ords.some(o=>o.cat==='ecografia');
+    const tieneEkg=ords.some(o=>o.cat==='electrocardiograma');
+    const tieneEsp=ords.some(o=>o.cat==='espirometria');
+    const tieneAud=ords.some(o=>o.cat==='audiometria');
+    const sinOrds=ords.length===0;
+
+    // Sugerir automáticamente el tipo más adecuado
+    let sugerido='examenes';
+    if(tieneFicha&&!tieneLab&&!tieneRX&&!tieneEco&&!tieneEkg)sugerido='ficha';
+    else if(tieneMed&&!tieneLab&&!tieneRX&&!tieneFicha)sugerido='consulta';
+    else if(!tieneLab&&(tieneRX||tieneEco||tieneEkg||tieneEsp||tieneAud))sugerido='examenes_sin_ayuno';
+
+    openModal(`<div class="mhd"><h3>📱 Enviar WhatsApp</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
+    <div class="mbd">
+      <div style="background:var(--ci);border-radius:8px;padding:10px;margin-bottom:14px;font-size:12px">
+        <strong>${p.nombre}</strong><br>
+        <span style="color:var(--tm)">${ords.length>0?ords.map(o=>o.cat==='laboratorio'?'🧪 Lab':o.cat==='radiologia'?'🦴 RX':o.cat==='ficha_ocupacional'?'📋 Ficha':o.cat==='atencion_medica'?'🩺 Consulta':o.cat==='ecografia'?'🔊 Eco':o.cat==='electrocardiograma'?'❤️ EKG':o.cat==='espirometria'?'🫁 Espiro':o.cat==='audiometria'?'👂 Audio':'📋').join(' · '):'Sin órdenes asignadas'}</span>
+      </div>
+      <p style="font-size:12px;color:var(--tm);margin-bottom:10px">Selecciona el tipo de mensaje a enviar:</p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${tieneLab||tieneRX||tieneEco||tieneEkg||tieneEsp||tieneAud?`
+        <button class="btn bp" style="text-align:left;padding:10px 14px" onclick="closeModal();_enviarWA('${aid}','examenes')">
+          🧪 Recordatorio de exámenes <span style="font-size:10px;opacity:.7">${tieneLab?'(con indicaciones de ayuno)':'(sin ayuno)'}</span>
+          ${sugerido==='examenes'||sugerido==='examenes_sin_ayuno'?'<span style="font-size:9px;background:rgba(255,255,255,.3);padding:2px 6px;border-radius:4px;margin-left:6px">✨ Sugerido</span>':''}
+        </button>`:''}
+        ${tieneFicha?`
+        <button class="btn" style="text-align:left;padding:10px 14px;background:#7c3aed;color:#fff" onclick="closeModal();_enviarWA('${aid}','ficha')">
+          📋 Recordatorio cita ficha ocupacional
+          ${sugerido==='ficha'?'<span style="font-size:9px;background:rgba(255,255,255,.3);padding:2px 6px;border-radius:4px;margin-left:6px">✨ Sugerido</span>':''}
+        </button>`:''}
+        <button class="btn" style="text-align:left;padding:10px 14px;background:#0369a1;color:#fff" onclick="closeModal();_enviarWA('${aid}','consulta')">
+          🩺 Recordatorio consulta médica ${a.empresa==='Particular'?'(particular)':''}
+          ${sugerido==='consulta'?'<span style="font-size:9px;background:rgba(255,255,255,.3);padding:2px 6px;border-radius:4px;margin-left:6px">✨ Sugerido</span>':''}
+        </button>
+        <button class="btn bg" style="text-align:left;padding:10px 14px" onclick="closeModal();_enviarWA('${aid}','confirmacion')">
+          ✅ Confirmación de registro
+        </button>
+      </div>
+    </div>
+    <div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button></div>`);
+    return;
+  }
+  _enviarWA(aid,tipo);
+}
+
+function _enviarWA(aid,tipo){
+  const a=S.apt.find(x=>x.id===aid);if(!a)return;
+  const p=gP(a.pid);if(!p)return;
+  const ec=getEmpCfg();
+  const ords=gAO(aid);
+  const tel=p.telefono?p.telefono.replace(/\D/g,''):'';
+  if(!tel||tel.length<7){alert('⚠️ Este paciente no tiene número de celular registrado');return;}
+
   let num=tel;
   if(num.startsWith('0'))num='593'+num.slice(1);
   if(!num.startsWith('593'))num='593'+num;
@@ -5274,34 +5379,100 @@ function sendWA(aid,tipo){
   const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const fechaStr=`${dias[fecha.getDay()]} ${fecha.getDate()} de ${meses[fecha.getMonth()]} ${fecha.getFullYear()}`;
+  const empresa=a.empresa||p.empresa||'';
+
+  // Detectar exámenes
+  const labOrd=ords.filter(o=>o.cat==='laboratorio');
+  const rxOrd=ords.filter(o=>o.cat==='radiologia');
+  const fichaOrd=ords.find(o=>o.cat==='ficha_ocupacional');
+  const ecoOrd=ords.find(o=>o.cat==='ecografia');
+  const ekgOrd=ords.find(o=>o.cat==='electrocardiograma');
+  const espOrd=ords.find(o=>o.cat==='espirometria');
+  const audOrd=ords.find(o=>o.cat==='audiometria');
+  const tieneAyuno=labOrd.length>0;
+
+  const _dir=ec.direccion?`📍 *Dirección:* ${ec.direccion}\n`:'';
+  const _maps=ec.maps_url?`📌 *Ubicación:* ${ec.maps_url}\n`:'';
+  const _wa=ec.wa_phone?`📱 *Contacto:* ${ec.wa_phone}\n`:'';
+  const _cedula=`• Traer *cédula de identidad original*\n`;
+  const _antes=`• Presentarse *15 minutos antes*\n`;
 
   let msg='';
-  if(tipo==='confirmacion'){
+
+  if(tipo==='examenes'){
+    // Construir lista de exámenes
+    let listaEx='';
+    if(labOrd.length>0){
+      const exams=labOrd.flatMap(o=>o.exams||[]);
+      listaEx+=`\n🧪 *LABORATORIO:*\n${exams.map(e=>`• ${e}`).join('\n')}\n`;
+    }
+    if(rxOrd.length>0){
+      const rxFecha=rxOrd[0].fecha_prog?`\n   📅 Fecha: ${rxOrd[0].fecha_prog}${rxOrd[0].hora_prog?' a las '+rxOrd[0].hora_prog:''}`:'' ;
+      listaEx+=`\n🦴 *RADIOGRAFÍA:*\n${rxOrd.map(o=>`• ${o.parte} — ${o.proy}`).join('\n')}${rxFecha}\n`;
+    }
+    if(ecoOrd){
+      const ecoF=ecoOrd.fecha_prog?`\n   📅 Fecha: ${ecoOrd.fecha_prog}${ecoOrd.hora_prog?' a las '+ecoOrd.hora_prog:''}` :'';
+      listaEx+=`\n🔊 *ECOGRAFÍA*${ecoF}\n`;
+    }
+    if(ekgOrd){
+      const ekgF=ekgOrd.fecha_prog?`\n   📅 Fecha: ${ekgOrd.fecha_prog}${ekgOrd.hora_prog?' a las '+ekgOrd.hora_prog:''}` :'';
+      listaEx+=`\n❤️ *ELECTROCARDIOGRAMA (EKG)*${ekgF}\n`;
+    }
+    if(espOrd)listaEx+=`\n🫁 *ESPIROMETRÍA*\n`;
+    if(audOrd)listaEx+=`\n👂 *AUDIOMETRÍA*\n`;
+
     msg=`🏥 *${ec.nombre||'VitalWork S.A.S.'}*\n_Salud Ocupacional_\n\n`
-      +`Hola *${p.nombre}*, su cita ha sido registrada exitosamente ✅\n\n`
+      +`Estimado/a *${p.nombre}*, le recordamos que tiene los siguientes exámenes programados:\n`
+      +listaEx
+      +`\n📅 *Fecha:* ${fechaStr}\n`
+      +`🕐 *Hora:* ${fT(a.hora)}\n`
+      +`🏢 *Empresa:* ${empresa}\n`
+      +_dir+_maps+_wa
+      +`\n⚠️ *Indicaciones:*\n`
+      +_antes
+      +_cedula
+      +(tieneAyuno?`• *Ayuno mínimo de 8 horas* (solo puede tomar agua)\n• No realizar ejercicio intenso la noche anterior\n`:`• No requiere ayuno\n`)
+      +`\n¡Le esperamos! 🙌`;
+
+  }else if(tipo==='ficha'){
+    const fFecha=fichaOrd?.fecha_prog?`\n📅 *Fecha cita:* ${fichaOrd.fecha_prog}\n🕐 *Hora:* ${fichaOrd.hora_prog||fT(a.hora)}\n`:`\n📅 *Fecha:* ${fechaStr}\n🕐 *Hora:* ${fT(a.hora)}\n`;
+    msg=`🏥 *${ec.nombre||'VitalWork S.A.S.'}*\n_Salud Ocupacional_\n\n`
+      +`Estimado/a *${p.nombre}*, le recordamos que tiene una cita programada para la *elaboración de su Ficha Médica Ocupacional*.\n`
+      +fFecha
+      +`🏢 *Empresa:* ${empresa}\n`
+      +_dir+_maps+_wa
+      +`\n⚠️ *Indicaciones:*\n`
+      +_antes
+      +_cedula
+      +`• Traer resultados de exámenes previos si los tiene\n`
+      +`\n¡Le esperamos! 🙌`;
+
+  }else if(tipo==='consulta'){
+    const medOrd=ords.find(o=>o.cat==='atencion_medica');
+    const mFecha=medOrd?.fecha_prog?`\n📅 *Fecha cita:* ${medOrd.fecha_prog}\n🕐 *Hora:* ${medOrd.hora_prog||fT(a.hora)}\n`:`\n📅 *Fecha:* ${fechaStr}\n🕐 *Hora:* ${fT(a.hora)}\n`;
+    msg=`🏥 *${ec.nombre||'VitalWork S.A.S.'}*\n_Salud Ocupacional_\n\n`
+      +`Estimado/a *${p.nombre}*, le recordamos que tiene una *cita médica* programada.\n`
+      +mFecha
+      +(empresa?`🏢 *Empresa:* ${empresa}\n`:'')
+      +_dir+_maps+_wa
+      +`\n⚠️ *Indicaciones:*\n`
+      +_antes
+      +_cedula
+      +`\n¡Le esperamos! 🙌`;
+
+  }else if(tipo==='confirmacion'){
+    msg=`🏥 *${ec.nombre||'VitalWork S.A.S.'}*\n_Salud Ocupacional_\n\n`
+      +`Hola *${p.nombre}*, su registro ha sido confirmado exitosamente ✅\n\n`
       +`📅 *Fecha:* ${fechaStr}\n`
       +`🕐 *Hora:* ${fT(a.hora)}\n`
-      +`🏢 *Empresa:* ${p.empresa||''}\n`
-      +`📋 *Tipo:* ${a.tipo||'Laboratorio'}\n\n`
-      +`📍 *Dirección:* ${ec.direccion||''}\n`
-      +(ec.maps_url?`📌 *Ubicación:* ${ec.maps_url}\n`:'')
-      +(ec.wa_phone?`📱 *WhatsApp contacto:* ${ec.wa_phone}\n`:'')
+      +`🏢 *Empresa:* ${empresa}\n`
+      +_dir+_maps+_wa
       +`\n⚠️ *Recomendaciones:*\n`
-      +`• Presentarse *15 minutos antes*\n`
-      +`• Traer *cédula original*\n`
+      +_antes
+      +_cedula
       +`• *Ayuno de 8 a 12 horas* (no comer ni beber, excepto agua)\n`
       +`• No realizar ejercicio intenso la noche anterior\n\n`
       +`¡Le esperamos! 🙌`;
-  }else if(tipo==='recordatorio'){
-    msg=`🏥 *${ec.nombre||'VitalWork S.A.S.'}*\n\n`
-      +`📢 *RECORDATORIO DE CITA*\n\n`
-      +`Hola *${p.nombre}*, le recordamos que tiene una cita:\n\n`
-      +`📅 *Fecha:* ${fechaStr}\n`
-      +`🕐 *Hora:* ${fT(a.hora)}\n`
-      +`📍 *Dirección:* ${ec.direccion||''}\n`
-      +(ec.maps_url?`📌 *Ubicación:* ${ec.maps_url}\n`:'')
-      +`\n⚠️ Recuerde: *ayuno de 8-12 horas* y traer *cédula original*\n\n`
-      +`¡Le esperamos mañana! 🙌`;
   }
 
   const url=`https://web.whatsapp.com/send?phone=${num}&text=${encodeURIComponent(msg)}`;
