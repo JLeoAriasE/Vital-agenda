@@ -1482,10 +1482,13 @@ function rNrs(){
   return`<div class="ph"><div><h2>🩺 Panel de Enfermería</h2><p class="ph-s">${tA.length} pacientes · ${pending} sin asignar · ${inProcess} en proceso · <span style="color:var(--ok)">🔄 Auto-actualiza</span></p></div></div>
 
   <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-    <button class="btn bsm ${S.nrsFilter==='hoy'?'bp':'bt'}" onclick="S.nrsFilter='hoy';render()">📅 Hoy</button>
-    <button class="btn bsm ${S.nrsFilter==='manana'?'bp':'bt'}" onclick="S.nrsFilter='manana';render()">📅 Mañana</button>
+    <button class="btn bsm ${S.nrsFilter==='hoy'?'bp':'bt'}" onclick="S.nrsFilter='hoy';S.nrsCustomDate=TD;render()">📅 Hoy</button>
     <button class="btn bsm ${S.nrsFilter==='semana'?'bp':'bt'}" onclick="S.nrsFilter='semana';render()">📅 Esta Semana</button>
-    <input type="date" class="fi" style="width:140px;padding:4px 8px;font-size:11px" value="${S.nrsCustomDate||''}" onchange="S.nrsCustomDate=this.value;S.nrsFilter='custom';render()">
+    <div style="display:flex;align-items:center;gap:4px">
+      <button class="btn bic bg" title="Día anterior" onclick="(()=>{const _d=new Date((S.nrsCustomDate||TD)+'T12:00:00');_d.setDate(_d.getDate()-1);S.nrsCustomDate=_d.toISOString().split('T')[0];S.nrsFilter='custom';render()})()">◀</button>
+      <input type="date" class="fi" style="width:140px;padding:4px 8px;font-size:11px" value="${S.nrsCustomDate||TD}" onchange="S.nrsCustomDate=this.value;S.nrsFilter='custom';render()">
+      <button class="btn bic bg" title="Día siguiente" onclick="(()=>{const _d=new Date((S.nrsCustomDate||TD)+'T12:00:00');_d.setDate(_d.getDate()+1);S.nrsCustomDate=_d.toISOString().split('T')[0];S.nrsFilter='custom';render()})()">▶</button>
+    </div>
     ${S.nrsFilter==='manana'&&tA.length>0?`<button class="btn bsm" style="background:#25d366;color:#fff;margin-left:auto" onclick="sendWABulk('${mananaStr}')">📱 WhatsApp recordatorio a todos (${tA.length})</button>`:''}
   </div>
 
