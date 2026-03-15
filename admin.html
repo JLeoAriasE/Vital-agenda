@@ -1936,7 +1936,7 @@ function rNuevaEval(){
     </div>
     <div class="fr">
       <div class="fg"><label>Empresa *</label>
-        <input class="fi" id="ps_empresa" placeholder="Nombre de la empresa" list="ps_emp_list">
+        <input class="fi" id="ps_empresa" placeholder="Nombre de la empresa" list="ps_emp_list" oninput="autoFillEmpPsi(this.value)">
         <datalist id="ps_emp_list">${emps.map(e=>`<option value="${e.nombre}">`).join('')}</datalist>
       </div>
       <div class="fg"><label>RUC</label><input class="fi" id="ps_ruc" placeholder="RUC de la empresa"></div>
@@ -2245,6 +2245,15 @@ async function descargarInformePsi(eid){
   const nombreEmp=(e.empresa_nombre||'empresa').replace(/[^a-zA-Z0-9]/g,'_');
   await pptx.writeFile({fileName:`informe_psicosocial_${nombreEmp}_${e.fecha||TD}.pptx`});
   showToast('✅ Informe PPTX descargado correctamente','ok');
+}
+
+function autoFillEmpPsi(val){
+  const emp=(S.empresas_cli||[]).find(e=>e.nombre===val);
+  if(!emp)return;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+  set('ps_ruc',emp.ruc);
+  set('ps_actividad',emp.ciiu||'');
+  set('ps_representante',emp.contacto||'');
 }
 
 async function crearEval(){
