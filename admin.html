@@ -226,7 +226,7 @@ async function loadAll(){
     if(S.u){const uu=S.usrs.find(x=>x.id===S.u.id);if(uu){S.u.firma=uu.firma;S.u.firma_cfg=uu.firma_cfg;}}
     S.pts=pts?pts.map(p=>({id:p.id,nombre:p.nombre,cedula:p.cedula,telefono:p.telefono||'',email:p.email||'',genero:p.genero||'',direccion:p.direccion||'',ciudad:p.ciudad||'',empresa:p.empresa,cargo:p.cargo||'',fecha_nacimiento:p.fecha_nacimiento||'',created_at:p.created_at||''})):[];
     S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin',empresa:a.empresa||''})):[];
-    S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado})):[];
+    S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado,fecha_prog:o.fecha_prog||'',hora_prog:o.hora_prog||''})):[];
     S.empresas_cli=emps?emps.map(e=>({id:e.id,nombre:e.nombre,ruc:e.ruc||'',ciiu:e.ciiu||'',direccion:e.direccion||'',telefono:e.telefono||'',contacto:e.contacto||''})):[];
     S.cargos_ciuo=cargos?cargos.map(c=>({id:c.id,codigo:c.codigo,nombre:c.nombre})):[];
     S.cie10=cie?cie.map(c=>({id:c.id,codigo:c.codigo,descripcion:c.descripcion})):[];
@@ -366,7 +366,7 @@ async function syncOfflineQOrd(){
   const ok=[];
   for(const d of q){
     try{
-      const r=await SB.post('ordenes',{aid:d.aid,pid:d.pid,cat:d.cat,exams:d.exams||[],parte:d.parte||'',proy:d.proy||'',estado:d.estado});
+      const r=await SB.post('ordenes',{aid:d.aid,pid:d.pid,cat:d.cat,exams:d.exams||[],parte:d.parte||'',proy:d.proy||'',estado:d.estado,fecha_prog:d.fecha_prog||null,hora_prog:d.hora_prog||null});
       if(r&&r[0]){d.id=r[0].id;if(!S.ord.find(o=>o.id===d.id))S.ord.push(d);ok.push(d);}
     }catch(e){}
   }
@@ -817,8 +817,15 @@ function exMod(aid){
       </div></div>`;
   });
 
-  // RX: dynamic rows
-  let rxH=`<div id="rxrows"><div class="rxrow">
+  // RX: dynamic rows con fecha
+  let rxH=`<div style="background:var(--as);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:10px">
+    <div style="font-size:11px;font-weight:600;color:var(--tm);margin-bottom:8px">📅 Fecha y hora de visita del técnico de RX</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="date" class="fi" id="rx_fecha" style="flex:1;min-width:130px" value="">
+      <input type="time" class="fi" id="rx_hora" style="flex:1;min-width:100px" value="">
+    </div>
+  </div>
+  <div id="rxrows"><div class="rxrow">
     <select class="fi" id="rxp_0" style="flex:2"><option value="">Seleccionar parte...</option>${allRX.map(r=>`<option>${r}</option>`).join('')}</select>
     <select class="fi" id="rxpr_0" style="flex:1">${PROY.map(p=>`<option>${p}</option>`).join('')}</select>
   </div></div>
@@ -828,8 +835,17 @@ function exMod(aid){
   let exH='';
   if(existing.length>0){
     exH=`<div style="background:var(--ci);border:1px solid var(--bd);border-radius:6px;padding:10px;margin-bottom:14px">
-      <div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;margin-bottom:4px">Órdenes ya creadas</div>
-      ${existing.map(o=>`<div style="display:flex;gap:4px;align-items:center;margin-bottom:3px;flex-wrap:wrap"><span>${cI[o.cat]||'📋'}</span><span style="font-size:11px;font-weight:500">${o.cat}</span><span class="ba ${EB[o.estado]}" style="font-size:9px">${EL[o.estado]}</span>${o.cat==='radiologia'?`<span class="etg">${o.parte} — ${o.proy}</span>`:(o.exams||[]).map(e=>`<span class="etg">${e}</span>`).join('')}</div>`).join('')}</div>`;
+      <div style="font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;margin-bottom:6px">Órdenes ya creadas</div>
+      ${existing.map(o=>{
+        const label=o.cat==='radiologia'?`🦴 RX: ${o.parte} — ${o.proy}`:o.cat==='laboratorio'?`🧪 Lab: ${(o.exams||[]).join(', ')}`:cI[o.cat]+(o.exams||[]).join(', ');
+        const fechaExtra=o.fecha_prog?` · 📅 ${o.fecha_prog} ${o.hora_prog||''}`.trim():'';
+        return`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;padding:6px;background:var(--bg);border-radius:6px;border:1px solid var(--bd)">
+          <span style="font-size:11px;flex:1">${label}${fechaExtra}</span>
+          <span class="ba ${EB[o.estado]}" style="font-size:9px">${EL[o.estado]}</span>
+          <button class="btn bsm bd" style="font-size:10px;padding:3px 8px" onclick="eliminarOrden('${o.id}')">🗑️</button>
+        </div>`;
+      }).join('')}
+    </div>`;
   }
 
   openModal(`<div class="mhd"><h3>🩺 Panel Enfermería</h3><button class="btn bic bg" onclick="closeModal()">${ic('x')}</button></div>
@@ -844,9 +860,40 @@ function exMod(aid){
     <div id="t-rx" class="hid">${rxH}</div>
     <div id="t-otr" class="hid">
       <div class="ei" style="padding:8px;background:var(--as);border-radius:6px;margin-bottom:6px;border:1px solid rgba(59,130,246,.2)" onclick="tgO(this,'med')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:600;color:var(--a)">🩺 Atención Médica (consulta con el Dr.)</span></div>
-      <div class="ei" style="padding:8px;background:var(--ps);border-radius:6px;margin-bottom:6px;border:1px solid rgba(139,92,246,.2)" onclick="tgO(this,'ficha')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:600;color:var(--p)">📋 Ficha Ocupacional</span></div>
-      <div class="ei" style="padding:8px" onclick="tgO(this,'eco')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:500">🔊 Ecografía</span></div>
-      <div class="ei" style="padding:8px" onclick="tgO(this,'ekg')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:500">❤️ Electrocardiograma (EKG)</span></div>
+
+      <div style="background:var(--ps);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div class="ei" style="padding:4px 0;margin-bottom:8px" onclick="tgO(this,'ficha');document.getElementById('ficha_fecha_box').style.display=window._ex.ficha?'block':'none'"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:600;color:var(--p)">📋 Ficha Ocupacional</span></div>
+        <div id="ficha_fecha_box" style="display:none">
+          <div style="font-size:11px;color:var(--tm);margin-bottom:6px">📅 Fecha y hora de la cita para la ficha:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="date" class="fi" id="ficha_fecha" style="flex:1;min-width:130px">
+            <input type="time" class="fi" id="ficha_hora" style="flex:1;min-width:100px">
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--ci);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div class="ei" style="padding:4px 0;margin-bottom:8px" onclick="tgO(this,'eco');document.getElementById('eco_fecha_box').style.display=window._ex.eco?'block':'none'"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:500">🔊 Ecografía</span></div>
+        <div id="eco_fecha_box" style="display:none">
+          <div style="font-size:11px;color:var(--tm);margin-bottom:6px">📅 Fecha y hora del proveedor:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="date" class="fi" id="eco_fecha" style="flex:1;min-width:130px">
+            <input type="time" class="fi" id="eco_hora" style="flex:1;min-width:100px">
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--ci);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div class="ei" style="padding:4px 0;margin-bottom:8px" onclick="tgO(this,'ekg');document.getElementById('ekg_fecha_box').style.display=window._ex.ekg?'block':'none'"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:500">❤️ Electrocardiograma (EKG)</span></div>
+        <div id="ekg_fecha_box" style="display:none">
+          <div style="font-size:11px;color:var(--tm);margin-bottom:6px">📅 Fecha y hora del proveedor:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="date" class="fi" id="ekg_fecha" style="flex:1;min-width:130px">
+            <input type="time" class="fi" id="ekg_hora" style="flex:1;min-width:100px">
+          </div>
+        </div>
+      </div>
+
       <div class="ei" style="padding:8px" onclick="tgO(this,'esp')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:500">🫁 Espirometría (Dr.)</span></div>
       <div class="ei" style="padding:8px" onclick="tgO(this,'aud')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:500">👂 Audiometría (Dr.)</span></div>
       <div class="ei" style="padding:8px;background:rgba(147,51,234,.08);border-radius:6px;margin-top:8px;border:1px solid rgba(147,51,234,.2)" onclick="tgO(this,'psiocu')"><div class="ek"><span style="display:inline-flex;width:9px;height:9px">${_i.chk}</span></div><span style="font-weight:600;color:#9333ea">🧠 Valoración Psicológica Ocupacional</span></div>
@@ -888,34 +935,67 @@ function addRxRow(){
 
 function svEx(){
   const s=window._ex;
+  // Recoger fechas
+  const rxFecha=document.getElementById('rx_fecha')?.value||'';
+  const rxHora=document.getElementById('rx_hora')?.value||'';
+  const fichaFecha=document.getElementById('ficha_fecha')?.value||'';
+  const fichaHora=document.getElementById('ficha_hora')?.value||'';
+  const ecoFecha=document.getElementById('eco_fecha')?.value||'';
+  const ecoHora=document.getElementById('eco_hora')?.value||'';
+  const ekgFecha=document.getElementById('ekg_fecha')?.value||'';
+  const ekgHora=document.getElementById('ekg_hora')?.value||'';
   // Collect RX rows
   const rxStudies=[];
   for(let i=0;i<(window._rxCount||1);i++){
     const pe=document.getElementById('rxp_'+i);const pre=document.getElementById('rxpr_'+i);
     if(pe&&pe.value){rxStudies.push({parte:pe.value,proy:pre?pre.value:'AP'});}
   }
-  if(!s.lab.length&&!rxStudies.length&&!s.eco&&!s.ekg&&!s.esp&&!s.aud&&!s.med&&!s.ficha){alert('Selecciona al menos un examen o servicio');return;}
+  if(!s.lab.length&&!rxStudies.length&&!s.eco&&!s.ekg&&!s.esp&&!s.aud&&!s.med&&!s.ficha&&!s.psiocu&&!s.psicli){alert('Selecciona al menos un examen o servicio');return;}
   if(s.lab.length)addO({aid:s.aid,pid:s.pid,cat:'laboratorio',exams:[...s.lab]});
-  rxStudies.forEach(rx=>addO({aid:s.aid,pid:s.pid,cat:'radiologia',parte:rx.parte,proy:rx.proy}));
-  if(s.eco)addO({aid:s.aid,pid:s.pid,cat:'ecografia',exams:['Ecografía']});
-  if(s.ekg)addO({aid:s.aid,pid:s.pid,cat:'electrocardiograma',exams:['EKG 12 derivaciones']});
+  rxStudies.forEach(rx=>addO({aid:s.aid,pid:s.pid,cat:'radiologia',parte:rx.parte,proy:rx.proy,fecha_prog:rxFecha,hora_prog:rxHora}));
+  if(s.eco)addO({aid:s.aid,pid:s.pid,cat:'ecografia',exams:['Ecografía'],fecha_prog:ecoFecha,hora_prog:ecoHora});
+  if(s.ekg)addO({aid:s.aid,pid:s.pid,cat:'electrocardiograma',exams:['EKG 12 derivaciones'],fecha_prog:ekgFecha,hora_prog:ekgHora});
   if(s.esp)addO({aid:s.aid,pid:s.pid,cat:'espirometria',exams:['Espirometría']});
   if(s.aud)addO({aid:s.aid,pid:s.pid,cat:'audiometria',exams:['Audiometría']});
   if(s.psiocu)addO({aid:s.aid,pid:s.pid,cat:'psico_ocupacional',exams:['Valoración Psicológica Ocupacional']});
   if(s.psicli)addO({aid:s.aid,pid:s.pid,cat:'psico_clinica',exams:['Valoración Psicológica Clínica']});
   if(s.med)addO({aid:s.aid,pid:s.pid,cat:'atencion_medica',exams:['Atención Médica']});
-  if(s.ficha)addO({aid:s.aid,pid:s.pid,cat:'ficha_ocupacional',exams:['Ficha Ocupacional']});
+  if(s.ficha)addO({aid:s.aid,pid:s.pid,cat:'ficha_ocupacional',exams:['Ficha Ocupacional'],fecha_prog:fichaFecha,hora_prog:fichaHora});
   updA(s.aid,{exAsig:true,estado:'en_proceso'});
   closeModal();
-  let r='✅ Órdenes creadas:\n';
-  if(s.lab.length)r+=`🧪 Lab: ${s.lab.length} exámenes\n`;
-  if(rxStudies.length)r+=`🦴 RX: ${rxStudies.length} estudios\n`;
-  if(s.eco)r+='🔊 Eco\n';if(s.ekg)r+='❤️ EKG\n';if(s.esp)r+='🫁 Espiro\n';if(s.aud)r+='👂 Audio\n';
-  if(s.psiocu)r+='🧠 Psico. Ocupacional\n';
-  if(s.psicli)r+='🧠 Psico. Clínica\n';
-  if(s.med)r+='🩺 Atención Médica\n';
-  if(s.ficha)r+='📋 Ficha Ocupacional\n';
-  alert(r);
+  showToast('✅ Órdenes guardadas correctamente','ok');
+}
+
+async function eliminarOrden(oid){
+  const o=S.ord.find(x=>x.id===oid);if(!o)return;
+  const p=gP(o.pid);
+  const label=o.cat==='radiologia'?`RX: ${o.parte} — ${o.proy}`:o.cat==='laboratorio'?`Lab: ${(o.exams||[]).join(', ')}`:(o.exams||[]).join(', ')||o.cat;
+  if(!confirm(`⚠️ ¿Eliminar esta orden?\n\n📋 ${label}\nPaciente: ${p?.nombre||''}\n\nEsta acción no se puede deshacer.`))return;
+  S.ord=S.ord.filter(x=>x.id!==oid);
+  // Si no quedan órdenes para esta cita, marcar como sin asignar
+  const restantes=S.ord.filter(x=>x.aid===o.aid);
+  if(restantes.length===0)updA(o.aid,{exAsig:false,estado:'pendiente'});
+  if(DB_OK)await SB.del('ordenes',`id=eq.${oid}`);
+  render();
+  showToast('✅ Orden eliminada','ok');
+}
+
+async function eliminarVisita(aid){
+  const a=S.apt.find(x=>x.id===aid);if(!a)return;
+  const p=gP(a.pid);
+  const ords=S.ord.filter(o=>o.aid===aid);
+  if(!confirm(`⚠️ ¿Eliminar esta visita?\n\nPaciente: ${p?.nombre||''}\nFecha: ${fD(a.fecha)} ${fT(a.hora)}\nEmpresa: ${a.empresa||p?.empresa||''}\n${ords.length>0?`\nSe eliminarán también ${ords.length} orden(es) asignada(s).`:''}
+\nEsta acción no se puede deshacer.`))return;
+  // Eliminar órdenes de esta cita
+  for(const o of ords){
+    S.ord=S.ord.filter(x=>x.id!==o.id);
+    if(DB_OK)await SB.del('ordenes',`id=eq.${o.id}`);
+  }
+  // Eliminar cita
+  S.apt=S.apt.filter(x=>x.id!==aid);
+  if(DB_OK)await SB.del('citas',`id=eq.${aid}`);
+  render();
+  showToast('✅ Visita eliminada correctamente','ok');
 }
 
 // ═══ RENDER ═══
@@ -1319,6 +1399,7 @@ function rNrs(){
           ${total>0?`<span style="font-size:10px;color:${pct===100?'var(--ok)':'var(--tm)'};font-weight:600">${done}/${total} (${pct}%)</span>`:''}
           <button class="btn bsm ${a.exAsig?'bg':'bt'}" onclick="exMod('${a.id}')">${a.exAsig?'✏️ Editar':'➕ Asignar'}</button>
           ${p?.telefono?`<button class="btn bsm" style="background:#25d366;color:#fff" onclick="sendWA('${a.id}','confirmacion')">📱 WhatsApp</button>`:''}
+          <button class="btn bsm bd" style="font-size:10px" onclick="eliminarVisita('${a.id}')">🗑️</button>
         </div>
       </div>
       ${total>0?`<div class="cdb">
