@@ -1468,8 +1468,7 @@ function rNrs(){
           ${caritas.map((c,i)=>`<button onclick="calificarCita('${a.id}',${i+1})" title="${labels[i]}" style="font-size:22px;background:none;border:none;cursor:pointer;opacity:${calif===i+1?'1':'0.3'};transform:${calif===i+1?'scale(1.3)':'scale(1)'};transition:all .2s;padding:2px">${c}</button>`).join('')}
           ${calif?`<span style="font-size:11px;color:var(--ok);font-weight:600">${labels[calif-1]}</span>`:'<span style="font-size:10px;color:var(--tm);font-style:italic">Pendiente respuesta del paciente</span>'}
         </div>`;
-      })()`
-      </div>
+      })()}
       ${total>0?`<div class="cdb">
         ${pct>0?`<div style="height:4px;background:var(--ci);border-radius:4px;margin-bottom:10px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct===100?'var(--ok)':'var(--a)'};border-radius:4px;transition:width .3s"></div></div>`:''}
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px">
