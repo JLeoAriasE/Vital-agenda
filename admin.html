@@ -5314,15 +5314,17 @@ function sendWA(aid,tipo){
   // Si no se especifica tipo, mostrar menú de selección inteligente
   if(!tipo){
     const ords=gAO(aid);
-    const tieneLab=ords.some(o=>o.cat==='laboratorio');
-    const tieneRX=ords.some(o=>o.cat==='radiologia');
-    const tieneFicha=ords.some(o=>o.cat==='ficha_ocupacional');
-    const tieneMed=ords.some(o=>o.cat==='atencion_medica');
-    const tieneEco=ords.some(o=>o.cat==='ecografia');
-    const tieneEkg=ords.some(o=>o.cat==='electrocardiograma');
-    const tieneEsp=ords.some(o=>o.cat==='espirometria');
-    const tieneAud=ords.some(o=>o.cat==='audiometria');
-    const sinOrds=ords.length===0;
+    // Solo considerar órdenes PENDIENTES (no completadas)
+    const ordsPend=ords.filter(o=>o.estado!=='completado');
+    const tieneLab=ordsPend.some(o=>o.cat==='laboratorio');
+    const tieneRX=ordsPend.some(o=>o.cat==='radiologia');
+    const tieneFicha=ordsPend.some(o=>o.cat==='ficha_ocupacional');
+    const tieneMed=ordsPend.some(o=>o.cat==='atencion_medica');
+    const tieneEco=ordsPend.some(o=>o.cat==='ecografia');
+    const tieneEkg=ordsPend.some(o=>o.cat==='electrocardiograma');
+    const tieneEsp=ordsPend.some(o=>o.cat==='espirometria');
+    const tieneAud=ordsPend.some(o=>o.cat==='audiometria');
+    const sinOrds=ordsPend.length===0;
 
     // Sugerir automáticamente el tipo más adecuado
     let sugerido='examenes';
@@ -5375,7 +5377,8 @@ function _enviarWA(aid,tipo){
   if(num.startsWith('0'))num='593'+num.slice(1);
   if(!num.startsWith('593'))num='593'+num;
 
-  const fecha=new Date(a.fecha+'T12:00:00');
+  const _fp=a.fecha.split('-');
+  const fecha=new Date(+_fp[0],+_fp[1]-1,+_fp[2]);
   const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const fechaStr=`${dias[fecha.getDay()]} ${fecha.getDate()} de ${meses[fecha.getMonth()]} ${fecha.getFullYear()}`;
@@ -5421,11 +5424,13 @@ function _enviarWA(aid,tipo){
     if(espOrd)listaEx+=`\n🫁 *ESPIROMETRÍA*\n`;
     if(audOrd)listaEx+=`\n👂 *AUDIOMETRÍA*\n`;
 
+    // Solo mostrar fecha general si el lab no tiene fecha propia
+    const todosConFecha=!tieneAyuno||(labOrd.length===0);
+    const fechaGeneral=tieneAyuno?`\n📅 *Fecha:* ${fechaStr}\n🕐 *Hora:* ${fT(a.hora)}\n`:'';
     msg=`🏥 *${ec.nombre||'VitalWork S.A.S.'}*\n_Salud Ocupacional_\n\n`
       +`Estimado/a *${p.nombre}*, le recordamos que tiene los siguientes exámenes programados:\n`
       +listaEx
-      +`\n📅 *Fecha:* ${fechaStr}\n`
-      +`🕐 *Hora:* ${fT(a.hora)}\n`
+      +fechaGeneral
       +`🏢 *Empresa:* ${empresa}\n`
       +_dir+_maps+_wa
       +`\n⚠️ *Indicaciones:*\n`
