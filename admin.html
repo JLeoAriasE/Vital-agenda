@@ -1285,7 +1285,14 @@ function rCal(){
       const dstr=`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
       const da=S.apt.filter(a=>a.fecha===dstr&&a.estado!=='cancelada');
       // Órdenes con fecha_prog programada para este día (de otras citas)
-      const ordExt=S.ord.filter(o=>o.fecha_prog===dstr&&!da.some(a=>a.id===o.aid));
+      // Órdenes con fecha_prog=hoy: incluir si su cita NO es hoy, O si tiene hora_prog diferente a la cita
+      const ordExt=S.ord.filter(o=>{
+        if(o.fecha_prog!==dstr||o.estado==='completado')return false;
+        const apt=da.find(a=>a.id===o.aid);
+        if(!apt)return true; // cita de otro día → mostrar siempre
+        // cita es hoy: mostrar solo si la hora_prog es diferente a la hora de la cita
+        return o.hora_prog&&o.hora_prog!==apt.hora;
+      });
       const totalEv=da.length+ordExt.length;
       const evCitas=da.slice(0,2).map(a=>{const p=gP(a.pid);return`<div class="cev" style="background:${evC[a.estado]};color:${evT[a.estado]}">${fT(a.hora)} ${p?.nombre?.split(' ')[0]||''}</div>`;}).join('');
       const evOrds=ordExt.slice(0,Math.max(0,2-da.length)).map(o=>{const ap=S.apt.find(a=>a.id===o.aid);const p=ap?gP(ap.pid):null;const lbl=o.cat==='ficha_ocupacional'?'📋 Ficha':o.cat==='radiologia'?'🦴 RX':o.cat==='ecografia'?'🔊 Eco':o.cat==='electrocardiograma'?'❤️ EKG':o.cat==='atencion_medica'?'🩺 Med':'📝';return`<div class="cev" style="background:#e0e7ff;color:#4338ca">${o.hora_prog?fT(o.hora_prog):''} ${lbl} ${p?.nombre?.split(' ')[0]||''}</div>`;}).join('');
@@ -1323,7 +1330,14 @@ function rCal(){
     const dstr=ds(d);
     const dayApts=S.apt.filter(a=>a.fecha===dstr).sort((a,b)=>a.hora.localeCompare(b.hora));
     // Órdenes programadas (fecha_prog) para este día cuya cita principal es otro día
-    const dayOrdsExt=S.ord.filter(o=>o.fecha_prog===dstr&&o.estado!=='completado'&&!dayApts.some(a=>a.id===o.aid));
+    // Órdenes con fecha_prog=hoy y hora diferente a la cita principal
+    const dayOrdsExt=S.ord.filter(o=>{
+      if(o.fecha_prog!==dstr||o.estado==='completado')return false;
+      const apt=dayApts.find(a=>a.id===o.aid);
+      if(!apt)return true; // cita de otro día → incluir
+      // Cita ES hoy: mostrar la orden si tiene hora_prog distinta a la cita
+      return o.hora_prog&&o.hora_prog!==apt.hora;
+    });
     const hours=[];for(let h=7;h<=18;h++){hours.push(h);}
 
     navH=`<button class="btn bic bg" onclick="S.cDate=new Date(${y},${m},${dd-1});render()">${ic('cL')}</button><h3 style="min-width:220px;text-align:center">${dnF[d.getDay()]} ${dd} de ${mn[m]}, ${y}</h3><button class="btn bic bg" onclick="S.cDate=new Date(${y},${m},${dd+1});render()">${ic('cR')}</button>`;
