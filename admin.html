@@ -1344,6 +1344,9 @@ function rCal(){
     const hours=[];for(let h=7;h<=18;h++){hours.push(h);}
 
     navH=`<button class="btn bic bg" onclick="S.cDate=new Date(${y},${m},${dd-1});render()">${ic('cL')}</button><h3 style="min-width:220px;text-align:center">${dnF[d.getDay()]} ${dd} de ${mn[m]}, ${y}</h3><button class="btn bic bg" onclick="S.cDate=new Date(${y},${m},${dd+1});render()">${ic('cR')}</button>`;
+    // DEBUG: mostrar fichas del día
+    const _fichasHoy=S.ord.filter(o=>o.cat==='ficha_ocupacional'&&(o.fecha_prog===dstr||o.fecha_prog===''));
+    const _fichasDebug=_fichasHoy.length>0?`<div style="margin-bottom:8px;padding:8px;background:#fef9c3;border:1px solid #fbbf24;border-radius:8px;font-size:11px"><b>🔍 Debug fichas:</b> ${_fichasHoy.map(o=>{const ap=S.apt.find(a=>a.id===o.aid);const p=ap?gP(ap.pid):null;return`${p?.nombre?.split(' ')[0]||'?'} fecha_prog="${o.fecha_prog}" hora_prog="${o.hora_prog}" estado="${o.estado}"`}).join(' | ')}<br><button onclick="(()=>{const f=S.ord.filter(o=>o.cat==='ficha_ocupacional');alert(JSON.stringify(f.map(o=>({id:o.id,fp:o.fecha_prog,hp:o.hora_prog})),null,2));})()">Ver todas las fichas</button></div>`:'<div style="margin-bottom:8px;padding:6px;background:#fee2e2;border-radius:6px;font-size:11px">⚠️ No hay órdenes de ficha_ocupacional en S.ord con fecha_prog='+dstr+'</div>';
 
     let rows='';
     hours.forEach(h=>{
