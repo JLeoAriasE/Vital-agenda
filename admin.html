@@ -373,7 +373,7 @@ async function syncOfflineQOrd(){
   const ok=[];
   for(const d of q){
     try{
-      const r=await SB.post('ordenes',{aid:d.aid,pid:d.pid,cat:d.cat,exams:d.exams||[],parte:d.parte||'',proy:d.proy||'',estado:d.estado,fecha_prog:d.fecha_prog||null,hora_prog:d.hora_prog||null});
+      const r=await SB.post('ordenes',{aid:d.aid,pid:d.pid,cat:d.cat,exams:d.exams||[],parte:d.parte||'',proy:d.proy||'',estado:d.estado,fecha_prog:d.fecha_prog||'',hora_prog:d.hora_prog||''});
       if(r&&r[0]){d.id=r[0].id;if(!S.ord.find(o=>o.id===d.id))S.ord.push(d);ok.push(d);}
     }catch(e){}
   }
@@ -408,7 +408,7 @@ async function addO(d){
   d.estado='pendiente';
   if(DB_OK){
     try{
-      const r=await SB.post('ordenes',{aid:d.aid,pid:d.pid,cat:d.cat,exams:d.exams||[],parte:d.parte||'',proy:d.proy||'',estado:d.estado});
+      const r=await SB.post('ordenes',{aid:d.aid,pid:d.pid,cat:d.cat,exams:d.exams||[],parte:d.parte||'',proy:d.proy||'',estado:d.estado,fecha_prog:d.fecha_prog||'',hora_prog:d.hora_prog||''});
       if(r&&r[0]){d.id=r[0].id;S.ord.push(d);render();return;}
       else{d._ts=Date.now();saveOfflineQOrd([...getOfflineQOrd(),d]);d.id=gid();S.ord.push(d);render();showToast('⚠️ Sin respuesta — orden guardada localmente','warn');}
     }catch(e){
