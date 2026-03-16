@@ -5998,7 +5998,13 @@ async function autoRefresh(){
     // Siempre actualizar datos en memoria
     S.pts=pts.map(p=>({id:p.id,nombre:p.nombre,cedula:p.cedula,telefono:p.telefono||'',email:p.email||'',genero:p.genero||'',direccion:p.direccion||'',ciudad:p.ciudad||'',empresa:p.empresa,cargo:p.cargo||'',fecha_nacimiento:p.fecha_nacimiento||'',created_at:p.created_at||''}));
     S.apt=apt?apt.map(a=>({id:a.id,pid:a.pid,tipo:a.tipo,fecha:a.fecha,hora:a.hora,estado:a.estado,asistio:a.asistio,exAsig:a.ex_asig,origen:a.origen||'admin'})):S.apt;
-    S.ord=ord?ord.map(o=>({id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado,fecha_prog:o.fecha_prog||'',hora_prog:o.hora_prog||''})):S.ord;
+    S.ord=ord?ord.map(o=>{
+      const prev=S.ord.find(x=>x.id===o.id);
+      // Si Supabase devuelve fecha_prog vacío pero en memoria había un valor, preservarlo
+      const fp=o.fecha_prog||prev?.fecha_prog||'';
+      const hp=o.hora_prog||prev?.hora_prog||'';
+      return{id:o.id,aid:o.aid,pid:o.pid,cat:o.cat,exams:o.exams||[],parte:o.parte||'',proy:o.proy||'',estado:o.estado,fecha_prog:fp,hora_prog:hp};
+    }):S.ord;
     
     _lastDataHash=newHash;
     
