@@ -214,7 +214,7 @@ async function loadAll(){
     SB.get('usuarios','select=id,nombre,cedula,pass,rol,activo,apodo,firma,firma_cfg&order=created_at'),
     SB.get('pacientes','select=*&order=created_at'),
     SB.get('citas','select=*&order=created_at'),
-    SB.get('ordenes','select=*&order=created_at'),
+    SB.get('ordenes','select=id,aid,pid,cat,exams,parte,proy,estado,fecha_prog,hora_prog&order=created_at'),
     SB.get('empresas','select=*&order=nombre'),
     SB.get('cargos_ciuo','select=*&order=nombre','0-4999'),
     SB.get('cie10','select=*&order=codigo','0-4999'),
@@ -5987,7 +5987,7 @@ async function autoRefresh(){
     const [pts,apt,ord]=await Promise.all([
       SB.get('pacientes','select=*&order=created_at'),
       SB.get('citas','select=*&order=created_at'),
-      SB.get('ordenes','select=*&order=created_at'),
+      SB.get('ordenes','select=id,aid,pid,cat,exams,parte,proy,estado,fecha_prog,hora_prog&order=created_at'),
     ]);
     if(pts===null)return;
     
