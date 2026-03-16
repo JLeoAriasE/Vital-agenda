@@ -2068,7 +2068,6 @@ async function descargarInformePsi(eid){
   const res=calcularResultadosMinte(resp.map(r=>r.respuestas));
   const ec=getEmpCfg();
 
-  // Cargar PptxGenJS
   if(typeof PptxGenJS==='undefined'){
     await new Promise((resolve,reject)=>{
       const s=document.createElement('script');
@@ -2082,168 +2081,269 @@ async function descargarInformePsi(eid){
   pptx.layout='LAYOUT_WIDE';
   pptx.title=`Informe Psicosocial - ${e.empresa_nombre}`;
 
-  // Colores
-  const C={azul:'1A5276',azulClaro:'AED6F1',verde:'1E8449',verdeClaro:'A9DFBF',
-    rojo:'C0392B',rojoClaro:'FADBD8',amarillo:'D4AC0D',amarilloClaro:'FDEBD0',
-    blanco:'FFFFFF',gris:'F2F3F4',grisOscuro:'717D7E',negro:'1C2833',
-    morado:'6C3483',moradoClaro:'D7BDE2'};
+  // Paleta de colores profesional
+  const C={
+    azul:'0D2B6E',azulMed:'1A4A9C',azulClaro:'D6E4F7',
+    rojo:'C0392B',rojoClaro:'FADBD8',
+    verde:'1E8449',verdeClaro:'D5F5E3',
+    amarillo:'B7770D',amarilloClaro:'FEF9E7',
+    blanco:'FFFFFF',grisClaro:'F8F9FA',grisMed:'E9ECEF',
+    grisOscuro:'6C757D',negro:'212529',
+    acento:'E8202A'
+  };
 
-  // Stats generales de datos demográficos
+  // Datos demográficos
   const dgs=resp.map(r=>r.datos_generales||{});
   const totalN=resp.length;
   const masc=dgs.filter(d=>d.genero==='Masculino').length;
   const fem=dgs.filter(d=>d.genero==='Femenino').length;
+  const sinGenero=totalN-masc-fem;
   const edades={'18-24 años':0,'25-34 años':0,'35-44 años':0,'45-54 años':0,'55 años en adelante':0};
   dgs.forEach(d=>{if(d.edad&&edades[d.edad]!==undefined)edades[d.edad]++;});
-  const areas={Administrativa:dgs.filter(d=>d.area==='Administrativa').length,Operativa:dgs.filter(d=>d.area==='Operativa').length};
+  const admArea=dgs.filter(d=>d.area==='Administrativa').length;
+  const opArea=dgs.filter(d=>d.area==='Operativa').length;
 
-  // Helper slide base
-  function baseSlide(slide, titulo=''){
-    slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:1.2,fill:{color:C.azul}});
-    slide.addShape(pptx.ShapeType.rect,{x:0,y:6.8,w:'100%',h:0.7,fill:{color:C.azul}});
-    slide.addText(ec.nombre||'VitalWork SAS',{x:0.3,y:6.82,w:4,h:0.4,fontSize:10,color:C.blanco,bold:false});
-    slide.addText('Centro de Vigilancia de la Salud',{x:5,y:6.82,w:4.7,h:0.4,fontSize:10,color:C.blanco,align:'right'});
-    if(titulo){
-      slide.addText(titulo,{x:0.4,y:0.18,w:9.2,h:0.9,fontSize:28,bold:true,color:C.blanco,valign:'middle'});
-    }
+  // Helpers
+  function header(slide,titulo,subtitulo=''){
+    slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:1.1,fill:{color:C.azul}});
+    slide.addShape(pptx.ShapeType.rect,{x:0,y:1.05,w:'100%',h:0.08,fill:{color:C.acento}});
+    slide.addText(titulo,{x:0.4,y:0.12,w:8.5,h:0.7,fontSize:26,bold:true,color:C.blanco,valign:'middle'});
+    if(subtitulo)slide.addText(subtitulo,{x:0.4,y:0.75,w:8.5,h:0.3,fontSize:11,color:'AED6F1',valign:'middle'});
+    footer(slide);
+  }
+  function footer(slide){
+    slide.addShape(pptx.ShapeType.rect,{x:0,y:6.9,w:'100%',h:0.6,fill:{color:C.azul}});
+    slide.addShape(pptx.ShapeType.rect,{x:0,y:6.87,w:'100%',h:0.06,fill:{color:C.acento}});
+    slide.addText(ec.nombre||'VitalWork SAS',{x:0.3,y:6.92,w:4,h:0.35,fontSize:9,color:C.blanco});
+    slide.addText(`${e.empresa_nombre||''} · ${fD(e.fecha)}`,{x:4.5,y:6.92,w:5,h:0.35,fontSize:9,color:'AED6F1',align:'right'});
+  }
+  function card(slide,x,y,w,h,color=C.grisClaro,border=C.grisMed){
+    slide.addShape(pptx.ShapeType.rect,{x,y,w,h,fill:{color},line:{color:border,pt:1},rounding:0.08});
+  }
+  function statBox(slide,x,y,w,label,value,color=C.azul){
+    card(slide,x,y,w,1.4,C.blanco,C.grisMed);
+    slide.addShape(pptx.ShapeType.rect,{x,y,w:w,h:0.06,fill:{color},line:{color}});
+    slide.addText(label,{x:x+0.1,y:y+0.15,w:w-0.2,h:0.35,fontSize:10,color:C.grisOscuro,align:'center'});
+    slide.addText(String(value),{x:x+0.1,y:y+0.45,w:w-0.2,h:0.7,fontSize:36,bold:true,color,align:'center'});
   }
 
   // ═══ SLIDE 1: PORTADA ═══
   const s1=pptx.addSlide();
+  // Fondo
   s1.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:'100%',fill:{color:C.azul}});
-  s1.addShape(pptx.ShapeType.rect,{x:0,y:4.5,w:'100%',h:3,fill:{color:C.morado}});
-  s1.addText(e.empresa_nombre||'',{x:0.5,y:0.6,w:9,h:1.2,fontSize:36,bold:true,color:C.blanco,align:'center'});
-  s1.addText('INFORME DE EVALUACIÓN DE RIESGOS PSICOSOCIALES',{x:0.5,y:2.0,w:9,h:0.8,fontSize:20,bold:true,color:C.azulClaro,align:'center'});
-  s1.addText('Ministerio de Trabajo del Ecuador',{x:0.5,y:2.9,w:9,h:0.5,fontSize:14,color:C.blanco,align:'center'});
-  s1.addText(`Universo: ${totalN} trabajadores`,{x:0.5,y:3.6,w:9,h:0.5,fontSize:14,color:C.amarilloClaro,align:'center'});
-  s1.addText(`Fecha: ${fD(e.fecha)}`,{x:0.5,y:4.7,w:9,h:0.5,fontSize:13,color:C.blanco,align:'center'});
-  s1.addText(`RUC: ${e.empresa_ruc||'—'}  |  Actividad: ${e.empresa_actividad||'—'}`,{x:0.5,y:5.2,w:9,h:0.4,fontSize:11,color:C.azulClaro,align:'center'});
-  s1.addText(`Representante Legal: ${e.empresa_representante||'—'}`,{x:0.5,y:5.7,w:9,h:0.4,fontSize:11,color:C.azulClaro,align:'center'});
+  s1.addShape(pptx.ShapeType.rect,{x:0,y:0,w:0.15,h:'100%',fill:{color:C.acento}});
+  s1.addShape(pptx.ShapeType.rect,{x:0,y:5.2,w:'100%',h:2.3,fill:{color:'061A45'}});
+  // Línea decorativa
+  s1.addShape(pptx.ShapeType.rect,{x:0.4,y:2.0,w:4,h:0.06,fill:{color:C.acento}});
+  // Textos
+  s1.addText('INFORME DE EVALUACIÓN',{x:0.4,y:0.6,w:9,h:0.7,fontSize:14,bold:false,color:'AED6F1',charSpacing:3});
+  s1.addText('DE RIESGOS PSICOSOCIALES',{x:0.4,y:1.2,w:9,h:0.85,fontSize:28,bold:true,color:C.blanco});
+  s1.addText('Ministerio de Trabajo del Ecuador',{x:0.4,y:2.15,w:9,h:0.45,fontSize:13,color:'AED6F1'});
+  // Empresa
+  s1.addText(e.empresa_nombre||'',{x:0.4,y:2.9,w:9,h:1.0,fontSize:32,bold:true,color:C.blanco});
+  // Info empresa
+  s1.addText(`RUC: ${e.empresa_ruc||'—'}`,{x:0.4,y:5.35,w:4,h:0.35,fontSize:11,color:'AED6F1'});
+  s1.addText(`Actividad: ${e.empresa_actividad||'—'}`,{x:0.4,y:5.7,w:8,h:0.35,fontSize:11,color:'AED6F1'});
+  s1.addText(`Representante Legal: ${e.empresa_representante||'—'}`,{x:0.4,y:6.05,w:8,h:0.35,fontSize:11,color:'AED6F1'});
+  s1.addText(`Universo: ${totalN} trabajadores  ·  Fecha: ${fD(e.fecha)}`,{x:0.4,y:6.45,w:8,h:0.35,fontSize:11,bold:true,color:C.blanco});
 
-  // ═══ SLIDE 2: GÉNERO ═══
+  // ═══ SLIDE 2: DEMOGRAFÍA - GÉNERO ═══
   const s2=pptx.addSlide();
-  baseSlide(s2,'Género de los Trabajadores');
-  s2.addShape(pptx.ShapeType.rect,{x:0.3,y:1.4,w:4.5,h:4.8,fill:{color:C.gris},line:{color:C.gris}});
-  s2.addText('Total trabajadores:',{x:0.5,y:1.6,w:4,h:0.4,fontSize:13,color:C.grisOscuro});
-  s2.addText(`${totalN}`,{x:0.5,y:2.0,w:4,h:0.8,fontSize:48,bold:true,color:C.azul});
-  s2.addShape(pptx.ShapeType.rect,{x:0.5,y:2.9,w:2,h:0.9,fill:{color:C.azul},line:{color:C.azul},rounding:0.1});
-  s2.addText(`Masculino: ${masc}`,{x:0.5,y:2.95,w:2,h:0.8,fontSize:13,bold:true,color:C.blanco,align:'center'});
-  s2.addShape(pptx.ShapeType.rect,{x:2.7,y:2.9,w:2,h:0.9,fill:{color:C.morado},line:{color:C.morado},rounding:0.1});
-  s2.addText(`Femenino: ${fem}`,{x:2.7,y:2.95,w:2,h:0.8,fontSize:13,bold:true,color:C.blanco,align:'center'});
-  // Gráfico de barras género
-  const mascPct=totalN>0?Math.round(masc/totalN*100):0;
-  const femPct=100-mascPct;
-  s2.addShape(pptx.ShapeType.rect,{x:5.2,y:1.5,w:4.3,h:4.5,fill:{color:C.gris},line:{color:C.gris}});
-  s2.addText('Distribución por Género',{x:5.3,y:1.6,w:4,h:0.4,fontSize:12,bold:true,color:C.azul});
-  const bW=1.5;
-  s2.addShape(pptx.ShapeType.rect,{x:5.8,y:2.2,w:bW,h:mascPct/100*3,fill:{color:C.azul},line:{color:C.azul}});
-  s2.addText(`${mascPct}%`,{x:5.8,y:2.1,w:bW,h:0.3,fontSize:11,bold:true,color:C.azul,align:'center'});
-  s2.addText('Masculino',{x:5.8,y:5.3,w:bW,h:0.3,fontSize:10,color:C.negro,align:'center'});
-  s2.addShape(pptx.ShapeType.rect,{x:7.7,y:2.2,w:bW,h:femPct/100*3,fill:{color:C.morado},line:{color:C.morado}});
-  s2.addText(`${femPct}%`,{x:7.7,y:2.1,w:bW,h:0.3,fontSize:11,bold:true,color:C.morado,align:'center'});
-  s2.addText('Femenino',{x:7.7,y:5.3,w:bW,h:0.3,fontSize:10,color:C.negro,align:'center'});
+  header(s2,'Perfil Demográfico','Distribución por Género y Área de Trabajo');
+  // Stats género
+  statBox(s2,0.3,1.3,2.0,'Total Trabajadores',totalN,C.azul);
+  statBox(s2,2.5,1.3,2.0,'Masculino',masc,'1A4A9C');
+  statBox(s2,4.7,1.3,2.0,'Femenino',fem,'6C3483');
+  statBox(s2,6.9,1.3,2.6,'Sin especificar',sinGenero,C.grisOscuro);
+  // Barra proporcional género
+  card(s2,0.3,2.9,9.2,0.7,C.grisMed,C.grisMed);
+  const mascW=totalN>0?(masc/totalN)*9.2:0;
+  const femW=totalN>0?(fem/totalN)*9.2:0;
+  if(mascW>0)s2.addShape(pptx.ShapeType.rect,{x:0.3,y:2.9,w:mascW,h:0.7,fill:{color:'1A4A9C'},line:{color:'1A4A9C'}});
+  if(femW>0)s2.addShape(pptx.ShapeType.rect,{x:0.3+mascW,y:2.9,w:femW,h:0.7,fill:{color:'6C3483'},line:{color:'6C3483'}});
+  if(mascW>0.5)s2.addText(`Masculino ${Math.round(masc/totalN*100)}%`,{x:0.4,y:2.95,w:mascW-0.1,h:0.6,fontSize:11,bold:true,color:C.blanco,valign:'middle'});
+  if(femW>0.5)s2.addText(`Femenino ${Math.round(fem/totalN*100)}%`,{x:0.3+mascW+0.1,y:2.95,w:femW-0.1,h:0.6,fontSize:11,bold:true,color:C.blanco,valign:'middle'});
+  // Área
+  s2.addText('Área de Trabajo',{x:0.3,y:3.8,w:9,h:0.4,fontSize:13,bold:true,color:C.azul});
+  statBox(s2,0.3,4.2,4.5,'Administrativa',admArea,C.azulMed);
+  statBox(s2,5.0,4.2,4.5,'Operativa',opArea,'B7770D');
 
-  // ═══ SLIDE 3: EDADES ═══
+  // ═══ SLIDE 3: DEMOGRAFÍA - EDADES ═══
   const s3=pptx.addSlide();
-  baseSlide(s3,'Distribución por Edades');
+  header(s3,'Perfil Demográfico','Distribución por Grupos de Edad');
   const edadKeys=Object.keys(edades);
-  const edadColors=[C.azul,C.morado,C.verde,C.amarillo,C.rojo];
-  s3.addShape(pptx.ShapeType.rect,{x:0.3,y:1.4,w:3.5,h:5,fill:{color:C.gris},line:{color:C.gris}});
-  s3.addText('Total trabajadores:',{x:0.5,y:1.6,w:3,h:0.4,fontSize:12,color:C.grisOscuro});
-  s3.addText(`${totalN}`,{x:0.5,y:2.0,w:3,h:0.7,fontSize:40,bold:true,color:C.azul});
-  edadKeys.forEach((k,i)=>{
-    s3.addShape(pptx.ShapeType.rect,{x:0.5,y:2.9+i*0.7,w:0.3,h:0.4,fill:{color:edadColors[i]},line:{color:edadColors[i]}});
-    s3.addText(`${k}: ${edades[k]}`,{x:0.9,y:2.9+i*0.7,w:2.7,h:0.4,fontSize:11,color:C.negro});
-  });
-  // Barras horizontales
-  s3.addShape(pptx.ShapeType.rect,{x:4.0,y:1.4,w:5.5,h:5,fill:{color:C.gris},line:{color:C.gris}});
+  const edadColors=['1A4A9C','1E8449','B7770D','6C3483','C0392B'];
   const maxEdad=Math.max(...Object.values(edades),1);
+  const barW=9.2/edadKeys.length-0.15;
   edadKeys.forEach((k,i)=>{
-    const bLen=(edades[k]/maxEdad)*4.5;
-    s3.addText(k.replace(' años',''),{x:4.1,y:1.7+i*0.85,w:2.2,h:0.5,fontSize:9,color:C.grisOscuro});
-    s3.addShape(pptx.ShapeType.rect,{x:6.2,y:1.8+i*0.85,w:Math.max(bLen,0.1),h:0.4,fill:{color:edadColors[i]},line:{color:edadColors[i]}});
-    s3.addText(`${edades[k]}`,{x:6.2+(Math.max(bLen,0.1))+0.05,y:1.8+i*0.85,w:0.5,h:0.4,fontSize:10,bold:true,color:edadColors[i]});
+    const x=0.3+i*(barW+0.15);
+    const pct=totalN>0?Math.round(edades[k]/totalN*100):0;
+    const bH=Math.max((edades[k]/maxEdad)*3.5,0.05);
+    // Barra
+    s3.addShape(pptx.ShapeType.rect,{x,y:1.3+(3.5-bH),w:barW,h:bH,fill:{color:edadColors[i]},line:{color:edadColors[i]},rounding:0.05});
+    // Fondo barra
+    card(s3,x,1.3,barW,3.5,'F0F3F7','E0E5EE');
+    s3.addShape(pptx.ShapeType.rect,{x,y:1.3+(3.5-bH),w:barW,h:bH,fill:{color:edadColors[i]},line:{color:edadColors[i]},rounding:0.05});
+    // Valor
+    s3.addText(`${edades[k]}`,{x,y:1.3+(3.5-bH)-0.4,w:barW,h:0.4,fontSize:16,bold:true,color:edadColors[i],align:'center'});
+    s3.addText(`${pct}%`,{x,y:1.3+(3.5-bH)-0.75,w:barW,h:0.35,fontSize:11,color:C.grisOscuro,align:'center'});
+    // Label
+    const label=k.replace(' años en adelante','+').replace(' años','');
+    s3.addText(label,{x,y:4.9,w:barW,h:0.5,fontSize:9,color:C.negro,align:'center',wrap:true});
+    // Punto color
+    s3.addShape(pptx.ShapeType.rect,{x:x+(barW/2)-0.15,y:5.5,w:0.3,h:0.3,fill:{color:edadColors[i]},line:{color:edadColors[i]},rounding:0.15});
   });
+  s3.addText(`Total: ${totalN} trabajadores`,{x:0.3,y:5.9,w:9.2,h:0.4,fontSize:12,bold:true,color:C.azul,align:'center'});
 
   // ═══ SLIDE 4: RESULTADO GLOBAL ═══
   const s4=pptx.addSlide();
-  baseSlide(s4,'Resultado Global');
+  header(s4,'Resultado Global de la Evaluación');
   const rg=res.riesgoGlobal;
   const rgColor=rg.nivel==='Bajo'?C.verde:rg.nivel==='Medio'?C.amarillo:C.rojo;
-  s4.addShape(pptx.ShapeType.rect,{x:2,y:1.5,w:6,h:2.5,fill:{color:rgColor},line:{color:rgColor},rounding:0.15});
-  s4.addText('RIESGO GLOBAL',{x:2,y:1.7,w:6,h:0.6,fontSize:16,bold:true,color:C.blanco,align:'center'});
-  s4.addText(rg.nivel.toUpperCase(),{x:2,y:2.3,w:6,h:1.2,fontSize:52,bold:true,color:C.blanco,align:'center'});
-  s4.addText(`Puntaje: ${res.totalGlobal} / 232  |  Universo: ${totalN} trabajadores`,{x:1,y:4.2,w:8,h:0.5,fontSize:13,color:C.grisOscuro,align:'center'});
-  s4.addText('Rangos: Bajo (175-232) | Medio (117-174) | Alto (58-116)',{x:1,y:4.8,w:8,h:0.4,fontSize:11,color:C.grisOscuro,align:'center'});
+  const rgColorClaro=rg.nivel==='Bajo'?C.verdeClaro:rg.nivel==='Medio'?C.amarilloClaro:C.rojoClaro;
+  // Card resultado
+  card(s4,0.5,1.3,9,2.8,rgColorClaro,rgColor);
+  s4.addShape(pptx.ShapeType.rect,{x:0.5,y:1.3,w:2.5,h:2.8,fill:{color:rgColor},line:{color:rgColor},rounding:0.08});
+  s4.addText('NIVEL DE RIESGO',{x:0.6,y:1.5,w:2.3,h:1.2,fontSize:14,bold:true,color:C.blanco,align:'center',valign:'middle'});
+  s4.addText(rg.nivel.toUpperCase(),{x:0.6,y:2.5,w:2.3,h:1.0,fontSize:28,bold:true,color:C.blanco,align:'center',valign:'middle'});
+  s4.addText('PUNTAJE TOTAL',{x:3.2,y:1.5,w:3,h:0.4,fontSize:11,color:C.grisOscuro});
+  s4.addText(`${res.totalGlobal}`,{x:3.2,y:1.85,w:3,h:1.0,fontSize:64,bold:true,color:rgColor});
+  s4.addText('de 232 puntos posibles',{x:3.2,y:2.9,w:3,h:0.4,fontSize:11,color:C.grisOscuro});
+  s4.addText(`Universo evaluado: ${totalN} trabajadores`,{x:6.5,y:1.7,w:2.8,h:0.4,fontSize:11,color:C.grisOscuro,align:'right'});
+  const pctGlobal=Math.round(res.totalGlobal/232*100);
+  s4.addText(`${pctGlobal}% del puntaje máximo`,{x:6.5,y:2.1,w:2.8,h:0.4,fontSize:13,bold:true,color:rgColor,align:'right'});
+  // Rangos
+  s4.addText('Interpretación de rangos:',{x:0.5,y:4.3,w:9,h:0.4,fontSize:12,bold:true,color:C.negro});
+  [['BAJO','175 - 232 pts','Riesgo mínimo. Mantener y monitorear.',C.verde,C.verdeClaro],
+   ['MEDIO','117 - 174 pts','Riesgo moderado. Aplicar medidas preventivas.',C.amarillo,C.amarilloClaro],
+   ['ALTO','58 - 116 pts','Riesgo alto. Intervención inmediata requerida.',C.rojo,C.rojoClaro]
+  ].forEach(([nivel,rango,desc,col,colL],i)=>{
+    card(s4,0.5+i*3.1,4.8,2.9,1.5,colL,col);
+    s4.addShape(pptx.ShapeType.rect,{x:0.5+i*3.1,y:4.8,w:2.9,h:0.08,fill:{color:col},line:{color:col}});
+    s4.addText(nivel,{x:0.6+i*3.1,y:4.9,w:2.7,h:0.4,fontSize:13,bold:true,color:col});
+    s4.addText(rango,{x:0.6+i*3.1,y:5.3,w:2.7,h:0.3,fontSize:11,bold:true,color:C.negro});
+    s4.addText(desc,{x:0.6+i*3.1,y:5.6,w:2.7,h:0.5,fontSize:9,color:C.grisOscuro,wrap:true});
+  });
 
   // ═══ SLIDE 5: RESULTADOS POR DIMENSIÓN ═══
   const s5=pptx.addSlide();
-  baseSlide(s5,'Resultados por Dimensión');
-  const dimColors={Bajo:C.verde,Medio:C.amarillo,Alto:C.rojo};
-  const cols=[[0,1,2,3],[4,5,6,7]];
-  cols[0].forEach((di,i)=>{
-    const d=res.resultados[di];
-    const dc=dimColors[d.riesgo.nivel];
-    const x=0.3+i*2.35;
-    s5.addShape(pptx.ShapeType.rect,{x,y:1.4,w:2.2,h:2.4,fill:{color:C.gris},line:{color:C.gris},rounding:0.08});
-    s5.addShape(pptx.ShapeType.rect,{x,y:1.4,w:2.2,h:0.35,fill:{color:dc},line:{color:dc},rounding:0.08});
-    s5.addText(d.riesgo.nivel,{x,y:1.4,w:2.2,h:0.35,fontSize:10,bold:true,color:C.blanco,align:'center'});
-    s5.addText(d.label,{x:x+0.05,y:1.8,w:2.1,h:0.9,fontSize:9,bold:true,color:C.negro,wrap:true});
-    s5.addText(`${d.promedio} pts`,{x:x+0.05,y:2.9,w:2.1,h:0.5,fontSize:16,bold:true,color:dc,align:'center'});
-    s5.addText(`Bajo:${d.bajo}`,{x:x+0.05,y:3.5,w:2.1,h:0.25,fontSize:7,color:C.grisOscuro,align:'center'});
-  });
-  cols[1].forEach((di,i)=>{
-    const d=res.resultados[di];
-    const dc=dimColors[d.riesgo.nivel];
-    const x=0.3+i*2.35;
-    s5.addShape(pptx.ShapeType.rect,{x,y:4.1,w:2.2,h:2.4,fill:{color:C.gris},line:{color:C.gris},rounding:0.08});
-    s5.addShape(pptx.ShapeType.rect,{x,y:4.1,w:2.2,h:0.35,fill:{color:dc},line:{color:dc},rounding:0.08});
-    s5.addText(d.riesgo.nivel,{x,y:4.1,w:2.2,h:0.35,fontSize:10,bold:true,color:C.blanco,align:'center'});
-    s5.addText(d.label,{x:x+0.05,y:4.5,w:2.1,h:0.9,fontSize:9,bold:true,color:C.negro,wrap:true});
-    s5.addText(`${d.promedio} pts`,{x:x+0.05,y:5.5,w:2.1,h:0.5,fontSize:16,bold:true,color:dc,align:'center'});
-    s5.addText(`Bajo:${d.bajo}`,{x:x+0.05,y:6.2,w:2.1,h:0.25,fontSize:7,color:C.grisOscuro,align:'center'});
+  header(s5,'Resultados por Dimensión');
+  const dimIcons=['⏱','🎓','👔','🎯','🏢','🔋','🤝','✅'];
+  const dimColors2={Bajo:C.verde,Medio:C.amarillo,Alto:C.rojo};
+  const dimColorsClaros={Bajo:C.verdeClaro,Medio:C.amarilloClaro,Alto:C.rojoClaro};
+  res.resultados.forEach((d,i)=>{
+    const col=i%4;
+    const row=Math.floor(i/4);
+    const x=0.25+col*2.4;
+    const y=1.25+row*2.8;
+    const dc=dimColors2[d.riesgo.nivel];
+    const dcL=dimColorsClaros[d.riesgo.nivel];
+    card(s5,x,y,2.2,2.5,C.blanco,C.grisMed);
+    s5.addShape(pptx.ShapeType.rect,{x,y,w:2.2,h:0.5,fill:{color:dc},line:{color:dc},rounding:0.08});
+    s5.addText(d.riesgo.nivel,{x,y,w:2.2,h:0.5,fontSize:11,bold:true,color:C.blanco,align:'center',valign:'middle'});
+    s5.addText(dimIcons[i],{x:x+0.05,y:y+0.55,w:2.1,h:0.5,fontSize:18,align:'center'});
+    s5.addText(d.label,{x:x+0.05,y:y+1.05,w:2.1,h:0.8,fontSize:8.5,bold:true,color:C.negro,align:'center',wrap:true,valign:'top'});
+    s5.addText(`${d.promedio} pts`,{x:x+0.05,y:y+1.95,w:2.1,h:0.45,fontSize:18,bold:true,color:dc,align:'center'});
   });
 
-  // ═══ SLIDE 6: DIMENSIONES EN RIESGO ALTO/MEDIO ═══
+  // ═══ SLIDE 6: GRÁFICO DE BARRAS DIMENSIONES ═══
   const s6=pptx.addSlide();
-  baseSlide(s6,'Análisis de Dimensiones Críticas');
+  header(s6,'Análisis por Dimensión','Puntaje promedio obtenido en cada dimensión');
+  const maxPts=[16,16,24,16,24,20,20,96];
+  res.resultados.forEach((d,i)=>{
+    const dc=dimColors2[d.riesgo.nivel];
+    const pct=d.promedio/maxPts[i];
+    const bLen=Math.max(pct*6.5,0.1);
+    const y=1.35+i*0.67;
+    // Label
+    s6.addText(d.label,{x:0.3,y:y,w:2.8,h:0.55,fontSize:9,color:C.negro,valign:'middle',wrap:true});
+    // Barra fondo
+    card(s6,3.2,y+0.08,6.6,0.38,'F0F3F7','E0E5EE');
+    // Barra valor
+    s6.addShape(pptx.ShapeType.rect,{x:3.2,y:y+0.08,w:bLen,h:0.38,fill:{color:dc},line:{color:dc},rounding:0.04});
+    // Puntaje
+    s6.addText(`${d.promedio}`,{x:9.85,y:y,w:0.6,h:0.55,fontSize:11,bold:true,color:dc,valign:'middle',align:'right'});
+    // Nivel badge
+    s6.addShape(pptx.ShapeType.rect,{x:9.85,y:y+0.28,w:0.6,h:0.22,fill:{color:dc},line:{color:dc},rounding:0.04});
+    s6.addText(d.riesgo.nivel[0],{x:9.85,y:y+0.28,w:0.6,h:0.22,fontSize:8,bold:true,color:C.blanco,align:'center',valign:'middle'});
+  });
+  // Leyenda
+  [['BAJO',C.verde],['MEDIO',C.amarillo],['ALTO',C.rojo]].forEach(([n,c],i)=>{
+    s6.addShape(pptx.ShapeType.rect,{x:0.3+i*1.5,y:6.55,w:0.25,h:0.18,fill:{color:c},line:{color:c},rounding:0.03});
+    s6.addText(n,{x:0.62+i*1.5,y:6.52,w:1.1,h:0.22,fontSize:9,color:C.negro});
+  });
+
+  // ═══ SLIDE 7: DIMENSIONES CRÍTICAS ═══
+  const s7=pptx.addSlide();
+  header(s7,'Análisis de Dimensiones Críticas','Dimensiones que requieren atención o intervención');
   const criticas=res.resultados.filter(d=>d.riesgo.nivel==='Alto'||d.riesgo.nivel==='Medio');
   if(criticas.length===0){
-    s6.addShape(pptx.ShapeType.rect,{x:1,y:2,w:8,h:3,fill:{color:C.verdeClaro},line:{color:C.verde},rounding:0.15});
-    s6.addText('Todas las dimensiones se encuentran en nivel de RIESGO BAJO',{x:1,y:2.5,w:8,h:2,fontSize:20,bold:true,color:C.verde,align:'center',valign:'middle'});
+    card(s7,0.5,2.0,9.2,3.5,C.verdeClaro,C.verde);
+    s7.addText('✅',{x:0.5,y:2.3,w:9.2,h:1.0,fontSize:40,align:'center'});
+    s7.addText('Todas las dimensiones se encuentran en nivel de RIESGO BAJO',{x:1,y:3.4,w:8,h:1.0,fontSize:18,bold:true,color:C.verde,align:'center',valign:'middle'});
+    s7.addText('El ambiente laboral es favorable. Se recomienda mantener las condiciones actuales y realizar seguimiento periódico.',{x:1,y:4.5,w:8,h:0.7,fontSize:12,color:C.grisOscuro,align:'center',wrap:true});
   }else{
-    criticas.forEach((d,i)=>{
+    const interps={
+      'Carga y Ritmo de Trabajo':'Revisar distribución de tareas y tiempos de trabajo.',
+      'Desarrollo de Competencias':'Fortalecer planes de capacitación y evaluación del desempeño.',
+      'Liderazgo':'Mejorar habilidades de liderazgo y comunicación entre jefes y equipos.',
+      'Margen de Acción y Control':'Incrementar la participación del trabajador en decisiones laborales.',
+      'Organización del Trabajo':'Revisar procesos de comunicación interna y organización.',
+      'Recuperación':'Implementar pausas activas y revisar jornadas de trabajo.',
+      'Soporte y Apoyo':'Fortalecer redes de apoyo entre compañeros y con la empresa.',
+      'Otros Puntos Importantes':'Revisar ambiente laboral, equidad y condiciones generales.'
+    };
+    criticas.slice(0,6).forEach((d,i)=>{
       const dc=d.riesgo.nivel==='Alto'?C.rojo:C.amarillo;
       const dcL=d.riesgo.nivel==='Alto'?C.rojoClaro:C.amarilloClaro;
-      s6.addShape(pptx.ShapeType.rect,{x:0.3,y:1.4+i*1.1,w:9.4,h:0.95,fill:{color:dcL},line:{color:dc},rounding:0.08});
-      s6.addShape(pptx.ShapeType.rect,{x:0.3,y:1.4+i*1.1,w:1.5,h:0.95,fill:{color:dc},line:{color:dc},rounding:0.08});
-      s6.addText(d.riesgo.nivel,{x:0.3,y:1.4+i*1.1,w:1.5,h:0.95,fontSize:12,bold:true,color:C.blanco,align:'center',valign:'middle'});
-      s6.addText(d.label,{x:2.0,y:1.5+i*1.1,w:5,h:0.75,fontSize:12,bold:true,color:C.negro,valign:'middle'});
-      s6.addText(`Puntaje: ${d.promedio}  |  Rango alto: ${d.alto}`,{x:7.0,y:1.5+i*1.1,w:2.5,h:0.75,fontSize:10,color:C.grisOscuro,valign:'middle',align:'right'});
+      const y=1.3+i*0.92;
+      card(s7,0.3,y,9.2,0.82,C.blanco,C.grisMed);
+      s7.addShape(pptx.ShapeType.rect,{x:0.3,y,w:1.4,h:0.82,fill:{color:dc},line:{color:dc},rounding:0.06});
+      s7.addText(d.riesgo.nivel,{x:0.3,y,w:1.4,h:0.82,fontSize:11,bold:true,color:C.blanco,align:'center',valign:'middle'});
+      s7.addText(d.label,{x:1.85,y:y+0.05,w:4.2,h:0.4,fontSize:11,bold:true,color:C.negro});
+      s7.addText(interps[d.label]||'Revisar y aplicar medidas correctivas.',{x:1.85,y:y+0.42,w:4.2,h:0.35,fontSize:9,color:C.grisOscuro,wrap:true});
+      s7.addText(`Puntaje: ${d.promedio}`,{x:6.2,y:y+0.05,w:1.8,h:0.35,fontSize:11,bold:true,color:dc,align:'right'});
+      s7.addText(`Rango alto: ${d.alto}`,{x:6.2,y:y+0.42,w:1.8,h:0.3,fontSize:9,color:C.grisOscuro,align:'right'});
     });
   }
 
-  // ═══ SLIDE 7: RECOMENDACIONES ═══
-  const s7=pptx.addSlide();
-  baseSlide(s7,'Recomendaciones');
-  const recs=[
-    'Promover espacios de comunicación y retroalimentación entre líderes y equipos de trabajo.',
-    'Implementar pausas activas y programas de bienestar laboral.',
-    'Fortalecer el plan de capacitación y desarrollo de competencias.',
-    'Establecer mecanismos de seguimiento periódico de los factores psicosociales.',
-    'Socializar los resultados con todos los trabajadores y áreas involucradas.',
+  // ═══ SLIDE 8: RECOMENDACIONES ═══
+  const s8=pptx.addSlide();
+  header(s8,'Recomendaciones y Plan de Acción');
+  const recsBase=[
+    ['Comunicación','Promover espacios de retroalimentación y comunicación efectiva entre líderes y equipos.'],
+    ['Bienestar','Implementar pausas activas, programas de bienestar y manejo del estrés laboral.'],
+    ['Capacitación','Fortalecer el plan de capacitación, desarrollo de competencias y evaluación del desempeño.'],
+    ['Seguimiento','Establecer mecanismos de monitoreo periódico de factores psicosociales.'],
+    ['Socialización','Socializar los resultados con todos los trabajadores y áreas involucradas.'],
+    ['Prevención','Implementar el programa de Riesgos Psicosociales acorde a la normativa vigente.'],
   ];
   const dimAlto=res.resultados.filter(d=>d.riesgo.nivel==='Alto').map(d=>d.label);
   if(dimAlto.length>0){
-    recs.unshift(`Atención prioritaria en: ${dimAlto.join(', ')}.`);
+    recsBase.unshift(['Prioridad',`Atención inmediata en: ${dimAlto.join(', ')}.`]);
   }
-  recs.forEach((r,i)=>{
-    s7.addShape(pptx.ShapeType.rect,{x:0.3,y:1.5+i*0.85,w:0.4,h:0.5,fill:{color:C.azul},line:{color:C.azul},rounding:0.05});
-    s7.addText(`${i+1}`,{x:0.3,y:1.5+i*0.85,w:0.4,h:0.5,fontSize:12,bold:true,color:C.blanco,align:'center',valign:'middle'});
-    s7.addText(r,{x:0.85,y:1.5+i*0.85,w:8.8,h:0.6,fontSize:11,color:C.negro,valign:'middle',wrap:true});
+  recsBase.slice(0,6).forEach((r,i)=>{
+    const y=1.3+i*0.88;
+    card(s8,0.3,y,9.2,0.78,i===0&&dimAlto.length>0?C.rojoClaro:C.grisClaro,C.grisMed);
+    s8.addShape(pptx.ShapeType.rect,{x:0.3,y,w:0.45,h:0.78,fill:{color:i===0&&dimAlto.length>0?C.rojo:C.azul},line:{color:i===0&&dimAlto.length>0?C.rojo:C.azul},rounding:0.06});
+    s8.addText(`${i+1}`,{x:0.3,y,w:0.45,h:0.78,fontSize:14,bold:true,color:C.blanco,align:'center',valign:'middle'});
+    s8.addText(r[0],{x:0.9,y:y+0.05,w:1.5,h:0.35,fontSize:10,bold:true,color:i===0&&dimAlto.length>0?C.rojo:C.azul});
+    s8.addText(r[1],{x:0.9,y:y+0.38,w:8.4,h:0.35,fontSize:10,color:C.negro,wrap:true});
   });
 
-  // Descargar
+  // ═══ SLIDE 9: CIERRE ═══
+  const s9=pptx.addSlide();
+  s9.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:'100%',fill:{color:C.azul}});
+  s9.addShape(pptx.ShapeType.rect,{x:0,y:0,w:0.15,h:'100%',fill:{color:C.acento}});
+  s9.addShape(pptx.ShapeType.rect,{x:0,y:3.5,w:'100%',h:0.06,fill:{color:C.acento}});
+  s9.addText('Gracias por su confianza',{x:0.5,y:1.2,w:9,h:0.8,fontSize:32,bold:true,color:C.blanco,align:'center'});
+  s9.addText(ec.nombre||'VitalWork SAS',{x:0.5,y:2.1,w:9,h:0.6,fontSize:18,color:'AED6F1',align:'center'});
+  s9.addText('Centro de Vigilancia de la Salud',{x:0.5,y:2.7,w:9,h:0.5,fontSize:14,color:'AED6F1',align:'center'});
+  s9.addText(ec.direccion||'',{x:0.5,y:3.8,w:9,h:0.4,fontSize:12,color:'AED6F1',align:'center'});
+  s9.addText(ec.wa_phone||'',{x:0.5,y:4.3,w:9,h:0.4,fontSize:12,color:C.blanco,align:'center'});
+  s9.addText(`Informe elaborado el ${fD(TD)}`,{x:0.5,y:5.5,w:9,h:0.4,fontSize:11,color:'AED6F1',align:'center'});
+  s9.addText(`${e.empresa_nombre} · Universo: ${totalN} trabajadores`,{x:0.5,y:6.0,w:9,h:0.4,fontSize:11,color:'AED6F1',align:'center'});
+
   const nombreEmp=(e.empresa_nombre||'empresa').replace(/[^a-zA-Z0-9]/g,'_');
   await pptx.writeFile({fileName:`informe_psicosocial_${nombreEmp}_${e.fecha||TD}.pptx`});
   showToast('✅ Informe PPTX descargado correctamente','ok');
