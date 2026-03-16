@@ -851,10 +851,15 @@ function exMod(aid){
         const label=o.cat==='radiologia'?`🦴 RX: ${o.parte} — ${o.proy}`:o.cat==='laboratorio'?`🧪 Lab: ${(o.exams||[]).join(', ')}`:cI[o.cat]+(o.exams||[]).join(', ');
         const fechaExtra=o.fecha_prog?` · 📅 ${o.fecha_prog} ${o.hora_prog||''}`.trim():'';
         const puedeReagendar=['radiologia','ecografia','electrocardiograma','ficha_ocupacional','atencion_medica'].includes(o.cat)&&o.estado!=='completado';
-        return`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;padding:6px;background:var(--bg);border-radius:6px;border:1px solid var(--bd)">
-          <span style="font-size:11px;flex:1">${label}${fechaExtra}</span>
+        const esFicha=o.cat==='ficha_ocupacional';const sinFecha=esFicha&&!o.fecha_prog;
+        const _divBg=sinFecha?'rgba(239,68,68,.06)':'var(--bg)';const _divBd=sinFecha?'rgba(239,68,68,.3)':'var(--bd)';
+        const _sfTag=sinFecha?'<span style="color:#ef4444;font-size:9px">⚠️ Sin fecha</span>':'';
+        const _btnTxt=sinFecha?'📅 Asignar fecha':'📅 Reagendar';const _btnCls=sinFecha?'bp':'bt';
+        const _reagBtn=puedeReagendar?'<button class="btn bsm '+_btnCls+'" style="font-size:10px;padding:3px 8px" onclick="reagendarOrden(\''+o.id+'\')">' +_btnTxt+'</button>':'';
+        return`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;padding:6px;background:${_divBg};border-radius:6px;border:1px solid ${_divBd}">
+          <span style="font-size:11px;flex:1">${label}${fechaExtra}${_sfTag}</span>
           <span class="ba ${EB[o.estado]}" style="font-size:9px">${EL[o.estado]}</span>
-          ${puedeReagendar?`<button class="btn bsm bt" style="font-size:10px;padding:3px 8px" onclick="reagendarOrden('${o.id}')">📅 Reagendar</button>`:''}
+          ${_reagBtn}
           <button class="btn bsm bd" style="font-size:10px;padding:3px 8px" onclick="eliminarOrden('${o.id}')">🗑️</button>
         </div>`;
       }).join('')}
@@ -1279,8 +1284,12 @@ function rCal(){
     for(let i=1;i<=dim;i++){
       const dstr=`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
       const da=S.apt.filter(a=>a.fecha===dstr&&a.estado!=='cancelada');
-      const ev=da.slice(0,2).map(a=>{const p=gP(a.pid);return`<div class="cev" style="background:${evC[a.estado]};color:${evT[a.estado]}">${fT(a.hora)} ${p?.nombre?.split(' ')[0]||''}</div>`;}).join('');
-      c+=`<div class="cdy ${dstr===TD?'tod':''}" onclick="S.cDate=new Date(${y},${m},${i});S.calView='day';render()"><div class="cdn">${i}</div>${ev}${da.length>2?`<div style="font-size:8px;color:var(--tm)">+${da.length-2} más</div>`:''}</div>`;
+      // Órdenes con fecha_prog programada para este día (de otras citas)
+      const ordExt=S.ord.filter(o=>o.fecha_prog===dstr&&!da.some(a=>a.id===o.aid));
+      const totalEv=da.length+ordExt.length;
+      const evCitas=da.slice(0,2).map(a=>{const p=gP(a.pid);return`<div class="cev" style="background:${evC[a.estado]};color:${evT[a.estado]}">${fT(a.hora)} ${p?.nombre?.split(' ')[0]||''}</div>`;}).join('');
+      const evOrds=ordExt.slice(0,Math.max(0,2-da.length)).map(o=>{const ap=S.apt.find(a=>a.id===o.aid);const p=ap?gP(ap.pid):null;const lbl=o.cat==='ficha_ocupacional'?'📋 Ficha':o.cat==='radiologia'?'🦴 RX':o.cat==='ecografia'?'🔊 Eco':o.cat==='electrocardiograma'?'❤️ EKG':o.cat==='atencion_medica'?'🩺 Med':'📝';return`<div class="cev" style="background:#e0e7ff;color:#4338ca">${o.hora_prog?fT(o.hora_prog):''} ${lbl} ${p?.nombre?.split(' ')[0]||''}</div>`;}).join('');
+      c+=`<div class="cdy ${dstr===TD?'tod':''}" onclick="S.cDate=new Date(${y},${m},${i});S.calView='day';render()"><div class="cdn">${i}</div>${evCitas}${evOrds}${totalEv>2?`<div style="font-size:8px;color:var(--tm)">+${totalEv-2} más</div>`:''}</div>`;
     }
     navH=`<button class="btn bic bg" onclick="S.cDate=new Date(${y},${m-1});render()">${ic('cL')}</button><h3 style="min-width:180px;text-align:center">${mn[m]} ${y}</h3><button class="btn bic bg" onclick="S.cDate=new Date(${y},${m+1});render()">${ic('cR')}</button>`;
     bodyH=`<div class="cgr">${dn.map(d=>`<div class="cdyh">${d}</div>`).join('')}${c}</div>`;
@@ -1313,6 +1322,8 @@ function rCal(){
     // ═══ DAY VIEW ═══
     const dstr=ds(d);
     const dayApts=S.apt.filter(a=>a.fecha===dstr).sort((a,b)=>a.hora.localeCompare(b.hora));
+    // Órdenes programadas (fecha_prog) para este día cuya cita principal es otro día
+    const dayOrdsExt=S.ord.filter(o=>o.fecha_prog===dstr&&o.estado!=='completado'&&!dayApts.some(a=>a.id===o.aid));
     const hours=[];for(let h=7;h<=18;h++){hours.push(h);}
 
     navH=`<button class="btn bic bg" onclick="S.cDate=new Date(${y},${m},${dd-1});render()">${ic('cL')}</button><h3 style="min-width:220px;text-align:center">${dnF[d.getDay()]} ${dd} de ${mn[m]}, ${y}</h3><button class="btn bic bg" onclick="S.cDate=new Date(${y},${m},${dd+1});render()">${ic('cR')}</button>`;
@@ -1320,6 +1331,8 @@ function rCal(){
     let rows='';
     hours.forEach(h=>{
       const ha=dayApts.filter(a=>+a.hora.split(':')[0]===h);
+      // Órdenes externas programadas en esta hora
+      const hoExt=dayOrdsExt.filter(o=>o.hora_prog&&+o.hora_prog.split(':')[0]===h);
       const evs=ha.map(a=>{
         const p=gP(a.pid);const o=gAO(a.id);
         return`<div class="dev" style="background:${evC[a.estado]};color:${evT[a.estado]}">
@@ -1330,10 +1343,16 @@ function rCal(){
           ${o.length?`<span style="font-size:8px;background:rgba(0,0,0,.15);padding:1px 4px;border-radius:3px">${o.length} órd.</span>`:''}
         </div>`;
       }).join('');
-      rows+=`<div class="dhr">${h>12?h-12:h}:00 ${h>=12?'PM':'AM'}</div><div class="dcl">${evs||''}</div>`;
+      const evsExt=hoExt.map(o=>{const ap=S.apt.find(a=>a.id===o.aid);const p=ap?gP(ap.pid):null;const lbl=o.cat==='ficha_ocupacional'?'📋 Ficha':o.cat==='atencion_medica'?'🩺 Consulta':o.cat==='radiologia'?'🦴 RX':o.cat==='ecografia'?'🔊 Eco':o.cat==='electrocardiograma'?'❤️ EKG':'📋';return`<div class="dev" style="background:#e0e7ff;color:#4338ca"><span style="font-family:'Space Mono',monospace;font-weight:700">${fT(o.hora_prog)}</span><span>${p?.nombre||'—'}</span><span style="opacity:.7;font-size:9px">${p?.empresa||''}</span><span style="font-size:9px">${lbl}</span></div>`;}).join('');
+      rows+=`<div class="dhr">${h>12?h-12:h}:00 ${h>=12?'PM':'AM'}</div><div class="dcl">${evs||''}${evsExt||''}</div>`;
     });
+    // También mostrar órdenes sin hora asignada
+    const ordsSinHora=dayOrdsExt.filter(o=>!o.hora_prog);
+    const totalDia=dayApts.length;
+    const totalProg=dayOrdsExt.length;
     bodyH=`<div class="dgr">${rows}</div>
-    ${dayApts.length>0?`<div class="cd" style="margin-top:10px"><div class="cdh"><h3>Citas del día (${dayApts.length})</h3></div>
+    ${ordsSinHora.length>0?`<div style="margin-top:8px;padding:8px;background:#e0e7ff;border-radius:8px;border:1px solid #a5b4fc"><div style="font-size:11px;font-weight:600;color:#4338ca;margin-bottom:6px">📋 Servicios programados sin hora definida:</div>${ordsSinHora.map(o=>{const ap=S.apt.find(a=>a.id===o.aid);const p=ap?gP(ap.pid):null;const lbl=o.cat==='ficha_ocupacional'?'Ficha Ocupacional':o.cat==='atencion_medica'?'Consulta Médica':o.cat;return`<div style="font-size:11px;color:#3730a3;padding:3px 0">${p?.nombre||'—'} — ${lbl}</div>`;}).join('')}</div>`:''}
+    ${totalDia>0?`<div class="cd" style="margin-top:10px"><div class="cdh"><h3>Citas del día (${totalDia})${totalProg>0?` <span style="font-size:11px;color:#4338ca;font-weight:400">· +${totalProg} servicio(s) programado(s)</span>`:''}</h3></div>
     <div class="tw"><table><thead><tr><th>Hora</th><th>Paciente</th><th>Empresa</th><th>Tipo</th><th>Estado</th><th>Exám.</th><th>Acc.</th></tr></thead><tbody>
     ${dayApts.map(a=>{const p=gP(a.pid);const o=gAO(a.id);return`<tr>
       <td class="mono" style="font-weight:600">${fT(a.hora)}</td>
@@ -1342,7 +1361,7 @@ function rCal(){
       <td><span class="ba ${EB[a.estado]}">${EL[a.estado]}</span></td>
       <td>${a.exAsig?`<span class="ba ba-t">${o.length} órd.</span>`:'<span class="ba ba-w">—</span>'}</td>
       <td style="display:flex;gap:2px"><button class="abtn ${a.asistio===true?'y':''}" onclick="mrkA('${a.id}',true)">${ic('chk',12)}</button><button class="abtn ${a.asistio===false?'n':''}" onclick="mrkA('${a.id}',false)">${ic('x',12)}</button><button class="btn bsm bw" style="font-size:9px;padding:2px 6px" onclick="sendReminder(S.apt.find(x=>x.id==='${a.id}'))">📤</button></td></tr>`;}).join('')}</tbody></table></div></div>`:
-    `<div class="es" style="margin-top:10px"><h4>Sin citas este día</h4></div>`}`;
+    `<div class="es" style="margin-top:10px"><h4>${totalProg>0?`Sin citas directas — ${totalProg} servicio(s) programado(s)`:'Sin citas este día'}</h4></div>`}`;
   }
 
   // Today button
@@ -1389,7 +1408,7 @@ function rDet(){
   <div class="cdb"><div class="tl">${ap.map(a=>{const ao=gAO(a.id);const dot=a.asistio===true?'tld-g':a.asistio===false?'tld-r':'tld-y';
   return`<div class="tli"><div class="tld ${dot}"></div><div style="font-weight:600;font-size:12px">${a.tipo} — ${fD(a.fecha)} ${fT(a.hora)}</div>
   <span class="ba ${EB[a.estado]}">${EL[a.estado]}</span>
-  ${ao.length?`<div style="margin-top:4px">${ao.map(o=>`<div style="background:var(--ci);border:1px solid var(--bd);border-radius:5px;padding:6px;margin-bottom:3px"><span>${cI[o.cat]||''}</span> <span style="font-weight:600;font-size:10px">${o.cat}</span> <span class="ba ${EB[o.estado]}" style="font-size:9px">${EL[o.estado]}</span><div style="margin-top:3px">${o.cat==='radiologia'?`<span class="etg">${o.parte} — ${o.proy}</span>`:(o.exams||[]).map(e=>`<span class="etg">${e}</span>`).join('')}</div></div>`).join('')}</div>`:''}</div>`;}).join('')}</div></div>`}</div>`;
+  ${ao.length?`<div style="margin-top:4px">${ao.map(o=>{const lbl=o.cat==='ficha_ocupacional'?'Ficha Ocupacional':o.cat==='atencion_medica'?'Atención Médica':o.cat==='ecografia'?'Ecografía':o.cat==='electrocardiograma'?'Electrocardiograma':o.cat==='espirometria'?'Espirometría':o.cat==='audiometria'?'Audiometría':o.cat==='radiologia'?'Radiografía':o.cat==='laboratorio'?'Laboratorio':o.cat;const fprog=o.fecha_prog?`<span style="font-size:9px;color:var(--a);margin-left:4px">📅 ${o.fecha_prog}${o.hora_prog?' '+fT(o.hora_prog):''}</span>`:'';return`<div style="background:var(--ci);border:1px solid var(--bd);border-radius:5px;padding:6px;margin-bottom:3px"><span>${cI[o.cat]||''}</span> <span style="font-weight:600;font-size:10px">${lbl}</span> <span class="ba ${EB[o.estado]}" style="font-size:9px">${EL[o.estado]}</span>${fprog}<div style="margin-top:3px">${o.cat==='radiologia'?`<span class="etg">${o.parte} — ${o.proy}</span>`:(o.exams||[]).map(e=>`<span class="etg">${e}</span>`).join('')}</div></div>`;}).join('')}</div>`:''}</div>`;}).join('')}</div></div>`}</div>`;
 }
 
 // ═══ NURSING ═══
@@ -1416,8 +1435,18 @@ function rNrs(){
     const desde=dom.toISOString().split('T')[0];
     const hasta=sab.toISOString().split('T')[0];
     tA=S.apt.filter(a=>a.fecha>=desde&&a.fecha<=hasta&&a.estado!=='cancelada');
+    // Agregar citas cuyas órdenes tienen fecha_prog en esta semana (si la cita no está ya en la lista)
+    const aidsSem=new Set(tA.map(a=>a.id));
+    S.ord.filter(o=>o.fecha_prog&&o.fecha_prog>=desde&&o.fecha_prog<=hasta&&o.estado!=='completado').forEach(o=>{
+      if(!aidsSem.has(o.aid)){const aa=S.apt.find(a=>a.id===o.aid&&a.estado!=='cancelada');if(aa){tA.push(aa);aidsSem.add(aa.id);}}
+    });
   }else{
     tA=S.apt.filter(a=>a.fecha===fd&&a.estado!=='cancelada');
+    // Agregar citas cuyas órdenes tienen fecha_prog=hoy aunque la cita sea otro día
+    const aidsHoy=new Set(tA.map(a=>a.id));
+    S.ord.filter(o=>o.fecha_prog===fd&&o.estado!=='completado').forEach(o=>{
+      if(!aidsHoy.has(o.aid)){const aa=S.apt.find(a=>a.id===o.aid&&a.estado!=='cancelada');if(aa){tA.push(aa);aidsHoy.add(aa.id);}}
+    });
   }
   tA.sort((a,b)=>(a.fecha+a.hora).localeCompare(b.fecha+b.hora));
 
@@ -6086,15 +6115,15 @@ function _enviarWA(aid,tipo){
       listaEx+=`\n🧪 *LABORATORIO:*\n${exams.map(e=>`• ${e}`).join('\n')}\n`;
     }
     if(rxOrd.length>0){
-      const rxFecha=rxOrd[0].fecha_prog?`\n   📅 Fecha: ${rxOrd[0].fecha_prog}${rxOrd[0].hora_prog?' a las '+rxOrd[0].hora_prog:''}`:'' ;
+      const rxFecha=rxOrd[0].fecha_prog?`\n   📅 Fecha: ${rxOrd[0].fecha_prog}${rxOrd[0].hora_prog?' a las '+fT(rxOrd[0].hora_prog):''}`:'' ;
       listaEx+=`\n🦴 *RADIOGRAFÍA:*\n${rxOrd.map(o=>`• ${o.parte} — ${o.proy}`).join('\n')}${rxFecha}\n`;
     }
     if(ecoOrd){
-      const ecoF=ecoOrd.fecha_prog?`\n   📅 Fecha: ${ecoOrd.fecha_prog}${ecoOrd.hora_prog?' a las '+ecoOrd.hora_prog:''}` :'';
+      const ecoF=ecoOrd.fecha_prog?`\n   📅 Fecha: ${ecoOrd.fecha_prog}${ecoOrd.hora_prog?' a las '+fT(ecoOrd.hora_prog):''}` :'';
       listaEx+=`\n🔊 *ECOGRAFÍA*${ecoF}\n`;
     }
     if(ekgOrd){
-      const ekgF=ekgOrd.fecha_prog?`\n   📅 Fecha: ${ekgOrd.fecha_prog}${ekgOrd.hora_prog?' a las '+ekgOrd.hora_prog:''}` :'';
+      const ekgF=ekgOrd.fecha_prog?`\n   📅 Fecha: ${ekgOrd.fecha_prog}${ekgOrd.hora_prog?' a las '+fT(ekgOrd.hora_prog):''}` :'';
       listaEx+=`\n❤️ *ELECTROCARDIOGRAMA (EKG)*${ekgF}\n`;
     }
     if(espOrd)listaEx+=`\n🫁 *ESPIROMETRÍA*\n`;
@@ -6116,7 +6145,7 @@ function _enviarWA(aid,tipo){
       +`\n¡Le esperamos! 🙌`;
 
   }else if(tipo==='ficha'){
-    const fFecha=fichaOrd?.fecha_prog?`\n📅 *Fecha cita:* ${fichaOrd.fecha_prog}\n🕐 *Hora:* ${fichaOrd.hora_prog||fT(a.hora)}\n`:`\n📅 *Fecha:* ${fechaStr}\n🕐 *Hora:* ${fT(a.hora)}\n`;
+    const fFecha=fichaOrd?.fecha_prog?`\n📅 *Fecha cita:* ${fichaOrd.fecha_prog}\n🕐 *Hora:* ${fichaOrd.hora_prog?fT(fichaOrd.hora_prog):fT(a.hora)}\n`:`\n📅 *Fecha:* ${fechaStr}\n🕐 *Hora:* ${fT(a.hora)}\n`;
     msg=`🏥 *${ec.nombre||'VitalWork S.A.S.'}*\n_Salud Ocupacional_\n\n`
       +`Estimado/a *${p.nombre}*, le recordamos que tiene una cita programada para la *elaboración de su Ficha Médica Ocupacional*.\n`
       +fFecha
@@ -6130,7 +6159,7 @@ function _enviarWA(aid,tipo){
 
   }else if(tipo==='consulta'){
     const medOrd=ords.find(o=>o.cat==='atencion_medica');
-    const mFecha=medOrd?.fecha_prog?`\n📅 *Fecha cita:* ${medOrd.fecha_prog}\n🕐 *Hora:* ${medOrd.hora_prog||fT(a.hora)}\n`:`\n📅 *Fecha:* ${fechaStr}\n🕐 *Hora:* ${fT(a.hora)}\n`;
+    const mFecha=medOrd?.fecha_prog?`\n📅 *Fecha cita:* ${medOrd.fecha_prog}\n🕐 *Hora:* ${medOrd.hora_prog?fT(medOrd.hora_prog):fT(a.hora)}\n`:`\n📅 *Fecha:* ${fechaStr}\n🕐 *Hora:* ${fT(a.hora)}\n`;
     msg=`🏥 *${ec.nombre||'VitalWork S.A.S.'}*\n_Salud Ocupacional_\n\n`
       +`Estimado/a *${p.nombre}*, le recordamos que tiene una *cita médica* programada.\n`
       +mFecha
