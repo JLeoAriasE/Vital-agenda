@@ -1865,6 +1865,376 @@ const MINTE_DIMS=[
   {id:'soporte',label:'Soporte y Apoyo',items:[30,31,32,33,34],bajo:'16 a 20',medio:'10 a 15',alto:'5 a 9',bajR:[16,20],medR:[10,15],altR:[5,9]},
   {id:'otros',label:'Otros Puntos Importantes',items:[35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58],bajo:'73 a 96',medio:'49 a 72',alto:'24 a 48',bajR:[73,96],medR:[49,72],altR:[24,48]},
 ];
+
+// ═══════════════════════════════════════════
+// FPSICO NTP 926 - INSHT España
+// 44 preguntas, 9 factores
+// ═══════════════════════════════════════════
+const FPSICO_FACTORES=[
+  {id:'TT',label:'Tiempo de Trabajo',items:['1','2','3','4','5','6'],bajo:[0,7],medio:[8,16],alto:[17,24]},
+  {id:'AU',label:'Autonomía',items:['7','8','9','10a','10b','10c','10d','10e','10f','10g','10h'],bajo:[0,10],medio:[11,25],alto:[26,44]},
+  {id:'CT',label:'Carga de Trabajo',items:['21','22','23','24','25','26','27','28','29','30','31','32'],bajo:[0,15],medio:[16,30],alto:[31,48]},
+  {id:'DP',label:'Demandas Psicológicas',items:['33a','33b','33c','33d','33e','33f','34a','34b','34c','34d','35','36'],bajo:[0,12],medio:[13,28],alto:[29,48]},
+  {id:'VC',label:'Variedad/Contenido del Trabajo',items:['37','38','39'],bajo:[0,3],medio:[4,7],alto:[8,12]},
+  {id:'PS',label:'Participación/Supervisión',items:['11a','11b','11c','11d','11e','11f','11g','12a','12b','12c','12d','13a','13b','13c','13d','14a','14b','14c','14d','14e','14f'],bajo:[0,20],medio:[21,45],alto:[46,84]},
+  {id:'IT',label:'Interés por el Trabajador/Compensación',items:['40a','40b','40c','40d','41','42','43','44'],bajo:[0,8],medio:[9,18],alto:[19,32]},
+  {id:'DR',label:'Desempeño de Rol',items:['15a','15b','15c','15d','15e'],bajo:[0,5],medio:[6,12],alto:[13,20]},
+  {id:'RS',label:'Relaciones y Apoyo Social',items:['16a','16b','16c','16d','17','18a','18b','18c','18d','19','20'],bajo:[0,10],medio:[11,22],alto:[23,44]},
+];
+
+const FPSICO_PREGUNTAS=[
+  // TIEMPO DE TRABAJO (1-6) - escala siempre(1) a nunca(4) — MAYOR puntaje = MEJOR
+  {n:'1',txt:'¿Trabajas los sábados?',tipo:'simple',opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'2',txt:'¿Trabajas los domingos y festivos?',tipo:'simple',opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'3',txt:'¿Tienes la posibilidad de tomar días u horas libres para atender asuntos de tipo personal?',tipo:'simple',opciones:[{v:1,l:'Siempre o casi siempre'},{v:2,l:'A menudo'},{v:3,l:'A veces'},{v:4,l:'Nunca o casi nunca'}]},
+  {n:'4',txt:'¿Con qué frecuencia tienes que trabajar más tiempo del horario habitual, hacer horas extra o llevarte trabajo a casa?',tipo:'simple',opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'5',txt:'¿Dispones de al menos 48 horas consecutivas de descanso en el transcurso de una semana?',tipo:'simple',opciones:[{v:1,l:'Siempre o casi siempre'},{v:2,l:'A menudo'},{v:3,l:'A veces'},{v:4,l:'Nunca o casi nunca'}]},
+  {n:'6',txt:'¿Tu horario laboral te permite compaginar tu tiempo libre con el de tu familia y amigos?',tipo:'simple',opciones:[{v:1,l:'Siempre o casi siempre'},{v:2,l:'A menudo'},{v:3,l:'A veces'},{v:4,l:'Nunca o casi nunca'}]},
+
+  // AUTONOMÍA (7-9 simples + 10 subitems)
+  {n:'7',txt:'¿Puedes decidir cuándo realizar las pausas reglamentarias?',tipo:'simple',opciones:[{v:1,l:'Siempre o casi siempre'},{v:2,l:'A menudo'},{v:3,l:'A veces'},{v:4,l:'Nunca o casi nunca'}]},
+  {n:'8',txt:'Durante la jornada, ¿puedes detener tu trabajo o hacer una parada corta cuando lo necesitas?',tipo:'simple',opciones:[{v:1,l:'Siempre o casi siempre'},{v:2,l:'A menudo'},{v:3,l:'A veces'},{v:4,l:'Nunca o casi nunca'}]},
+  {n:'9',txt:'¿Puedes marcar tu propio ritmo de trabajo a lo largo de la jornada laboral?',tipo:'simple',opciones:[{v:1,l:'Siempre o casi siempre'},{v:2,l:'A menudo'},{v:3,l:'A veces'},{v:4,l:'Nunca o casi nunca'}]},
+  {n:'10',txt:'¿Puedes tomar decisiones relativas a:',tipo:'tabla',
+    opciones:[{v:1,l:'Siempre o casi siempre'},{v:2,l:'A menudo'},{v:3,l:'A veces'},{v:4,l:'Nunca o casi nunca'}],
+    subitems:[
+      {id:'10a',txt:'Lo que debes hacer (actividades y tareas a realizar)'},
+      {id:'10b',txt:'La distribución de tareas a lo largo de tu jornada'},
+      {id:'10c',txt:'La distribución del entorno directo de tu puesto de trabajo'},
+      {id:'10d',txt:'Cómo tienes que hacer tu trabajo (método, protocolos, procedimientos)'},
+      {id:'10e',txt:'La cantidad de trabajo que tienes que realizar'},
+      {id:'10f',txt:'La calidad del trabajo que realizas'},
+      {id:'10g',txt:'La resolución de situaciones anormales o incidencias'},
+      {id:'10h',txt:'La distribución de los turnos rotativos'},
+    ]
+  },
+
+  // PARTICIPACIÓN/SUPERVISIÓN (11-14 subitems)
+  {n:'11',txt:'¿Qué nivel de participación tienes en los siguientes aspectos de tu trabajo?',tipo:'tabla',
+    opciones:[{v:1,l:'Puedo decidir'},{v:2,l:'Se me consulta'},{v:3,l:'Sólo recibo información'},{v:4,l:'Ninguna participación'}],
+    subitems:[
+      {id:'11a',txt:'Introducción de cambios en los equipos y materiales'},
+      {id:'11b',txt:'Introducción de cambios en la manera de trabajar'},
+      {id:'11c',txt:'Lanzamiento de nuevos o mejores productos o servicios'},
+      {id:'11d',txt:'Reestructuración o reorganización de departamentos o áreas'},
+      {id:'11e',txt:'Cambios en la dirección o entre tus superiores'},
+      {id:'11f',txt:'Contratación o incorporación de nuevos empleados'},
+      {id:'11g',txt:'Elaboración de las normas de trabajo'},
+    ]
+  },
+  {n:'12',txt:'¿Cómo valoras la supervisión que tu jefe inmediato ejerce sobre los siguientes aspectos?',tipo:'tabla',
+    opciones:[{v:1,l:'No interviene'},{v:2,l:'Insuficiente'},{v:3,l:'Adecuada'},{v:4,l:'Excesiva'}],
+    subitems:[
+      {id:'12a',txt:'El método para realizar el trabajo'},
+      {id:'12b',txt:'La planificación del trabajo'},
+      {id:'12c',txt:'El ritmo de trabajo'},
+      {id:'12d',txt:'La calidad del trabajo realizado'},
+    ]
+  },
+  {n:'13',txt:'¿Cómo valoras el grado de información que te proporciona la empresa sobre los siguientes aspectos?',tipo:'tabla',
+    opciones:[{v:1,l:'No hay información'},{v:2,l:'Insuficiente'},{v:3,l:'Es adecuada'}],
+    subitems:[
+      {id:'13a',txt:'Las posibilidades de formación'},
+      {id:'13b',txt:'Las posibilidades de promoción'},
+      {id:'13c',txt:'Los requisitos para ocupar plazas de promoción'},
+      {id:'13d',txt:'La situación de la empresa en el mercado'},
+    ]
+  },
+  {n:'14',txt:'Para realizar tu trabajo ¿cómo valoras la información que recibes sobre los siguientes aspectos?',tipo:'tabla',
+    opciones:[{v:1,l:'Muy clara'},{v:2,l:'Clara'},{v:3,l:'Poco clara'},{v:4,l:'Nada clara'}],
+    subitems:[
+      {id:'14a',txt:'Lo que debes hacer (funciones, competencias y atribuciones)'},
+      {id:'14b',txt:'Cómo debes hacerlo (métodos, protocolos, procedimientos)'},
+      {id:'14c',txt:'La cantidad de trabajo que se espera que hagas'},
+      {id:'14d',txt:'La calidad de trabajo que se espera que hagas'},
+      {id:'14e',txt:'El tiempo asignado para realizar el trabajo'},
+      {id:'14f',txt:'La responsabilidad del puesto de trabajo'},
+    ]
+  },
+
+  // DESEMPEÑO DE ROL (15 subitems)
+  {n:'15',txt:'Señala con qué frecuencia se dan las siguientes situaciones en tu trabajo:',tipo:'tabla',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}],
+    subitems:[
+      {id:'15a',txt:'Se te asignan tareas que no puedes realizar por no tener los recursos humanos o materiales'},
+      {id:'15b',txt:'Para ejecutar algunas tareas tienes que saltarte los métodos establecidos'},
+      {id:'15c',txt:'Se te exige tomar decisiones o realizar cosas con las que no estás de acuerdo (conflicto moral, legal, emocional)'},
+      {id:'15d',txt:'Recibes instrucciones contradictorias entre sí'},
+      {id:'15e',txt:'Se te exigen responsabilidades, cometidos o tareas que no entran dentro de tus funciones'},
+    ]
+  },
+
+  // RELACIONES Y APOYO SOCIAL (16-20)
+  {n:'16',txt:'Si tienes que realizar un trabajo delicado o complicado y deseas ayuda o apoyo, ¿puedes contar con?',tipo:'tabla',
+    opciones:[{v:1,l:'Siempre o casi siempre'},{v:2,l:'A menudo'},{v:3,l:'A veces'},{v:4,l:'Nunca o casi nunca'},{v:5,l:'No tengo / no hay'}],
+    subitems:[
+      {id:'16a',txt:'Tus jefes'},
+      {id:'16b',txt:'Tus compañeros'},
+      {id:'16c',txt:'Tus subordinados'},
+      {id:'16d',txt:'Otras personas que trabajan en la empresa'},
+    ]
+  },
+  {n:'17',txt:'¿Cómo consideras que son las relaciones con las personas con las que debes trabajar?',tipo:'simple',
+    opciones:[{v:1,l:'Buenas'},{v:2,l:'Regulares'},{v:3,l:'Malas'},{v:4,l:'No tengo compañeros'}]},
+  {n:'18',txt:'¿Con qué frecuencia se producen en tu trabajo?',tipo:'tabla',
+    opciones:[{v:1,l:'Raras veces'},{v:2,l:'Con frecuencia'},{v:3,l:'Constantemente'},{v:4,l:'No existen'}],
+    subitems:[
+      {id:'18a',txt:'Los conflictos interpersonales'},
+      {id:'18b',txt:'Las situaciones de violencia física'},
+      {id:'18c',txt:'Las situaciones de violencia psicológica (amenazas, insultos, descalificaciones)'},
+      {id:'18d',txt:'Las situaciones de acoso sexual'},
+    ]
+  },
+  {n:'19',txt:'Tu empresa, frente a situaciones de conflicto interpersonal entre trabajadores:',tipo:'simple',
+    opciones:[{v:1,l:'Deja que sean los implicados quienes lo solucionen'},{v:2,l:'Pide a los mandos que busquen solución'},{v:3,l:'Tiene establecido un procedimiento formal de actuación'},{v:4,l:'No lo sé'}]},
+  {n:'20',txt:'En tu entorno laboral ¿te sientes discriminado? (por razones de edad, sexo, religión, raza, formación, categoría...)',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca'}]},
+
+  // CARGA DE TRABAJO (21-32)
+  {n:'21',txt:'¿A lo largo de la jornada cuánto tiempo debes mantener una exclusiva atención en tu trabajo?',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'22',txt:'En general, ¿cómo consideras la atención que debes mantener para realizar tu trabajo?',tipo:'simple',
+    opciones:[{v:5,l:'Muy alta'},{v:4,l:'Alta'},{v:3,l:'Media'},{v:2,l:'Baja'},{v:1,l:'Muy baja'}]},
+  {n:'23',txt:'El tiempo de que dispones para realizar tu trabajo es suficiente y adecuado:',tipo:'simple',
+    opciones:[{v:1,l:'Siempre o casi siempre'},{v:2,l:'A menudo'},{v:3,l:'A veces'},{v:4,l:'Nunca o casi nunca'}]},
+  {n:'24',txt:'La ejecución de tu tarea, ¿te impone trabajar con rapidez?',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'25',txt:'¿Con qué frecuencia debes acelerar el ritmo de trabajo?',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'26',txt:'En general, la cantidad de trabajo que tienes es:',tipo:'simple',
+    opciones:[{v:5,l:'Excesiva'},{v:4,l:'Elevada'},{v:3,l:'Adecuada'},{v:2,l:'Escasa'},{v:1,l:'Muy escasa'}]},
+  {n:'27',txt:'¿Debes atender a varias tareas al mismo tiempo?',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'28',txt:'El trabajo que realizas, ¿te resulta complicado o difícil?',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'29',txt:'¿En tu trabajo tienes que llevar a cabo tareas tan difíciles que necesitas pedir consejo o ayuda?',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'30',txt:'En tu trabajo, tienes que interrumpir la tarea que estás haciendo para realizar otra no prevista:',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'31',txt:'En el caso de que existan interrupciones, ¿alteran seriamente la ejecución de tu trabajo?',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'32',txt:'¿La cantidad de trabajo que tienes suele ser irregular e imprevisible?',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+
+  // DEMANDAS PSICOLÓGICAS (33-36)
+  {n:'33',txt:'En qué medida tu trabajo requiere:',tipo:'tabla',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}],
+    subitems:[
+      {id:'33a',txt:'Aprender cosas o métodos nuevos'},
+      {id:'33b',txt:'Adaptarse a nuevas situaciones'},
+      {id:'33c',txt:'Tomar iniciativas'},
+      {id:'33d',txt:'Tener buena memoria'},
+      {id:'33e',txt:'Ser creativo'},
+      {id:'33f',txt:'Tratar directamente con personas que no están empleadas en tu trabajo (clientes, pacientes, etc.)'},
+    ]
+  },
+  {n:'34',txt:'En tu trabajo ¿con qué frecuencia tienes que ocultar tus emociones y sentimientos ante...?',tipo:'tabla',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'},{v:0,l:'No tengo / no trato'}],
+    subitems:[
+      {id:'34a',txt:'Tus superiores jerárquicos'},
+      {id:'34b',txt:'Tus subordinados'},
+      {id:'34c',txt:'Tus compañeros de trabajo'},
+      {id:'34d',txt:'Personas que no están empleadas en la empresa (clientes, pacientes, etc.)'},
+    ]
+  },
+  {n:'35',txt:'Por el tipo de trabajo que tienes, ¿estás expuesto a situaciones que te afectan emocionalmente?',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+  {n:'36',txt:'Por el tipo de trabajo que tienes, ¿con qué frecuencia se espera que des una respuesta a los problemas emocionales y personales de tus clientes externos?',tipo:'simple',
+    opciones:[{v:4,l:'Siempre o casi siempre'},{v:3,l:'A menudo'},{v:2,l:'A veces'},{v:1,l:'Nunca o casi nunca'}]},
+
+  // VARIEDAD/CONTENIDO (37-39)
+  {n:'37',txt:'El trabajo que realizas ¿te resulta rutinario?',tipo:'simple',
+    opciones:[{v:1,l:'No'},{v:2,l:'A veces'},{v:3,l:'Bastante'},{v:4,l:'Mucho'}]},
+  {n:'38',txt:'En general ¿consideras que las tareas que realizas tienen sentido?',tipo:'simple',
+    opciones:[{v:1,l:'Mucho'},{v:2,l:'Bastante'},{v:3,l:'Poco'},{v:4,l:'Nada'}]},
+  {n:'39',txt:'¿Cómo contribuye tu trabajo en el conjunto de la empresa u organización?',tipo:'simple',
+    opciones:[{v:3,l:'No es muy importante'},{v:2,l:'Es importante'},{v:1,l:'Es muy importante'},{v:4,l:'No lo sé'}]},
+
+  // INTERÉS POR EL TRABAJADOR / COMPENSACIÓN (40-44)
+  {n:'40',txt:'En general, ¿está tu trabajo reconocido y apreciado por...?',tipo:'tabla',
+    opciones:[{v:1,l:'Siempre o casi siempre'},{v:2,l:'A menudo'},{v:3,l:'A veces'},{v:4,l:'Nunca o casi nunca'},{v:0,l:'No tengo / no trato'}],
+    subitems:[
+      {id:'40a',txt:'Tus superiores'},
+      {id:'40b',txt:'Tus compañeros de trabajo'},
+      {id:'40c',txt:'El público, clientes, pacientes, etc. (si los hay)'},
+      {id:'40d',txt:'Tu familia y tus amistades'},
+    ]
+  },
+  {n:'41',txt:'¿Te facilita la empresa el desarrollo profesional (promoción, plan de carrera...)?',tipo:'simple',
+    opciones:[{v:1,l:'Adecuadamente'},{v:2,l:'Regular'},{v:3,l:'Insuficientemente'},{v:4,l:'No existe posibilidad de desarrollo profesional'}]},
+  {n:'42',txt:'¿Cómo definirías la formación que se imparte o se facilita desde tu empresa?',tipo:'simple',
+    opciones:[{v:1,l:'Muy adecuada'},{v:2,l:'Suficiente'},{v:3,l:'Insuficiente en algunos casos'},{v:4,l:'Totalmente insuficiente'}]},
+  {n:'43',txt:'En general, la correspondencia entre el esfuerzo que haces y las recompensas que la empresa te proporciona es:',tipo:'simple',
+    opciones:[{v:1,l:'Muy adecuada'},{v:2,l:'Suficiente'},{v:3,l:'Insuficiente en algunos casos'},{v:4,l:'Totalmente insuficiente'}]},
+  {n:'44',txt:'Considerando los deberes y responsabilidades de tu trabajo ¿estás satisfecho con el salario que recibes?',tipo:'simple',
+    opciones:[{v:1,l:'Muy satisfecho'},{v:2,l:'Satisfecho'},{v:3,l:'Insatisfecho'},{v:4,l:'Muy insatisfecho'}]},
+];
+
+function calcularResultadosFpsico(respuestas){
+  const n=respuestas.length;
+  if(n===0)return null;
+  const resultados=FPSICO_FACTORES.map(factor=>{
+    const suma=respuestas.reduce((acc,r)=>{
+      return acc+factor.items.reduce((s,i)=>s+(r[i]||0),0);
+    },0);
+    const promedio=Math.round(suma/n);
+    const nivel=promedio<=factor.bajo[1]?'Bajo':promedio<=factor.medio[1]?'Medio':'Alto';
+    const color=nivel==='Bajo'?'#16a34a':nivel==='Medio'?'#d97706':'#dc2626';
+    const bg=nivel==='Bajo'?'#dcfce7':nivel==='Medio'?'#fef9c3':'#fee2e2';
+    return{...factor,promedio,suma,riesgo:{nivel,color,bg}};
+  });
+  const totalGlobal=resultados.reduce((s,d)=>s+d.promedio,0);
+  const nivelG=totalGlobal<=80?'Bajo':totalGlobal<=160?'Medio':'Alto';
+  const colorG=nivelG==='Bajo'?'#16a34a':nivelG==='Medio'?'#d97706':'#dc2626';
+  const bgG=nivelG==='Bajo'?'#dcfce7':nivelG==='Medio'?'#fef9c3':'#fee2e2';
+  return{resultados,totalGlobal,riesgoGlobal:{nivel:nivelG,color:colorG,bg:bgG},n};
+}
+
+function rIngresarFpsico(eid){
+  const e=(S.evalPsi||[]).find(x=>x.id===eid);
+  if(!e)return'';
+  const resp=e._respuestas||[];
+  const nTest=resp.length+1;
+  let html='';
+  FPSICO_FACTORES.forEach(factor=>{
+    html+=`<div style="background:var(--ci);border-radius:8px;padding:12px;margin-bottom:14px;border-left:4px solid var(--a)">
+      <div style="font-weight:700;font-size:13px;color:var(--a);margin-bottom:10px">📋 ${factor.label}</div>`;
+    factor.items.forEach(itemId=>{
+      const preg=FPSICO_PREGUNTAS.find(p=>p.n===itemId||p.subitems?.find(s=>s.id===itemId));
+      if(!preg)return;
+      if(preg.subitems){
+        const sub=preg.subitems.find(s=>s.id===itemId);
+        if(!sub)return;
+        // Solo mostrar encabezado en el primer subitem
+        const esFirst=factor.items.indexOf(itemId)===factor.items.findIndex(i=>FPSICO_PREGUNTAS.find(p=>p.subitems?.find(s=>s.id===i))?.n===preg.n);
+        if(esFirst){
+          html+=`<div style="font-size:11px;font-weight:600;color:var(--t);margin:10px 0 6px;padding:6px;background:var(--bg);border-radius:4px">${preg.n}. ${preg.txt}</div>`;
+        }
+        html+=`<div style="margin-bottom:8px;padding:8px;background:var(--bg);border-radius:6px;margin-left:8px">
+          <div style="font-size:11px;margin-bottom:6px;color:var(--t)">▸ ${sub.txt}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            ${preg.opciones.map(op=>`<label style="display:flex;align-items:center;gap:3px;cursor:pointer;padding:3px 7px;border-radius:6px;border:1px solid var(--bd);font-size:10px;background:var(--ci)"><input type="radio" name="fp_${itemId}" value="${op.v}" style="margin:0"> ${op.l}</label>`).join('')}
+          </div>
+        </div>`;
+      } else {
+        html+=`<div style="margin-bottom:8px;padding:8px;background:var(--bg);border-radius:6px">
+          <div style="font-size:11px;margin-bottom:6px;color:var(--t)"><strong>${preg.n}.</strong> ${preg.txt}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            ${preg.opciones.map(op=>`<label style="display:flex;align-items:center;gap:3px;cursor:pointer;padding:3px 7px;border-radius:6px;border:1px solid var(--bd);font-size:10px;background:var(--ci)"><input type="radio" name="fp_${itemId}" value="${op.v}" style="margin:0"> ${op.l}</label>`).join('')}
+          </div>
+        </div>`;
+      }
+    });
+    html+='</div>';
+  });
+  return`<div class="ph">
+    <div><h2>➕ FPsico Test #${nTest}</h2><p class="ph-s">${e.empresa_nombre} · ${resp.length} test ingresados</p></div>
+    <button class="btn bg" onclick="S.psiSocialTab='lista';render()">◀ Volver</button>
+  </div>
+  <div style="background:var(--as);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px">
+    🔬 <strong>FPsico NTP 926</strong> · Cuestionario de Evaluación de Riesgos Psicosociales (INSHT España) · 44 preguntas, 9 factores
+  </div>
+  <div class="cd"><div class="cdb">
+    <div class="fr">
+      <div class="fg"><label>Área</label><select class="fi" id="dg_area"><option value="">—</option><option>Administrativa</option><option>Operativa</option></select></div>
+      <div class="fg"><label>Género</label><select class="fi" id="dg_genero"><option value="">—</option><option>Masculino</option><option>Femenino</option></select></div>
+      <div class="fg"><label>Edad</label><select class="fi" id="dg_edad"><option value="">—</option><option>18-24 años</option><option>25-34 años</option><option>35-44 años</option><option>45-54 años</option><option>55 años en adelante</option></select></div>
+      <div class="fg"><label>Antigüedad</label><select class="fi" id="dg_antiguedad"><option value="">—</option><option>0-2 años</option><option>3-10 años</option><option>11-20 años</option><option>≥21 años</option></select></div>
+    </div>
+  </div></div>
+  <div id="fp_preguntas">${html}</div>
+  <div class="cd" style="margin-top:14px"><div class="cdb" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+    <button class="btn bg" onclick="S.psiSocialTab='lista';render()">Cancelar</button>
+    <button class="btn bt" onclick="guardarRespuestaFpsico('${eid}','continuar')">✅ Guardar y continuar</button>
+    <button class="btn bp" onclick="guardarRespuestaFpsico('${eid}','finalizar')">🔒 Guardar y finalizar</button>
+  </div></div>`;
+}
+
+function rVerEvalFpsico(eid){
+  const e=(S.evalPsi||[]).find(x=>x.id===eid);
+  if(!e)return'';
+  const resp=e._respuestas||[];
+  if(resp.length===0){
+    return`<div class="ph"><div><h2>🔬 ${e.empresa_nombre} — FPsico</h2></div><button class="btn bg" onclick="S.psiSocialTab='lista';render()">◀ Volver</button></div>
+    <div class="cd"><div class="es"><h4>Sin respuestas ingresadas</h4></div></div>`;
+  }
+  const res=calcularResultadosFpsico(resp.map(r=>r.respuestas));
+  const rg=res.riesgoGlobal;
+  let dimHtml=res.resultados.map(d=>`
+    <div style="background:var(--ci);border-radius:8px;padding:12px;border-left:4px solid ${d.riesgo.color}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-weight:600;font-size:12px">${d.label}</span>
+        <span style="background:${d.riesgo.bg};color:${d.riesgo.color};padding:2px 10px;border-radius:6px;font-size:11px;font-weight:700">${d.riesgo.nivel}</span>
+      </div>
+      <div style="font-size:11px;color:var(--tm)">Puntaje promedio: <strong style="color:var(--t)">${d.promedio}</strong></div>
+      <div style="height:6px;background:var(--bd);border-radius:4px;margin-top:6px;overflow:hidden">
+        <div style="height:100%;width:${Math.min(Math.round(d.promedio/d.alto[1]*100),100)}%;background:${d.riesgo.color};border-radius:4px"></div>
+      </div>
+    </div>`).join('');
+  return`<div class="ph">
+    <div><h2>🔬 ${e.empresa_nombre} — FPsico</h2><p class="ph-s">${res.n} trabajadores evaluados · ${fD(e.fecha)}</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn bg" onclick="S.psiSocialTab='lista';render()">◀ Volver</button>
+      <button class="btn bt" onclick="S.evalIngresarId='${eid}';S.psiSocialTab='ingresar_fpsico';render()">➕ Ingresar test</button>
+    </div>
+  </div>
+  <div style="background:${rg.bg};border:2px solid ${rg.color};border-radius:10px;padding:14px;margin-bottom:14px;text-align:center">
+    <div style="font-size:12px;color:${rg.color};font-weight:600">RIESGO GLOBAL FPSICO</div>
+    <div style="font-size:32px;font-weight:800;color:${rg.color}">${rg.nivel.toUpperCase()}</div>
+    <div style="font-size:12px;color:var(--tm)">${res.n} evaluados · Puntaje total: ${res.totalGlobal}</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:14px">${dimHtml}</div>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn" style="background:#7c3aed;color:#fff" onclick="descargarInformeFpsico('${eid}')">📊 Descargar Informe PPTX</button>
+  </div>`;
+}
+
+async function guardarRespuestaFpsico(eid,accion){
+  const items=FPSICO_FACTORES.flatMap(f=>f.items);
+  const respuestas={};
+  let faltantes=[];
+  items.forEach(id=>{
+    const sel=document.querySelector(`input[name="fp_${id}"]:checked`);
+    if(sel)respuestas[id]=parseInt(sel.value);
+    else faltantes.push(id);
+  });
+  if(faltantes.length>0){
+    const primerEl=document.querySelector(`input[name="fp_${faltantes[0]}"]`);
+    if(primerEl){primerEl.closest('div').scrollIntoView({behavior:'smooth',block:'center'});}
+    showToast(`⚠️ Faltan ${faltantes.length} respuesta(s) por completar`,'warn');
+    return;
+  }
+  const dg={
+    area:document.getElementById('dg_area')?.value||'',
+    genero:document.getElementById('dg_genero')?.value||'',
+    edad:document.getElementById('dg_edad')?.value||'',
+    antiguedad:document.getElementById('dg_antiguedad')?.value||''
+  };
+  const d={eval_id:eid,respuestas,datos_generales:dg,fecha:TD,tipo:'fpsico'};
+  const e=(S.evalPsi||[]).find(x=>x.id===eid);
+  if(!e)return;
+  if(DB_OK){
+    const r=await SB.post('eval_psicosocial_respuestas',{eval_id:eid,respuestas:JSON.stringify(respuestas),datos_generales:JSON.stringify(dg),tipo:'fpsico'});
+    if(r&&r[0]){d.id=r[0].id;}
+  }
+  if(!e._respuestas)e._respuestas=[];
+  e._respuestas.push(d);
+  showToast('✅ Test FPsico guardado','ok');
+  if(accion==='continuar'){render();}
+  else{S.psiSocialTab='ver_fpsico';S.evalIngresarId=eid;render();}
+}
+
+async function descargarInformeFpsico(eid){
+  showToast('📊 Generando informe FPsico...','ok');
+  // Reutilizar la misma función de descarga pero con datos FPsico
+  const e=(S.evalPsi||[]).find(x=>x.id===eid);
+  if(!e)return;
+  const resp=e._respuestas||[];
+  if(resp.length===0){alert('⚠️ No hay respuestas para generar el informe');return;}
+  // TODO: implementar PPTX específico para FPsico
+  showToast('📊 Informe FPsico próximamente disponible','ok');
+}
+
 const MINTE_PREGUNTAS=[
   {n:1,txt:'Considero que son aceptables las solicitudes y requerimientos que me piden otras personas (compañeros de trabajo, usuarios, clientes)'},
   {n:2,txt:'Decido el ritmo de trabajo en mis actividades'},
@@ -1959,6 +2329,7 @@ function rPsiSocial(){
   if(!S.evalPsi)S.evalPsi=[];
   const evals=S.evalPsi||[];
   const minteEvals=evals.filter(e=>e.tipo==='ministerio');
+  const fpsicoEvals=evals.filter(e=>e.tipo==='fpsico');
 
   if(tab==='nueva'){
     return rNuevaEval();
@@ -1966,16 +2337,20 @@ function rPsiSocial(){
     return rVerEval(S.evalVerId);
   }else if(tab==='ingresar'&&S.evalIngresarId){
     return rIngresarRespuesta(S.evalIngresarId);
+  }else if(tab==='ingresar_fpsico'&&S.evalIngresarId){
+    return rIngresarFpsico(S.evalIngresarId);
+  }else if(tab==='ver_fpsico'&&S.evalIngresarId){
+    return rVerEvalFpsico(S.evalIngresarId);
   }
 
   return`<div class="ph">
-    <div><h2>📊 Test Psicosociales</h2><p class="ph-s">${minteEvals.length} evaluaciones registradas</p></div>
+    <div><h2>📊 Test Psicosociales</h2><p class="ph-s">${evals.length} evaluaciones — ${minteEvals.length} Ministerio · ${fpsicoEvals.length} FPsico</p></div>
     <button class="btn bp" onclick="S.psiSocialTab='nueva';render()">➕ Nueva Evaluación</button>
   </div>
 
   <div class="cvtabs" style="margin-bottom:14px">
     <button class="cvt on">📋 Ministerio de Trabajo Ecuador</button>
-    <button class="cvt" style="opacity:.5" title="Próximamente">🔬 FPsico (próximamente)</button>
+    <button class="cvt" onclick="S.psiTab='fpsico';render()" style="">🔬 FPsico (NTP 926)</button>
   </div>
 
   ${minteEvals.length===0?`<div class="cd"><div class="es"><h4>No hay evaluaciones registradas</h4><p style="color:var(--tm)">Crea una nueva evaluación para comenzar</p></div></div>`:`
@@ -1992,8 +2367,8 @@ function rPsiSocial(){
       <td style="text-align:center"><span class="ba ba-t">${resp.length} test</span></td>
       <td><span style="background:${rg.bg};color:${rg.color};padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700">${rg.nivel}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn bsm bp" onclick="S.psiSocialTab='ingresar';S.evalIngresarId='${e.id}';render()">➕ Ingresar</button>
-        <button class="btn bsm bg" onclick="S.psiSocialTab='ver';S.evalVerId='${e.id}';render()">📊 Ver</button>
+        <button class="btn bsm bp" onclick="S.psiSocialTab=(e.tipo==='fpsico'?'ingresar_fpsico':'ingresar');S.evalIngresarId=e.id;render()">➕ Ingresar</button>
+        <button class="btn bsm bg" onclick="if(e.tipo==='fpsico'){S.psiSocialTab='ver_fpsico';S.evalIngresarId=e.id;}else{S.psiSocialTab='ver';S.evalVerId=e.id;}render()">📊 Ver</button>
         ${isA()?`<button class="btn bsm bd" onclick="eliminarEval('${e.id}')">🗑️</button>`:''}
       </td>
     </tr>`;
@@ -2011,6 +2386,7 @@ function rNuevaEval(){
     <div class="fg"><label>Test a aplicar</label>
       <select class="fi" id="ps_tipo">
         <option value="ministerio">Ministerio de Trabajo Ecuador</option>
+        <option value="fpsico">FPsico (NTP 926 - INSHT)</option>
       </select>
     </div>
     <div class="fr">
