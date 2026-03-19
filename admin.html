@@ -1822,7 +1822,12 @@ async function delCie10(cid){
 // ═══ PSICOLOGÍA ORDERS ═══
 function rPsiO(){
   const psiTab=S.psiTab||'ordenes';
-  if(psiTab==='test')return rPsiSocial();
+  const _tabs=`<div class="cvtabs" style="margin-bottom:14px">
+    <button class="cvt ${psiTab==='ordenes'?'on':''}" onclick="S.psiTab='ordenes';render()">🧠 Órdenes Psicológicas</button>
+    <button class="cvt ${psiTab==='test'&&(S.psiSubTab||'ministerio')==='ministerio'?'on':''}" onclick="S.psiTab='test';S.psiSubTab='ministerio';S.psiSocialTab='lista';render()">📊 Test Psicosociales</button>
+    <button class="cvt ${psiTab==='test'&&S.psiSubTab==='fpsico'?'on':''}" onclick="S.psiTab='test';S.psiSubTab='fpsico';S.psiSocialTab='lista';render()">🔬 FPsico (NTP 926)</button>
+  </div>`;
+  if(psiTab==='test')return _tabs+rPsiSocial();
 
   const psiCats=['psico_ocupacional','psico_clinica'];
   const o=S.ord.filter(x=>psiCats.includes(x.cat)).sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1));
@@ -1831,10 +1836,7 @@ function rPsiO(){
   const clin=o.filter(x=>x.cat==='psico_clinica');
 
   return`<div class="ph"><div><h2>🧠 Psicología</h2><p class="ph-s">${pend} pendientes de ${o.length} total</p></div></div>
-  <div class="cvtabs" style="margin-bottom:14px">
-    <button class="cvt ${psiTab==='ordenes'?'on':''}" onclick="S.psiTab='ordenes';render()">🧠 Órdenes Psicológicas</button>
-    <button class="cvt ${psiTab==='test'?'on':''}" onclick="S.psiTab='test';S.psiSubTab='ministerio';S.psiSocialTab='lista';render()">📊 Test Psicosociales</button>
-  </div>
+
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px">
     <div class="cd" style="margin:0"><div class="cdb" style="text-align:center;padding:14px">
@@ -2350,10 +2352,7 @@ function rPsiSocial(){
     <button class="btn bp" onclick="S.psiSocialTab='nueva';render()">➕ Nueva Evaluación</button>
   </div>
 
-  <div class="cvtabs" style="margin-bottom:14px">
-    <button class="cvt on">📋 Ministerio de Trabajo Ecuador</button>
-    <button class="cvt ${psiTab==='test'&&S.psiSubTab==='fpsico'?'on':''}" onclick="S.psiTab='test';S.psiSubTab='fpsico';S.psiSocialTab='lista';render()">🔬 FPsico (NTP 926)</button>
-  </div>
+
 
   ${currentEvals.length===0?`<div class="cd"><div class="es"><h4>No hay evaluaciones registradas</h4><p style="color:var(--tm)">Crea una nueva evaluación para comenzar</p></div></div>`:`
   <div class="cd"><div class="cdh"><h3>Evaluaciones registradas</h3></div>
