@@ -304,10 +304,31 @@ async function syncOfflineQ(){
       const existe=S.pts.find(p=>p.cedula&&p.cedula===d.cedula);
       if(existe){ok.push(d);continue;}
       const r=await SB.post('pacientes',{nombre:d.nombre,cedula:d.cedula||'',telefono:d.telefono||'',email:d.email||'',genero:d.genero||'',direccion:d.direccion||'',ciudad:d.ciudad||'',empresa:d.empresa,cargo:d.cargo||'',fecha_nacimiento:d.fecha_nacimiento||''});
-      if(r&&r[0]){d.id=r[0].id;if(!S.pts.find(p=>p.id===d.id))S.pts.push(d);ok.push(d);}
+      if(r&&r[0]){
+        const oldId=d.id;
+        d.id=r[0].id;
+        // Update any citas/ordenes that used the temp patient ID
+        S.apt.forEach(a=>{if(a.pid===oldId)a.pid=d.id;});
+        S.ord.forEach(o=>{if(o.pid===oldId)o.pid=d.id;});
+        // Update in S.pts
+        const idx=S.pts.findIndex(p=>p.id===oldId);
+        if(idx>-1)S.pts[idx]=d;
+        else S.pts.push(d);
+        ok.push(d);
+      }
     }catch(e){console.error('Error sync:',e);}
   }
-  if(ok.length){saveOfflineQ(q.filter(x=>!ok.find(o=>o._ts===x._ts)));render();showToast(`✅ ${ok.length} paciente(s) sincronizado(s) con la base de datos`,'ok');}
+  if(ok.length){
+    const remaining=q.filter(x=>!ok.find(o=>o._ts===x._ts));
+    saveOfflineQ(remaining);
+    render();
+    showToast(`✅ ${ok.length} paciente(s) sincronizado(s) con la base de datos`,'ok');
+  } else if(q.length>0){
+    // Todos fallaron - limpiar los que ya existen en Supabase por cédula
+    const cleaned=q.filter(d=>!S.pts.find(p=>p.cedula&&p.cedula===d.cedula&&p.id&&!p.id.startsWith('temp')));
+    saveOfflineQ(cleaned);
+    render();
+  }
 }
 // Intentar sincronizar cuando vuelve la conexión
 window.addEventListener('online',()=>{setTimeout(syncOfflineQ,2000);});
@@ -330,11 +351,11 @@ async function addP(d){
       if(r&&r[0]){d.id=r[0].id;S.pts.push(d);render();showToast('✅ Paciente registrado correctamente','ok');return;}
       else{addToOfflineQ(d);d.id=gid();S.pts.push(d);render();showToast('⚠️ El servidor no confirmó el registro — guardado localmente como respaldo','warn');}
     }catch(e){
-      addToOfflineQ(d);d.id=gid();S.pts.push(d);render();
+      d._temp=true;d._ts=Date.now();addToOfflineQ(d);d.id='temp_'+gid();S.pts.push(d);render();
       showToast('📴 Sin internet — guardado localmente, se sincronizará al reconectarse','warn');
     }
   }else{
-    addToOfflineQ(d);d.id=gid();S.pts.push(d);render();
+    d._temp=true;d._ts=Date.now();addToOfflineQ(d);d.id='temp_'+gid();S.pts.push(d);render();
     showToast('📴 Sin conexión — guardado localmente, se sincronizará al reconectarse','warn');
   }
 }
@@ -365,7 +386,10 @@ async function syncOfflineQCitas(){
       if(r&&r[0]){d.id=r[0].id;if(!S.apt.find(a=>a.id===d.id))S.apt.push(d);ok.push(d);}
     }catch(e){}
   }
-  if(ok.length){saveOfflineQCitas(q.filter(x=>!ok.find(o=>o._ts===x._ts)));render();showToast(`✅ ${ok.length} cita(s) sincronizada(s)`,'ok');}
+  const remaining=q.filter(x=>!ok.find(o=>o._ts===x._ts));
+  saveOfflineQCitas(remaining);
+  if(ok.length){render();showToast(`✅ ${ok.length} cita(s) sincronizada(s)`,'ok');}
+  else{render();}
 }
 async function syncOfflineQOrd(){
   if(!DB_OK)return;
@@ -377,7 +401,10 @@ async function syncOfflineQOrd(){
       if(r&&r[0]){d.id=r[0].id;if(!S.ord.find(o=>o.id===d.id))S.ord.push(d);ok.push(d);}
     }catch(e){}
   }
-  if(ok.length){saveOfflineQOrd(q.filter(x=>!ok.find(o=>o._ts===x._ts)));render();showToast(`✅ ${ok.length} orden(es) sincronizada(s)`,'ok');}
+  const remaining2=q.filter(x=>!ok.find(o=>o._ts===x._ts));
+  saveOfflineQOrd(remaining2);
+  if(ok.length){render();showToast(`✅ ${ok.length} orden(es) sincronizada(s)`,'ok');}
+  else{render();}
 }
 
 async function addA(d){
@@ -811,7 +838,9 @@ async function deleteUser(uid){
 
 // ═══ ASSIGN EXAMS MODAL ═══
 function exMod(aid){
-  const a=S.apt.find(x=>x.id===aid);const p=gP(a?.pid);if(!a||!p)return;
+  const a=S.apt.find(x=>x.id===aid);const p=gP(a?.pid);
+  if(!a){showToast('⚠️ Cita no encontrada','err');return;}
+  if(!p){showToast('⚠️ Paciente no encontrado. Espera a que se sincronice la conexión.','warn');return;}
   window._ex={aid,pid:p.id,lab:[],rxList:[],eco:false,ekg:false,esp:false,aud:false,med:false,ficha:false};
 
   // Lab checkboxes with + button per category
