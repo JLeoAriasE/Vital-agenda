@@ -1822,12 +1822,17 @@ async function delCie10(cid){
 // ═══ PSICOLOGÍA ORDERS ═══
 function rPsiO(){
   const psiTab=S.psiTab||'ordenes';
-  const _tabs=`<div class="cvtabs" style="margin-bottom:14px">
+  // Nivel 1: Órdenes | Test Psicosociales
+  const _tabsNivel1=`<div class="cvtabs" style="margin-bottom:14px">
     <button class="cvt ${psiTab==='ordenes'?'on':''}" onclick="S.psiTab='ordenes';render()">🧠 Órdenes Psicológicas</button>
-    <button class="cvt ${psiTab==='test'&&(S.psiSubTab||'ministerio')==='ministerio'?'on':''}" onclick="S.psiTab='test';S.psiSubTab='ministerio';S.psiSocialTab='lista';render()">📊 Test Psicosociales</button>
-    <button class="cvt ${psiTab==='test'&&S.psiSubTab==='fpsico'?'on':''}" onclick="S.psiTab='test';S.psiSubTab='fpsico';S.psiSocialTab='lista';render()">🔬 FPsico (NTP 926)</button>
+    <button class="cvt ${psiTab==='test'?'on':''}" onclick="S.psiTab='test';S.psiSubTab='ministerio';S.psiSocialTab='lista';render()">📊 Test Psicosociales</button>
   </div>`;
-  if(psiTab==='test')return _tabs+rPsiSocial();
+  // Nivel 2 (solo dentro de Test): Ministerio | FPsico
+  const _tabsNivel2=`<div class="cvtabs" style="margin-bottom:14px;margin-left:16px;border-left:3px solid var(--bd);padding-left:10px">
+    <button class="cvt ${(S.psiSubTab||'ministerio')==='ministerio'?'on':''}" onclick="S.psiSubTab='ministerio';S.psiSocialTab='lista';render()">📋 Ministerio de Trabajo</button>
+    <button class="cvt ${S.psiSubTab==='fpsico'?'on':''}" onclick="S.psiSubTab='fpsico';S.psiSocialTab='lista';render()">🔬 FPsico (NTP 926)</button>
+  </div>`;
+  if(psiTab==='test')return _tabsNivel1+_tabsNivel2+rPsiSocial();
 
   const psiCats=['psico_ocupacional','psico_clinica'];
   const o=S.ord.filter(x=>psiCats.includes(x.cat)).sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1));
@@ -1836,7 +1841,7 @@ function rPsiO(){
   const clin=o.filter(x=>x.cat==='psico_clinica');
 
   return`<div class="ph"><div><h2>🧠 Psicología</h2><p class="ph-s">${pend} pendientes de ${o.length} total</p></div></div>
-  ${_tabs}
+  ${_tabsNivel1}
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px">
     <div class="cd" style="margin:0"><div class="cdb" style="text-align:center;padding:14px">
