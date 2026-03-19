@@ -2373,13 +2373,25 @@ function rPsiSocial(){
       <td style="text-align:center"><span class="ba ba-t">${resp.length} test</span></td>
       <td><span style="background:${rg.bg};color:${rg.color};padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700">${rg.nivel}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn bsm bp" onclick="S.psiSocialTab=(e.tipo==='fpsico'?'ingresar_fpsico':'ingresar');S.evalIngresarId=e.id;render()">➕ Ingresar</button>
-        <button class="btn bsm bg" onclick="if(e.tipo==='fpsico'){S.psiSocialTab='ver_fpsico';S.evalIngresarId=e.id;}else{S.psiSocialTab='ver';S.evalVerId=e.id;}render()">📊 Ver</button>
+        <button class="btn bsm bp" onclick="abrirIngresar('${e.id}','${e.tipo||'ministerio'}')">➕ Ingresar</button>
+        <button class="btn bsm bg" onclick="abrirVer('${e.id}','${e.tipo||'ministerio'}')">📊 Ver</button>
         ${isA()?`<button class="btn bsm bd" onclick="eliminarEval('${e.id}')">🗑️</button>`:''}
       </td>
     </tr>`;
   }).join('')}
   </tbody></table></div></div>`}`;
+}
+
+function abrirIngresar(eid, tipo){
+  S.evalIngresarId=eid;
+  S.psiSocialTab=tipo==='fpsico'?'ingresar_fpsico':'ingresar';
+  render();
+}
+function abrirVer(eid, tipo){
+  S.evalIngresarId=eid;
+  S.evalVerId=eid;
+  S.psiSocialTab=tipo==='fpsico'?'ver_fpsico':'ver';
+  render();
 }
 
 function rNuevaEval(){
