@@ -1833,7 +1833,7 @@ function rPsiO(){
   return`<div class="ph"><div><h2>🧠 Psicología</h2><p class="ph-s">${pend} pendientes de ${o.length} total</p></div></div>
   <div class="cvtabs" style="margin-bottom:14px">
     <button class="cvt ${psiTab==='ordenes'?'on':''}" onclick="S.psiTab='ordenes';render()">🧠 Órdenes Psicológicas</button>
-    <button class="cvt ${psiTab==='test'?'on':''}" onclick="S.psiTab='test';S.psiSocialTab='lista';render()">📊 Test Psicosociales</button>
+    <button class="cvt ${psiTab==='test'?'on':''}" onclick="S.psiTab='test';S.psiSubTab='ministerio';S.psiSocialTab='lista';render()">📊 Test Psicosociales</button>
   </div>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px">
@@ -2328,8 +2328,10 @@ function rPsiSocial(){
   const tab=S.psiSocialTab||'lista';
   if(!S.evalPsi)S.evalPsi=[];
   const evals=S.evalPsi||[];
+  const psiSubTab=S.psiSubTab||'ministerio';
   const minteEvals=evals.filter(e=>e.tipo==='ministerio');
   const fpsicoEvals=evals.filter(e=>e.tipo==='fpsico');
+  const currentEvals=psiSubTab==='fpsico'?fpsicoEvals:minteEvals;
 
   if(tab==='nueva'){
     return rNuevaEval();
@@ -2344,19 +2346,19 @@ function rPsiSocial(){
   }
 
   return`<div class="ph">
-    <div><h2>📊 Test Psicosociales</h2><p class="ph-s">${evals.length} evaluaciones — ${minteEvals.length} Ministerio · ${fpsicoEvals.length} FPsico</p></div>
+    <div><h2>${psiSubTab==='fpsico'?'🔬 FPsico NTP 926':'📊 Test Ministerio de Trabajo'}</h2><p class="ph-s">${currentEvals.length} evaluaciones registradas</p></div>
     <button class="btn bp" onclick="S.psiSocialTab='nueva';render()">➕ Nueva Evaluación</button>
   </div>
 
   <div class="cvtabs" style="margin-bottom:14px">
     <button class="cvt on">📋 Ministerio de Trabajo Ecuador</button>
-    <button class="cvt" onclick="S.psiTab='fpsico';render()" style="">🔬 FPsico (NTP 926)</button>
+    <button class="cvt ${psiTab==='test'&&S.psiSubTab==='fpsico'?'on':''}" onclick="S.psiTab='test';S.psiSubTab='fpsico';S.psiSocialTab='lista';render()">🔬 FPsico (NTP 926)</button>
   </div>
 
-  ${minteEvals.length===0?`<div class="cd"><div class="es"><h4>No hay evaluaciones registradas</h4><p style="color:var(--tm)">Crea una nueva evaluación para comenzar</p></div></div>`:`
+  ${currentEvals.length===0?`<div class="cd"><div class="es"><h4>No hay evaluaciones registradas</h4><p style="color:var(--tm)">Crea una nueva evaluación para comenzar</p></div></div>`:`
   <div class="cd"><div class="cdh"><h3>Evaluaciones registradas</h3></div>
   <div class="tw"><table><thead><tr><th>Empresa</th><th>RUC</th><th>Fecha</th><th>Universo</th><th>Riesgo Global</th><th>Acciones</th></tr></thead><tbody>
-  ${minteEvals.map(e=>{
+  ${currentEvals.map(e=>{
     const resp=e._respuestas||[];
     const res=resp.length>0?calcularResultadosMinte(resp.map(r=>r.respuestas)):null;
     const rg=res?res.riesgoGlobal:{nivel:'Sin datos',color:'var(--tm)',bg:'var(--ci)'};
@@ -2782,7 +2784,7 @@ function autoFillEmpPsi(val){
 }
 
 async function crearEval(){
-  const tipo=document.getElementById('ps_tipo')?.value||'ministerio';
+  const tipo=document.getElementById('ps_tipo')?.value||S.psiSubTab||'ministerio';
   const empresa=document.getElementById('ps_empresa')?.value?.trim()||'';
   const ruc=document.getElementById('ps_ruc')?.value?.trim()||'';
   const actividad=document.getElementById('ps_actividad')?.value?.trim()||'';
