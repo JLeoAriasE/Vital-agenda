@@ -297,7 +297,7 @@ function jefeBlockAll(){
 // Run after any render via MutationObserver
 const _jefeObserver=new MutationObserver(()=>{if(IS_JEFE())setTimeout(jefeBlockAll,50)});
 _jefeObserver.observe(document.body,{childList:true,subtree:true});
-const MOD_MAP={salud:{icon:"🩺",label:"Salud Ocupacional",color:"#2dd4bf"},seguridad:{icon:"🔧",label:"Seguridad Industrial",color:"#f59e0b"},psicologo:{icon:"🧠",label:"Psicología Ocupacional",color:"#a78bfa"},talento:{icon:"👥",label:"Talento Humano",color:"#a78bfa"},datos:{icon:"🛡",label:"Protección de Datos",color:"#60a5fa"}};
+const MOD_MAP={salud:{icon:"🩺",label:"Salud Ocupacional",color:"#2dd4bf"},seguridad:{icon:"🔧",label:"Seguridad Industrial",color:"#f59e0b"},psicologo:{icon:"🧠",label:"Psicología Ocupacional",color:"#a78bfa"},talento:{icon:"👥",label:"Talento Humano",color:"#f472b6"},datos:{icon:"🛡",label:"Protección de Datos",color:"#60a5fa"},ambiente:{icon:"🌿",label:"Seguridad Ambiental",color:"#22c55e"},contador:{icon:"💰",label:"Contabilidad",color:"#fbbf24"},jefe:{icon:"👔",label:"Jefe",color:"#fbbf24"}};
 // Psicólogo: POA categories they can manage
 const PSICO_CATS=["psicosocial","drogas"];
 // Psicólogo: keywords to match POA activities (partial match on name)
@@ -1962,20 +1962,20 @@ async function renderConfig(){
   // USER MANAGEMENT (admin only)
   if(CURRENT_USER&&CURRENT_USER.role==="admin"){
     const{data:allUsers}=await sb.from("usuarios").select("*").order("created_at");
-    const users=allUsers||[];
+    const users=(allUsers||[]).map(u=>({...u,name:u.nombre||'',role:u.rol||'',active:u.activo!==false}));
     h+=`<div class="c" style="margin-top:20px;border-color:rgba(129,140,248,0.3)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="st" style="margin:0;color:#818cf8">👤 Gestión de Usuarios</div><button class="add-btn" onclick="showNewUser()">+ Nuevo Usuario</button></div>`;
     h+=`<div class="hn">Administra los accesos al sistema. Los usuarios desactivados no pueden iniciar sesión pero sus datos se conservan.</div>`;
     if(users.length>0){
       h+=`<table><thead><tr><th>Nombre</th><th>Cédula</th><th>Módulos</th><th>Estado</th><th>Último acceso</th><th>Acciones</th></tr></thead><tbody>`;
       users.forEach(u=>{
         const isMe=CURRENT_USER&&u.id===CURRENT_USER.id;
-        const mods=(u.modules||[]).map(m=>MOD_MAP[m]?MOD_MAP[m].icon:'').join(' ')||'—';
-        const rl=u.role==='admin'?'👑 Admin':ROLE_LABELS[u.role]||u.role;
+        const mods=(u.modules||[]).map(m=>{const mm=MOD_MAP[m];return mm?`<span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:${mm.color}30;color:${mm.color};border:1px solid ${mm.color}50;margin:1px">${mm.icon} ${mm.label}</span>`:''}).join(' ')||'—';
+        const rl=u.role==='admin'||u.role==='administrador'?'👑 Admin':ROLE_LABELS[u.role]||u.role;
         const lastL=u.last_login?new Date(u.last_login).toLocaleDateString():'Nunca';
         const hasAlert=u.password_reset_requested;
         h+=`<tr style="${!u.active?'opacity:0.5':''}"><td style="font-weight:700;font-size:12px">${u.name}${isMe?' <span style="font-size:8px;color:#2dd4bf">(Tú)</span>':''}${hasAlert?' <span style="font-size:10px" title="Solicita restablecer contraseña">🔔</span>':''}</td>`;
         h+=`<td style="font-family:var(--mn);font-size:11px">${u.cedula}</td>`;
-        h+=`<td style="font-size:14px">${u.role==='admin'?'👑 Todos':mods}</td>`;
+        h+=`<td>${u.role==='admin'||u.role==='administrador'?'<span style="padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(251,191,36,0.2);color:#fbbf24;border:1px solid rgba(251,191,36,0.4)">👑 Todos</span>':mods}</td>`;
         h+=`<td><span style="font-size:9px;padding:3px 8px;border-radius:4px;font-weight:700;${u.active?'color:#34d399;background:rgba(52,211,153,0.12)':'color:#ef4444;background:rgba(239,68,68,0.12)'}">${u.active?'✅ Activo':'⛔ Inactivo'}</span></td>`;
         h+=`<td style="font-size:10px;color:var(--t3)">${lastL}</td>`;
         h+=`<td><div style="display:flex;gap:4px;flex-wrap:wrap">${!isMe?`<button class="ct" style="font-size:11px;padding:6px 10px;border-radius:8px" onclick="showEditUser('${u.id}')" title="Editar perfil">✏️ Editar</button><button class="ct" style="font-size:11px;padding:6px 10px;border-radius:8px" onclick="resetUserPwd('${u.id}','${u.name}')" title="Cambiar contraseña">🔑 Clave</button><button class="ct" style="font-size:11px;padding:6px 10px;border-radius:8px" onclick="toggleUserActive('${u.id}',${u.active})" title="${u.active?'Desactivar':'Activar'}">${u.active?'⛔ Desactivar':'✅ Activar'}</button><button class="ct" style="font-size:11px;padding:6px 10px;border-radius:8px;color:#ef4444;border-color:rgba(239,68,68,0.3)" onclick="deleteUser('${u.id}','${u.name}')" title="Eliminar usuario">🗑 Eliminar</button>`:'<span style="font-size:10px;color:var(--t3)">Cuenta madre</span>'}</div></td></tr>`;
