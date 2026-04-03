@@ -2,7 +2,7 @@
 <html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><link rel="icon" href="data:,">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>VitalWork — Dashboard v8.6</title>
+<title>VitalWork Dashboard v8.6</title>
 <script>window.onerror=function(msg,src,line){document.title="ERROR";const d=document.createElement("div");d.style.cssText="position:fixed;top:0;left:0;right:0;background:#dc2626;color:white;padding:12px;z-index:99999;font-size:12px";d.textContent="Error JS: "+msg+" (linea "+line+")";document.body?.appendChild(d)}</script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -333,13 +333,9 @@ async function doLogin(){
     const user=data[0];
     if(user.pass!==pwd){errEl.style.color="#ef4444";errEl.textContent="❌ Contraseña incorrecta";return}
     if(user.activo===false){errEl.style.color="#ef4444";errEl.textContent="⛔ Usuario desactivado";return}
-    user.name=user.nombre||'';
-    user.role={'administrador':'admin','enfermera':'salud','medico':'salud','laboratorio':'salud','radiologia':'salud','psicologia':'psicologo'}[user.rol]||'salud';
-    user.email=user.cedula||'';
-    user.password=user.pass||'';
-    user.active=user.activo!==false;
+    user.name=user.nombre||"";user.role={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo"}[user.rol]||"salud";user.email=user.cedula||"";user.password=user.pass||"";user.active=user.activo!==false;
     CURRENT_USER=user;
-    sb.from("usuarios").update({last_login:new Date().toISOString()}).eq("id",user.id).then(()=>{}).catch(()=>{});
+    sb.from("usuarios").update({last_login:new Date().toISOString()}).eq("id",user.id).then(function(){}).catch(function(){});
     errEl.textContent="✅ Login OK, cargando...";errEl.style.color="#34d399";
     hideLogin();
     applyUserRole();
@@ -349,7 +345,7 @@ async function autoLogin(){
   const saved=localStorage.getItem("poa_user");if(!saved)return false;
   try{const{cedula,password}=JSON.parse(saved);
   const{data}=await sb.from("usuarios").select("*").eq("cedula",cedula).eq("pass",password).limit(1);
-  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||'';u.role={'administrador':'admin','enfermera':'salud','medico':'salud','laboratorio':'salud','radiologia':'salud','psicologia':'psicologo'}[u.rol]||'salud';u.email=u.cedula||'';u.password=u.pass||'';u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
+  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||"";u.role={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo"}[u.rol]||"salud";u.email=u.cedula||"";u.password=u.pass||"";u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
   return false
 }
 function applyUserRole(){
@@ -615,7 +611,7 @@ function isPsicoAct(a){return PSICO_CATS.includes(a.category)||PSICO_ACT_KEYS.so
 function ga(){let acts=D.tw<=10?D.acts.filter(a=>SM.includes(a.code)):D.acts;return acts}
 
 // === CONNECTION ===
-function ckS(){const u=localStorage.getItem("sb_u3")||'https://tzvdwkzhtvutiypkkmba.supabase.co',k=localStorage.getItem("sb_k3")||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6dmR3a3podHZ1dGl5cGtrbWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE2MTgsImV4cCI6MjA4Nzc4NzYxOH0.mhLVpvA_utETnM6E7fjhexhhFMQumm-xPd8oQhQm4v4';if(u&&k){localStorage.setItem("sb_u3",u);localStorage.setItem("sb_k3",k);document.getElementById("setupOv").style.display="none";initSB(u,k)}}
+function ckS(){const u=localStorage.getItem("sb_u3")||"https://tzvdwkzhtvutiypkkmba.supabase.co",k=localStorage.getItem("sb_k3")||"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6dmR3a3podHZ1dGl5cGtrbWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE2MTgsImV4cCI6MjA4Nzc4NzYxOH0.mhLVpvA_utETnM6E7fjhexhhFMQumm-xPd8oQhQm4v4";if(u&&k){localStorage.setItem("sb_u3",u);localStorage.setItem("sb_k3",k);document.getElementById("setupOv").style.display="none";initSB(u,k)}}
 async function doConnect(){const u=document.getElementById("sUrl").value.trim(),k=document.getElementById("sKey").value.trim(),e=document.getElementById("sErr");if(!u||!k){e.textContent="Campos obligatorios.";e.style.display="block";return}e.style.display="none";try{const c=window.supabase.createClient(u,k);const{error}=await c.from("companies").select("id").limit(1);if(error)throw error;localStorage.setItem("sb_u3",u);localStorage.setItem("sb_k3",k);document.getElementById("setupOv").style.display="none";initSB(u,k)}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
 async function initSB(u,k){sb=window.supabase.createClient(u,k);ss("ld");try{await loadCos();if(cos.length>0){const l=localStorage.getItem("last_c");CID=cos.find(c=>c.id===l)?l:cos[0].id;await loadYears();await loadCD()}ss("ok");
   // Check if users table exists and has users
@@ -4055,12 +4051,12 @@ async function logLoad(){
     if(LOG.trips.length>0){
       const tids=LOG.trips.map(t=>t.id);
       const loads=[
-        sb.from("logistics_trip_members").select("*,usuarios(nombre,rol)").in("trip_id",tids),
+        sb.from("logistics_trip_members").select("*,usuarios(name,role)").in("trip_id",tids),
         sb.from("logistics_trip_activities").select("*").in("trip_id",tids),
         sb.from("logistics_trip_companies").select("*,companies(name,location)").in("trip_id",tids)
       ];
       // Admin loads ALL notifications for these trips to see who read
-      if(isAdmin)loads.push(sb.from("logistics_notifications").select("*,usuarios(nombre)").in("trip_id",tids));
+      if(isAdmin)loads.push(sb.from("logistics_notifications").select("*,usuarios(name)").in("trip_id",tids));
       const results=await Promise.all(loads);
       LOG.members=results[0].data||[];
       LOG.activities=results[1].data||[];
@@ -4068,7 +4064,7 @@ async function logLoad(){
       LOG.allNotifs=isAdmin?(results[3]?.data||[]):[];
     }else{LOG.members=[];LOG.activities=[];LOG.tripCompanies=[];LOG.allNotifs=[];}
     // Load all users (admin: for member selector; all: for activity creator names)
-    const{data:_u}=await sb.from("usuarios").select("id,nombre,rol").order("nombre");const u=(_u||[]).map(x=>({id:x.id,name:x.nombre,role:x.rol}));
+    const{data:_u}=await sb.from("usuarios").select("id,nombre,rol").order("nombre");const u=(_u||[]).map(function(x){return{id:x.id,name:x.nombre,role:x.rol}});
     LOG.users=u||[];
     // POA suggestions now load on-demand in logLoadPoaSuggestionsUI()
     console.log("[LOG] trips:",LOG.trips.length,"members:",LOG.members.length,"notifs:",LOG.notifications.length,"user:",CURRENT_USER?.id,"isAdmin:",isAdmin);
@@ -4845,7 +4841,7 @@ async function genAgInformeDocx(){
 
   // === FOOTER ===
   body+=P('VitalWork SAS VitalWork — '+mesLabel,{sz:16,al:'center',c:'94A3B8'});
-  body+=P('Documento generado automáticamente desde el VitalWork — Dashboard',{sz:14,al:'center',c:'CBD5E1'});
+  body+=P('Documento generado automáticamente desde el VitalWork Dashboard',{sz:14,al:'center',c:'CBD5E1'});
 
   // Assemble DOCX
   const docXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -5082,7 +5078,7 @@ async function genAgInformePptx(){
   s7.addText('VitalWork',{x:0.5,y:2.2,w:9,h:0.8,fontSize:40,fontFace:'Georgia',color:TEAL,bold:true,align:'center'});
   s7.addShape(pres.shapes.RECTANGLE,{x:4,y:3.1,w:2,h:0.04,fill:{color:TEAL}});
   s7.addText(mesLabel,{x:0.5,y:3.3,w:9,h:0.5,fontSize:16,fontFace:'Calibri',color:GY,align:'center'});
-  s7.addText('VitalWork — Dashboard — Informe generado automáticamente',{x:0.5,y:4.5,w:9,h:0.4,fontSize:10,fontFace:'Calibri',color:GY,align:'center'});
+  s7.addText('VitalWork Dashboard — Informe generado automáticamente',{x:0.5,y:4.5,w:9,h:0.4,fontSize:10,fontFace:'Calibri',color:GY,align:'center'});
 
   await pres.writeFile({fileName:'Presentacion_Cumplimiento_'+mNames[LOG.month]+'_'+LOG.year+'.pptx'});
   ss("ok");
@@ -6906,7 +6902,7 @@ function logRenderForm(){
     tripNotifs.forEach(n=>{
       const rd=n.read;
       const readDate=n.read_at?new Date(n.read_at).toLocaleDateString('es-EC',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-      h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px"><span style="color:${rd?'#34d399':'#ef4444'}">${rd?'✅':'❌'} ${n.usuarios?.nombre||'?'}</span><span style="color:var(--t3);font-size:10px">${rd?readDate:'Pendiente'}</span></div>`;
+      h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px"><span style="color:${rd?'#34d399':'#ef4444'}">${rd?'✅':'❌'} ${n.usuarios?.name||'?'}</span><span style="color:var(--t3);font-size:10px">${rd?readDate:'Pendiente'}</span></div>`;
     });
     h+=`</div>`;
   }
