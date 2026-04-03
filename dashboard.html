@@ -531,11 +531,11 @@ async function showEditUser(uid){
   const{data}=await sb.from("usuarios").select("*").eq("id",uid).single();
   if(!data)return;
   document.getElementById("euId").value=data.id;
-  document.getElementById("euName").value=data.name;
+  document.getElementById("euName").value=data.nombre||'';
   document.getElementById("euCed").value=data.cedula;
   document.getElementById("euPwd").value="";
   document.getElementById("euErr").textContent="";
-  const mods=parseModules(data);
+  const mods=data.modules||[data.rol];
   document.querySelectorAll("#euMods input").forEach(cb=>{cb.checked=mods.includes(cb.value)});
   document.getElementById("editUserOv").style.display="flex";
 }
@@ -548,8 +548,8 @@ async function saveEditUser(){
   if(!name){document.getElementById("euErr").textContent="El nombre es obligatorio";return}
   if(mods.length===0){document.getElementById("euErr").textContent="Seleccione al menos un módulo";return}
   if(newPwd&&newPwd.length<4){document.getElementById("euErr").textContent="La contraseña debe tener mínimo 4 caracteres";return}
-  const upd={name:name,modules:mods,role:mods.includes('jefe')?'jefe':(mods.length>1?"multi":mods[0])};
-  if(newPwd)upd.password=newPwd;
+  const upd={nombre:name,modules:mods,rol:mods.includes('jefe')?'jefe':(mods.length>1?"multi":mods[0])};
+  if(newPwd)upd.pass=newPwd;
   const{error}=await sb.from("usuarios").update(upd).eq("id",uid);
   if(error){document.getElementById("euErr").textContent="Error: "+error.message;return}
   hideEditUser();renderConfig()
@@ -559,7 +559,7 @@ async function resetUserPwd(uid,userName){
   const newPwd=prompt(`Nueva contraseña para ${userName}:`);
   if(!newPwd)return;
   if(newPwd.length<4){alert("La contraseña debe tener mínimo 4 caracteres");return}
-  const{error}=await sb.from("usuarios").update({password:newPwd,password_reset_requested:false}).eq("id",uid);
+  const{error}=await sb.from("usuarios").update({pass:newPwd}).eq("id",uid);
   if(error){alert("Error: "+error.message);return}
   alert(`✅ Contraseña de ${userName} actualizada`);renderConfig()
 }
