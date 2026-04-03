@@ -708,7 +708,8 @@ async function loadCD(){if(!CID)return;localStorage.setItem("last_c",CID);
   // Auto-init salud data if empty
   try{
     const{data:checkActs}=await sb.from("poa_activities").select("id").eq("company_id",CID).eq("year",YR).limit(1);
-    if(!checkActs||checkActs.length===0){await initSaludData(CID,YR)}
+    const{data:checkCh}=await sb.from("charlas").select("id").eq("company_id",CID).eq("year",YR).limit(1);
+    if(!checkActs||checkActs.length===0||!checkCh||checkCh.length===0){await initSaludData(CID,YR)}
   }catch(e){console.log("Salud init check:",e.message)}
   const[coR,acR,mdR,psR,chR,arR,inR,imR]=await Promise.all([
     sb.from("companies").select("*").eq("id",CID).single(),
