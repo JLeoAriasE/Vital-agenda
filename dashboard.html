@@ -574,7 +574,7 @@ async function forgotPassword(){
   await sb.from("usuarios").update({password_reset_requested:true}).eq("id",data[0].id);
   errEl.style.color="#34d399";errEl.textContent="✅ Solicitud enviada. El administrador restablecerá su contraseña pronto."
 }
-function switchModule(m){MOD=m;document.querySelectorAll(".sb-item").forEach(e=>e.classList.remove("active"));document.getElementById("sb-"+m)?.classList.add("active");["saludModule","seguridadModule","configModule","pendientesModule","talentoModule","datosModule","ambienteModule","logisticaModule","contableModule"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none"});const modMap={salud:"saludModule",seguridad:"seguridadModule",config:"configModule",pendientes:"pendientesModule",talento:"talentoModule",datos:"datosModule",ambiente:"ambienteModule",logistica:"logisticaModule",contable:"contableModule"};const target=document.getElementById(modMap[m]);if(target)target.style.display="block";if(m==="seguridad"){loadCos().then(()=>{const sc=cos.find(x=>String(x.x)===String(mod_seguridad));if(sc&&sc.id!==CID){CID=sc.id;loadYears().then(()=>loadCD()).then(()=>{render();sstLoad()})}else{sstLoad()}}).catch(()=>sstLoad())}else if(m==="salud"){const _canViewAll=IS_ADMIN_OR_JEFE();const sc=_canViewAll?cos[0]:cos.find(x=>x.mod_salud===true||x.mod_salud==null);if(sc&&sc.id!==CID){CID=sc.id;loadYears().then(()=>loadCD()).then(()=>render())}else{render()}}else if(m==="config"){renderConfig()}else if(m==="pendientes"){renderPendientes()}else if(m==="talento"){tthhLoad()}else if(m==="datos"){datosLoad()}else if(m==="ambiente"){ambienteLoad()}else if(m==="logistica"){logLoad()}else if(m==="contable"){contLoad()}}
+function switchModule(m){MOD=m;document.querySelectorAll(".sb-item").forEach(e=>e.classList.remove("active"));document.getElementById("sb-"+m)?.classList.add("active");["saludModule","seguridadModule","configModule","pendientesModule","talentoModule","datosModule","ambienteModule","logisticaModule","contableModule"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none"});const modMap={salud:"saludModule",seguridad:"seguridadModule",config:"configModule",pendientes:"pendientesModule",talento:"talentoModule",datos:"datosModule",ambiente:"ambienteModule",logistica:"logisticaModule",contable:"contableModule"};const target=document.getElementById(modMap[m]);if(target)target.style.display="block";if(m==="seguridad"){loadCos().then(()=>{const sc=cos.find(x=>x.mod_seguridad===true);if(sc&&sc.id!==CID){CID=sc.id;loadYears().then(()=>loadCD()).then(()=>{render();sstLoad()})}else{sstLoad()}}).catch(()=>sstLoad())}else if(m==="salud"){const _canViewAll=IS_ADMIN_OR_JEFE();const sc=_canViewAll?cos[0]:cos.find(x=>x.mod_salud===true||x.mod_salud==null);if(sc&&sc.id!==CID){CID=sc.id;loadYears().then(()=>loadCD()).then(()=>render())}else{render()}}else if(m==="config"){renderConfig()}else if(m==="pendientes"){renderPendientes()}else if(m==="talento"){tthhLoad()}else if(m==="datos"){datosLoad()}else if(m==="ambiente"){ambienteLoad()}else if(m==="logistica"){logLoad()}else if(m==="contable"){contLoad()}}
 const MO=["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"],MF=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const CATS=[{id:"admin",name:"G. Administrativa",color:"#2dd4bf",icon:"🏛"},{id:"tecnica",name:"G. Técnica",color:"#818cf8",icon:"⚙️"},{id:"talento",name:"G. Talento Humano",color:"#f472b6",icon:"👥"},{id:"operativos",name:"Proc. Operativos",color:"#fb923c",icon:"📋"},{id:"psicosocial",name:"R. Psicosociales",color:"#a78bfa",icon:"🧠"},{id:"drogas",name:"Prev. Drogas",color:"#34d399",icon:"🛡"},{id:"servicios",name:"Serv. Permanentes",color:"#fbbf24",icon:"🔧"}];
 const EXT=[{id:"ingreso",label:"Ex. Ingreso",color:"#2dd4bf"},{id:"periodico",label:"Ex. Periódico",color:"#818cf8"},{id:"reintegro",label:"Ex. Reintegro",color:"#f472b6"},{id:"egreso",label:"Ex. Egreso",color:"#fb923c"}];
@@ -739,11 +739,11 @@ async function delYear(){if(D.allYears.length<=1)return alert("Debe haber al men
 // === COMPANY/AREA CRUD ===
 function showNc(){document.getElementById("ncOv").style.display="flex"}
 function hideNc(){document.getElementById("ncOv").style.display="none"}
-async function createCo(){const n=document.getElementById("ncN").value.trim(),tw=parseInt(document.getElementById("ncW").value)||10,e=document.getElementById("ncE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("ncR").value.trim();const act=document.getElementById("ncA").value.trim();const loc=document.getElementById("ncL").value.trim();const repLegal=document.getElementById("ncRL").value.trim();const ciiu=(document.getElementById("ncCIIU")||{}).value||"";async function tryCreate(){const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_salud:true}).select().single();return{data,error}}try{let r=await tryCreate();if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await sb.from("imc_records").delete().neq("company_id","00000000-0000-0000-0000-000000000000").is("company_id",null);r=await tryCreate()}if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>String(c.c)===String(name));if(f){CID=f.id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}e.innerHTML='Error del trigger IMC en Supabase.<br>Ejecuta en SQL Editor:<br><code style="font-size:10px;background:#1e1e2e;padding:4px 8px;border-radius:4px;display:block;margin-top:6px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code><br>Luego recarga.';e.style.display="block";return}if(r.error)throw r.error;CID=r.data.id;await loadCos();YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
+async function createCo(){const n=document.getElementById("ncN").value.trim(),tw=parseInt(document.getElementById("ncW").value)||10,e=document.getElementById("ncE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("ncR").value.trim();const act=document.getElementById("ncA").value.trim();const loc=document.getElementById("ncL").value.trim();const repLegal=document.getElementById("ncRL").value.trim();const ciiu=(document.getElementById("ncCIIU")||{}).value||"";async function tryCreate(){const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_salud:true}).select().single();return{data,error}}try{let r=await tryCreate();if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await sb.from("imc_records").delete().neq("company_id","00000000-0000-0000-0000-000000000000").is("company_id",null);r=await tryCreate()}if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>c.name===n);if(f){CID=f.id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}e.innerHTML='Error del trigger IMC en Supabase.<br>Ejecuta en SQL Editor:<br><code style="font-size:10px;background:#1e1e2e;padding:4px 8px;border-radius:4px;display:block;margin-top:6px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code><br>Luego recarga.';e.style.display="block";return}if(r.error)throw r.error;CID=r.data.id;await loadCos();YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
 // SST: Create company with mod_seguridad=true
 function showSSTNc(){document.getElementById("sstNcOv").style.display="flex"}
 function hideSSTNc(){document.getElementById("sstNcOv").style.display="none"}
-async function sstCreateCo(){const n=document.getElementById("sstNcN").value.trim(),tw=parseInt(document.getElementById("sstNcW").value)||10,e=document.getElementById("sstNcE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("sstNcR").value.trim();const act=document.getElementById("sstNcA").value.trim();const loc=document.getElementById("sstNcL").value.trim();const repLegal=document.getElementById("sstNcRL").value.trim();const ciiu=(document.getElementById("sstNcCIIU")||{}).value||"";try{const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_seguridad:true}).select().single();if(error&&error.message&&error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>String(c.c)===String(name));if(f){CID=f.id;SST_YR=2026;hideSSTNc();sstLoad();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;SST_YR=2026;hideSSTNc();sstLoad();return}e.innerHTML='Trigger IMC impide crear. Ejecuta en SQL Editor:<br><code style="font-size:10px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code>';e.style.display="block";return}if(error)throw error;CID=data.id;await loadCos();SST_YR=2026;hideSSTNc();sstLoad()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
+async function sstCreateCo(){const n=document.getElementById("sstNcN").value.trim(),tw=parseInt(document.getElementById("sstNcW").value)||10,e=document.getElementById("sstNcE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("sstNcR").value.trim();const act=document.getElementById("sstNcA").value.trim();const loc=document.getElementById("sstNcL").value.trim();const repLegal=document.getElementById("sstNcRL").value.trim();const ciiu=(document.getElementById("sstNcCIIU")||{}).value||"";try{const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_seguridad:true}).select().single();if(error&&error.message&&error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>c.name===n);if(f){CID=f.id;SST_YR=2026;hideSSTNc();sstLoad();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;SST_YR=2026;hideSSTNc();sstLoad();return}e.innerHTML='Trigger IMC impide crear. Ejecuta en SQL Editor:<br><code style="font-size:10px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code>';e.style.display="block";return}if(error)throw error;CID=data.id;await loadCos();SST_YR=2026;hideSSTNc();sstLoad()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
 // SST: Add year
 function sstPromptYr(){const y=prompt("Agregar año (ej: 2027):");if(!y||isNaN(y))return;SST_YR=+y;sstLoad()}
 async function delCo(){if(!CID||cos.length<=1)return alert("Debe haber al menos 1 empresa.");if(!confirm("¿Eliminar empresa y TODOS sus datos?"))return;try{await sb.from("companies").delete().eq("id",CID);await loadCos();CID=cos[0]?.id;if(CID){await loadYears();await loadCD()}V="dashboard";ss("ok");render()}catch(e){alert(e.message)}}
@@ -809,8 +809,8 @@ function saveTWFromPerfil(v){
   window._twTimer=setTimeout(()=>{if(MOD==='seguridad'){sstRender()}else{render()}},1500);
 }
 function saveField(f,v){D.comp[f]=v;dbs("f-"+f,()=>sb.from("companies").update({[f]:v}).eq("id",CID))}
-function saveRepLegal(v){D.comp.rep_legal=v;const co=cos.find(c=>String(c.c)===String(id));if(co)co.rep_legal=v;dbs("rl",()=>sb.from("companies").update({rep_legal:v}).eq("id",CID))}
-function saveCoName(v){v=v.trim();if(!v)return;D.comp.name=v;const co=cos.find(c=>String(c.c)===String(id));if(co)co.name=v;render();dbs("cn",()=>sb.from("companies").update({name:v}).eq("id",CID))}
+function saveRepLegal(v){D.comp.rep_legal=v;const co=cos.find(c=>c.id===CID);if(co)co.rep_legal=v;dbs("rl",()=>sb.from("companies").update({rep_legal:v}).eq("id",CID))}
+function saveCoName(v){v=v.trim();if(!v)return;D.comp.name=v;const co=cos.find(c=>c.id===CID);if(co)co.name=v;render();dbs("cn",()=>sb.from("companies").update({name:v}).eq("id",CID))}
 function togAct(id,mi){
   const a=D.acts.find(x=>String(x.id)===String(id));if(!a)return;
   if(!a.done||!Array.isArray(a.done))a.done=Array(12).fill(0);
@@ -3281,7 +3281,7 @@ function pickCategory(catList){
 
 function getCatLabel(catId,allCats){
   const all=[...TTHH_CATS_AUDIT,...TTHH_CATS_PLAN,...DATOS_CATS_AUDIT,...DATOS_CATS_PLAN,...(allCats||[])];
-  const found=all.find(c=>String(c.c)===String(id));
+  const found=all.find(c=>c.id===CID);
   if(found)return found.label;
   return catId.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
 }
@@ -5275,7 +5275,7 @@ function agGetVal(companyId,deptId,field){
       const roleMatch=deptRoleMap[deptId];
       const roles=Array.isArray(roleMatch)?roleMatch:[roleMatch];
       for(const tid of coTripIds){
-        const trip=trips.find(t=>String(t.t)===String(id));
+        const trip=trips.find(t=>String(t.id)===String(tid));
         const members=tripMembers.filter(m=>m.trip_id===tid);
         if(members.length>0){
           // Has members: only mark departments whose members are assigned
@@ -5887,7 +5887,7 @@ CREATE POLICY "agendamiento_pub" ON agendamiento FOR ALL USING (true) WITH CHECK
 const DEPT_FULL_LABELS={seguridad:'Seguridad Industrial (SST)',salud:'Salud Ocupacional',ambiente:'Ambiente',datos:'Protección de Datos (LOPDPD)',tthh:'Talento Humano',talento:'Talento Humano',psicologo:'Psicología Ocupacional'};
 
 async function logToggleConvocatoria(tripId){
-  const trip=LOG.trips.find(t=>String(t.t)===String(id));if(!trip)return;
+  const trip=LOG.trips.find(t=>String(t.id)===String(id));if(!trip)return;
   const newVal=!trip.convocatoria_enviada;
   const fecha=newVal?new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'}):'';
   try{
@@ -6362,7 +6362,7 @@ async function logLoadPoaSuggestionsUI(tripId){
     const tripCompanyIds=tcs.map(tc=>tc.company_id).filter(Boolean);
     // If no companies assigned to trip, use all companies
     const companyFilter=tripCompanyIds.length>0?tripCompanyIds:cos.map(c=>c.id);
-    const companyNames=companyFilter.map(cid=>{const co=cos.find(c=>String(c.c)===String(id));return co?.name||cid});
+    const companyNames=companyFilter.map(cid=>{const co=cos.find(c=>c.id===id);return co?.name||cid});
     console.log("[POA] Trip companies:",companyNames,"IDs:",companyFilter);
     
     let suggestions=[];
@@ -6807,7 +6807,7 @@ function logRenderForm(){
   if(coSearchTerm)h+=`<div style="font-size:10px;color:var(--t3);margin-bottom:6px">${visibleFormCos.length} de ${cos.length} empresas · <span onclick="LOG._coSearch='';logRender()" style="color:#ef4444;cursor:pointer;text-decoration:underline">✕ Limpiar</span></div>`;
   // Show selected companies first (always visible)
   const selCosIds=e._selectedCompanies||[];
-  const selectedCos=selCosIds.map(id=>cos.find(c=>String(c.c)===String(id))).filter(Boolean);
+  const selectedCos=selCosIds.map(id=>cos.find(c=>c.id===id)).filter(Boolean);
   if(selectedCos.length>0&&coSearchTerm){
     h+=`<div style="margin-bottom:6px">`;
     selectedCos.forEach(c=>{
@@ -6823,7 +6823,7 @@ function logRenderForm(){
   });
   h+=`</div>`;
   if(e._selectedCompanies.length>0){
-    const selCos=e._selectedCompanies.map(id=>cos.find(c=>String(c.c)===String(id))).filter(Boolean);
+    const selCos=e._selectedCompanies.map(id=>cos.find(c=>c.id===id)).filter(Boolean);
     const cities=[...new Set(selCos.map(c=>c.location).filter(Boolean))];
     if(cities.length>0)h+=`<div style="font-size:10px;color:#34d399;margin-top:4px">📍 Destino: ${cities.join(', ')}</div>`;
   }
@@ -7010,7 +7010,7 @@ function logFormSelectCompany(coId){
     LOG.editTrip._selectedCompanies.push(coId);
   }
   // Auto-set destination city from selected companies' locations
-  const selCos=LOG.editTrip._selectedCompanies.map(id=>cos.find(c=>String(c.c)===String(id))).filter(Boolean);
+  const selCos=LOG.editTrip._selectedCompanies.map(id=>cos.find(c=>c.id===id)).filter(Boolean);
   if(selCos.length>0){
     const loc=selCos[0].location||'';
     // Match location to existing destinations
@@ -7161,7 +7161,7 @@ async function _getTripData(tripId){
   const dd=new Date(t.trip_date+'T12:00:00');
   const dateStr=dd.toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const companyId=tcs.length>0?tcs[0].company_id:CID;
-  let comp=cos.find(c=>String(c.c)===String(id))||D.comp||{};
+  let comp=cos.find(c=>c.id===id)||D.comp||{};
   if(!comp.logo_url&&companyId){try{const{data:fc}=await sb.from("companies").select("*").eq("id",companyId).single();if(fc)comp=fc}catch(e){}}
   const companies=tcs.map(tc=>tc.companies?.name||'').filter(Boolean);
   if(t.status==='planned'||t.status==='in_progress'){try{await sb.from("logistics_trips").update({status:'completed'}).eq("id",tripId);t.status='completed'}catch(e){}}
@@ -7420,7 +7420,7 @@ async function contNewClient(){
 }
 
 async function contEditClient(id){
-  const cl=(CONT.clients||[]).find(c=>String(c.c)===String(id));if(!cl)return;
+  const cl=(CONT.clients||[]).find(c=>c.id===id);if(!cl)return;
   const name=prompt("Nombre:",cl.name);if(name===null)return;
   const ruc=prompt("RUC/Cédula:",cl.ruc);if(ruc===null)return;
   const address=prompt("Dirección:",cl.address);if(address===null)return;
@@ -7826,7 +7826,7 @@ function contInvSelectCo(val){
   if(val==='_custom'){
     CONT._invForm.company_id='_custom';CONT._invForm.company_name='';CONT._invForm.ruc='';
   }else if(val){
-    const co=cos.find(c=>String(c.c)===String(id))||(CONT.clients||[]).find(c=>String(c.c)===String(id));
+    const co=cos.find(c=>c.id===id)||(CONT.clients||[]).find(c=>c.id===id);
     CONT._invForm.company_id=val;
     CONT._invForm.company_name=co?.name||'';
     CONT._invForm.ruc=co?.ruc||'';
@@ -7877,7 +7877,7 @@ async function contSaveInvForm(){
   const total=subtotal+iva;
   const concept=f.concept||f.items.map(i=>i.desc).filter(Boolean).join(', ');
   const coId=f.company_id&&f.company_id!=='_custom'?f.company_id:null;
-  const coName=f.company_name||(coId?cos.find(c=>String(c.c)===String(id))?.name:'');
+  const coName=f.company_name||(coId?cos.find(c=>c.id===id)?.name:'');
 
   const payload={
     cont_company_id:CONT.companyId,
@@ -8213,7 +8213,7 @@ async function contImportSRIXml(files){
           }
 
           // Match company
-          const matchCo=cos.find(c=>String(c.c)===String(ruc));
+          const matchCo=cos.find(c=>c.ruc===ruc);
 
           const ivaRate=subtotal>0?Math.round(iva/subtotal*100):15;
 
