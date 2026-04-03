@@ -2657,31 +2657,23 @@ function sstUpdActDate(id,val){const a=SST.acts.find(x=>String(x.id)===String(id
 }
 function sstTogAct(id,mi){
   const a=SST.acts.find(x=>String(x.id)===String(id));if(!a)return;
-  if(!a.done)a.done=Array(12).fill(0);
-  if(!a.planned)a.planned=Array(12).fill(0);
-  if(a.done[mi]===2)a.done[mi]=1;
-  else a.done[mi]=a.done[mi]===1?0:1;
-  sstRender();dbs("sta-"+id,()=>sb.from("sst_poa_activities").update({done:a.done}).eq("id",id))
+  if(!a.done||!Array.isArray(a.done))a.done=Array(12).fill(0);
+  if(!a.planned||!Array.isArray(a.planned))a.planned=Array(12).fill(0);
+  // Left click: toggle done
+  a.done[mi]=a.done[mi]===1?0:1;
+  if(a.done[mi]===1&&a.planned[mi]===0)a.planned[mi]=1;
+  sstRender();
+  dbs("sta-"+id,()=>sb.from("sst_poa_activities").update({done:a.done,planned:a.planned}).eq("id",id));
 }
 async function sstTogPlan(id,mi){
   const a=SST.acts.find(x=>String(x.id)===String(id));if(!a)return;
-  if(!a.planned)a.planned=Array(12).fill(0);
-  const newVal=a.planned[mi]===1?0:1;
-  const applyAll=cos.length>1&&confirm("¿Aplicar esta planificación a TODAS las empresas?\n\nAceptar = Todas las empresas\nCancelar = Solo esta empresa");
-  a.planned[mi]=newVal;
+  if(!a.planned||!Array.isArray(a.planned))a.planned=Array(12).fill(0);
+  if(!a.done||!Array.isArray(a.done))a.done=Array(12).fill(0);
+  // Right click: toggle planned
+  a.planned[mi]=a.planned[mi]===1?0:1;
+  if(a.planned[mi]===0&&a.done[mi]===1)a.done[mi]=0;
   sstRender();
-  if(applyAll){
-    try{
-      const{data:allActs}=await sb.from("sst_poa_activities").select("id,planned,company_id").eq("code",a.code).eq("year",SST_YR);
-      if(allActs){for(const oa of allActs){
-        if(!oa.planned)oa.planned=Array(12).fill(0);
-        oa.planned[mi]=newVal;
-        await sb.from("sst_poa_activities").update({planned:oa.planned}).eq("id",oa.id);
-      }}
-    }catch(e){console.error("Error aplicando a todas:",e)}
-  }else{
-    dbs("stp-"+id,()=>sb.from("sst_poa_activities").update({planned:a.planned}).eq("id",id));
-  }
+  dbs("stp-"+id,()=>sb.from("sst_poa_activities").update({planned:a.planned,done:a.done}).eq("id",id));
 }
 function sstEditActName(id){
   const a=SST.acts.find(x=>x.id===id);if(!a)return;
