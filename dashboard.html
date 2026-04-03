@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><link rel="icon" href="data:,">
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>VitalWork — Dashboard Integral v8.6</title>
@@ -520,7 +520,7 @@ async function createUser(){
   hideNewUser();renderConfig()
 }
 async function toggleUserActive(uid,active){
-  await sb.from("usuarios").update({activo:!active}).eq("id",uid);renderConfig()
+  await sb.from("usuarios").update({activo:!active}).eq("id",uid).then(()=>{});renderConfig()
 }
 async function deleteUser(uid,name){
   if(!confirm(`¿Eliminar permanentemente al usuario "${name||''}"?\n\nEsta acción no se puede deshacer.`))return;
@@ -574,7 +574,7 @@ async function forgotPassword(){
   if(!ced){errEl.style.color="#fbbf24";errEl.textContent="Ingrese su cédula para solicitar ayuda";return}
   if(!sb){errEl.style.color="#ef4444";errEl.textContent="Error: Sin conexión";return}
   errEl.style.color="#fbbf24";errEl.textContent="⏳ Enviando solicitud...";
-  const{data,error}=await sb.from("usuarios").select("id,name").eq("cedula",ced).limit(1);
+  const{data,error}=await sb.from("usuarios").select("id,nombre").eq("cedula",ced).limit(1);
   if(error||!data||data.length===0){errEl.style.color="#ef4444";errEl.textContent="❌ Cédula no registrada en el sistema";return}
   await sb.from("usuarios").update({password_reset_requested:true}).eq("id",data[0].id);
   errEl.style.color="#34d399";errEl.textContent="✅ Solicitud enviada. El administrador restablecerá su contraseña pronto."
@@ -618,18 +618,18 @@ function ga(){let acts=D.tw<=10?D.acts.filter(a=>SM.includes(a.code)):D.acts;ret
 // === CONNECTION ===
 function ckS(){const u=localStorage.getItem("sb_u3")||'https://tzvdwkzhtvutiypkkmba.supabase.co',k=localStorage.getItem("sb_k3")||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6dmR3a3podHZ1dGl5cGtrbWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE2MTgsImV4cCI6MjA4Nzc4NzYxOH0.mhLVpvA_utETnM6E7fjhexhhFMQumm-xPd8oQhQm4v4';if(u&&k){localStorage.setItem("sb_u3",u);localStorage.setItem("sb_k3",k);document.getElementById("setupOv").style.display="none";initSB(u,k)}}
 async function doConnect(){const u=document.getElementById("sUrl").value.trim(),k=document.getElementById("sKey").value.trim(),e=document.getElementById("sErr");if(!u||!k){e.textContent="Campos obligatorios.";e.style.display="block";return}e.style.display="none";try{const c=window.supabase.createClient(u,k);const{error}=await c.from("companies").select("id").limit(1);if(error)throw error;localStorage.setItem("sb_u3",u);localStorage.setItem("sb_k3",k);document.getElementById("setupOv").style.display="none";initSB(u,k)}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
-async function initSB(u,k){sb=window.supabase.createClient(u,k);ss("ld");try{await loadCos();if(cos.length>0){const l=localStorage.getItem("last_c");CID=cos.find(c=>c.id===l)?l:cos[0].id;await loadYears();await loadCD()}ss("ok");
+async function initSB(u,k){sb=window.supabase.createClient(u,k);ss("ld");try{try{await loadCos()}catch(e){console.warn("loadCos failed (tables may not exist yet):",e.message);cos=[]}if(cos.length>0){const l=localStorage.getItem("last_c");CID=cos.find(c=>c.id===l)?l:cos[0].id;try{await loadYears();await loadCD()}catch(e){console.warn("loadYears/CD failed:",e.message)}}ss("ok");
   // Check if users table exists and has users
   const{data:users,error:ue}=await sb.from("usuarios").select("id").limit(1);
   if(!ue&&users){
-    // Users table exists - ALWAYS show login screen
-    if(users.length===0){showLogin();return}
-    showLogin();return;
+    // Users table exists - try auto-login first
+    const didAuto=await autoLogin();
+    if(!didAuto){showLogin();return}
   } else {
-    // No users table yet - show all modules (legacy mode)
-    ["salud","seguridad","config"].forEach(m=>{const el=document.getElementById("sb-"+m);if(el)el.style.display="block"});
+    // No users table yet - show login anyway
+    showLogin();return;
   }
-  render()}catch(e){ss("er");console.error(e)}}
+  render()}catch(e){ss("er");console.error("initSB error:",e);showLogin()}}
 function disc(){if(confirm("¿Desconectar?")){localStorage.removeItem("sb_u3");localStorage.removeItem("sb_k3");location.reload()}}
 
 // === DATA LOADING ===
@@ -4047,7 +4047,7 @@ async function logLoad(){
     }
     const[t,d,n]=await Promise.all([
       sb.from("logistics_trips").select("*").gte("trip_date",startD).lte("trip_date",endD).order("trip_date"),
-      sb.from("logistics_destinations").select("*").eq("active",true).order("city"),
+      sb.from("logistics_destinations").select("*").order("city"),
       sb.from("logistics_notifications").select("*").eq("user_id",CURRENT_USER?.id).eq("read",false).order("created_at",{ascending:false})
     ]);
     LOG.trips=t.data||[];
@@ -4056,12 +4056,12 @@ async function logLoad(){
     if(LOG.trips.length>0){
       const tids=LOG.trips.map(t=>t.id);
       const loads=[
-        sb.from("logistics_trip_members").select("*,usuarios(name,role)").in("trip_id",tids),
+        sb.from("logistics_trip_members").select("*,usuarios(nombre,rol)").in("trip_id",tids),
         sb.from("logistics_trip_activities").select("*").in("trip_id",tids),
         sb.from("logistics_trip_companies").select("*,companies(name,location)").in("trip_id",tids)
       ];
       // Admin loads ALL notifications for these trips to see who read
-      if(isAdmin)loads.push(sb.from("logistics_notifications").select("*,usuarios(name)").in("trip_id",tids));
+      if(isAdmin)loads.push(sb.from("logistics_notifications").select("*,usuarios(nombre)").in("trip_id",tids));
       const results=await Promise.all(loads);
       LOG.members=results[0].data||[];
       LOG.activities=results[1].data||[];
@@ -4069,7 +4069,7 @@ async function logLoad(){
       LOG.allNotifs=isAdmin?(results[3]?.data||[]):[];
     }else{LOG.members=[];LOG.activities=[];LOG.tripCompanies=[];LOG.allNotifs=[];}
     // Load all users (admin: for member selector; all: for activity creator names)
-    const{data:u}=await sb.from("usuarios").select("id,name,role").order("name");
+    const{data:_u}=await sb.from("usuarios").select("id,nombre,rol").order("nombre");const u=(_u||[]).map(x=>({id:x.id,name:x.nombre,role:x.rol}));
     LOG.users=u||[];
     // POA suggestions now load on-demand in logLoadPoaSuggestionsUI()
     console.log("[LOG] trips:",LOG.trips.length,"members:",LOG.members.length,"notifs:",LOG.notifications.length,"user:",CURRENT_USER?.id,"isAdmin:",isAdmin);
@@ -4140,7 +4140,7 @@ function logRender(){
       h+=`<div style="font-size:12px;color:var(--t2);margin-bottom:4px">📅 ${dd.toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long'})} · ⏰ Salida: ${next.departure_time||'07:00'}</div>`;
       h+=`<div style="font-size:11px;color:var(--t3);margin-bottom:8px">🚗 ${next.transport_type==='car'?'Vehículo':next.transport_type==='bus'?'Bus':'Mixto'} · ${next.days||1} día${(next.days||1)>1?'s':''}</div>`;
       h+=`<div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:4px">👥 Equipo:</div>`;
-      nextMembers.forEach(m=>{h+=`<span style="display:inline-block;background:rgba(255,255,255,0.06);border-radius:12px;padding:3px 10px;font-size:10px;color:var(--t2);margin:2px 4px 2px 0">${DEPT_ICONS[m.department]||'👤'} ${m.usuarios?.name||DEPT_LABELS[m.department]||m.department}</span>`});
+      nextMembers.forEach(m=>{h+=`<span style="display:inline-block;background:rgba(255,255,255,0.06);border-radius:12px;padding:3px 10px;font-size:10px;color:var(--t2);margin:2px 4px 2px 0">${DEPT_ICONS[m.department]||'👤'} ${m.usuarios?.nombre||m.usuarios?.name||DEPT_LABELS[m.department]||m.department}</span>`});
       if(myActs.length>0){
         h+=`<div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--t2)">📋 Tus actividades:</div>`;
         myActs.forEach(a=>{h+=`<div style="font-size:10px;color:var(--t3);padding:2px 0">${a.completed?'✅':'⬜'} ${a.activity_name}</div>`});
@@ -4324,7 +4324,7 @@ function logRenderWeek(isAdmin,visibleTrips){
       h+=`<div style="margin-bottom:6px">`;
       members.forEach(m=>{
         const isMe=CURRENT_USER&&m.user_id===CURRENT_USER.id;
-        h+=`<span style="display:inline-block;background:${isMe?LOG_COLOR+'25':'rgba(255,255,255,0.06)'};border:1px solid ${isMe?LOG_COLOR+'50':'transparent'};border-radius:12px;padding:3px 10px;font-size:10px;color:${isMe?LOG_COLOR:'var(--t2)'};margin:2px 4px 2px 0;font-weight:${isMe?'700':'400'}">${DEPT_ICONS[m.department]||'👤'} ${m.usuarios?.name||DEPT_LABELS[m.department]||m.department}${isMe?' (tú)':''}</span>`;
+        h+=`<span style="display:inline-block;background:${isMe?LOG_COLOR+'25':'rgba(255,255,255,0.06)'};border:1px solid ${isMe?LOG_COLOR+'50':'transparent'};border-radius:12px;padding:3px 10px;font-size:10px;color:${isMe?LOG_COLOR:'var(--t2)'};margin:2px 4px 2px 0;font-weight:${isMe?'700':'400'}">${DEPT_ICONS[m.department]||'👤'} ${m.usuarios?.nombre||m.usuarios?.name||DEPT_LABELS[m.department]||m.department}${isMe?' (tú)':''}</span>`;
       });
       h+=`</div>`;
       // Activities grouped by department (in LEFT panel - remove from here)
@@ -4449,7 +4449,7 @@ function logRenderCalendar(isAdmin,visibleTrips){
       h+=`<div style="min-width:45px;text-align:center"><div style="font-size:14px;font-weight:800;color:${st.color}">${dd.getDate()}</div><div style="font-size:9px;color:var(--t3)">${dateLabel.split(' ')[0]}</div></div>`;
       h+=`<div style="flex:1"><div style="font-weight:700;font-size:12px;color:var(--t1)">🚐 ${t.destination_city}</div>`;
       h+=`<div style="font-size:10px;color:var(--t3)">⏰ ${t.departure_time||'07:00'} · 🚗 ${t.transport_type==='car'?'Vehículo':t.transport_type==='bus'?'Bus':'Mixto'} · ${t.days||1}d</div>`;
-      h+=`<div style="font-size:10px;color:var(--t3);margin-top:2px">👥 ${members.map(m=>m.usuarios?.name||m.department).join(', ')||'Sin asignar'}</div>`;
+      h+=`<div style="font-size:10px;color:var(--t3);margin-top:2px">👥 ${members.map(m=>m.usuarios?.nombre||m.usuarios?.name||m.department).join(', ')||'Sin asignar'}</div>`;
       if(tcs.length>0){
         h+=`<div style="font-size:9px;color:var(--t3);margin-top:2px">🏢 ${tcs.map(c=>c.custom_name?'⭐ '+c.custom_name:c.companies?.name||'').join(', ')}</div>`;
         const tcC=tcs.map(tc=>{
@@ -4546,7 +4546,7 @@ function logRenderBudget(isAdmin){
       h+=`<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;font-size:10px">`;
       members.forEach(m=>{
         h+=`<div style="display:flex;justify-content:space-between;padding:3px 0">`;
-        h+=`<span style="color:var(--t2)">${DEPT_ICONS[m.department]||'👤'} ${m.usuarios?.name||m.department}</span>`;
+        h+=`<span style="color:var(--t2)">${DEPT_ICONS[m.department]||'👤'} ${m.usuarios?.nombre||m.usuarios?.name||m.department}</span>`;
         if(m.extra_cost>0)h+=`<span style="color:#fbbf24;font-weight:700">+$${m.extra_cost.toFixed(2)} <span style="font-weight:400;color:var(--t3)">(${m.extra_cost_note||'extra'})</span></span>`;
         h+=`</div>`;
       });
@@ -5907,7 +5907,7 @@ async function logSendGroupWA(tipo){
       const DEPT_FULL={seguridad:'SST',salud:'Salud',ambiente:'Ambiente',datos:'Datos',tthh:'TTHH',talento:'TTHH',psicologo:'Psicología'};
       msg+=people+' Equipo:\n';
       members.forEach(m=>{
-        const name=m.usuarios?.name||m.department;
+        const name=m.usuarios?.nombre||m.usuarios?.name||m.department;
         const dept=DEPT_FULL[m.department]||m.department;
         msg+='   '+check+' '+name+' ('+dept+')\n';
       });
@@ -6167,7 +6167,7 @@ function logRenderWorkerView(){
     const isMe=CURRENT_USER&&m.user_id===CURRENT_USER.id;
     h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${isMe?LOG_COLOR+'12':'rgba(255,255,255,0.03)'};border:1px solid ${isMe?LOG_COLOR+'30':'rgba(255,255,255,0.06)'};border-radius:8px;margin-bottom:3px">`;
     h+=`<span style="font-size:14px">${DEPT_ICONS[m.department]||'👤'}</span>`;
-    h+=`<span style="flex:1;font-size:12px;color:${isMe?LOG_COLOR:'var(--t1)'};font-weight:${isMe?'700':'500'}">${m.usuarios?.name||m.department}${isMe?' (tú)':''}</span>`;
+    h+=`<span style="flex:1;font-size:12px;color:${isMe?LOG_COLOR:'var(--t1)'};font-weight:${isMe?'700':'500'}">${m.usuarios?.nombre||m.usuarios?.name||m.department}${isMe?' (tú)':''}</span>`;
     h+=`<span style="font-size:10px;color:var(--t3)">${m.department}</span>`;
     h+=`</div>`;
   });
@@ -6842,7 +6842,7 @@ function logRenderForm(){
       members.forEach(m=>{
         h+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:4px">`;
         h+=`<span style="font-size:16px">${DEPT_ICONS[m.department]||'👤'}</span>`;
-        h+=`<span style="flex:1;font-size:12px;color:var(--t1);font-weight:600">${m.usuarios?.name||'?'}</span>`;
+        h+=`<span style="flex:1;font-size:12px;color:var(--t1);font-weight:600">${m.usuarios?.nombre||m.usuarios?.name||'?'}</span>`;
         h+=`<span style="font-size:10px;color:var(--t3);background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:10px">${DEPT_LABELS[m.department]||m.department}</span>`;
         if(m.extra_cost>0)h+=`<span style="font-size:10px;color:#fbbf24;font-weight:700">+$${m.extra_cost.toFixed(2)}</span>`;
         h+=`<button onclick="logRemoveMember('${m.id}')" style="background:#ef444420;border:1px solid #ef444440;color:#ef4444;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer" title="Quitar del viaje">✕</button>`;
@@ -6907,7 +6907,7 @@ function logRenderForm(){
     tripNotifs.forEach(n=>{
       const rd=n.read;
       const readDate=n.read_at?new Date(n.read_at).toLocaleDateString('es-EC',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-      h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px"><span style="color:${rd?'#34d399':'#ef4444'}">${rd?'✅':'❌'} ${n.usuarios?.name||'?'}</span><span style="color:var(--t3);font-size:10px">${rd?readDate:'Pendiente'}</span></div>`;
+      h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px"><span style="color:${rd?'#34d399':'#ef4444'}">${rd?'✅':'❌'} ${n.usuarios?.nombre||n.usuarios?.name||'?'}</span><span style="color:var(--t3);font-size:10px">${rd?readDate:'Pendiente'}</span></div>`;
     });
     h+=`</div>`;
   }
