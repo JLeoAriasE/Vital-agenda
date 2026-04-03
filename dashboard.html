@@ -550,8 +550,9 @@ async function saveEditUser(){
   if(newPwd&&newPwd.length<4){document.getElementById("euErr").textContent="La contraseña debe tener mínimo 4 caracteres";return}
   const upd={nombre:name,modules:mods,rol:mods.includes('jefe')?'jefe':(mods.length>1?"multi":mods[0])};
   if(newPwd)upd.pass=newPwd;
+  console.log("Saving user:",uid,JSON.stringify(upd));
   const{error}=await sb.from("usuarios").update(upd).eq("id",uid);
-  if(error){document.getElementById("euErr").textContent="Error: "+error.message;return}
+  if(error){document.getElementById("euErr").textContent="Error: "+error.message;console.error("Save error:",JSON.stringify(error));return}
   hideEditUser();renderConfig()
 }
 // Reset password from admin
