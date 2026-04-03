@@ -2463,7 +2463,7 @@ function sstRender(){
       const earlyDone=doneMonths.some(mi=>act.planned[mi]!==1);
       h+=`<tr class="poa-row" style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="text-align:center;color:#64748b;font-family:var(--mn);font-size:9px">${act.code}</td>`;
       h+=`<td>${isAdm?`<span style="cursor:pointer" onclick="sstEditActName(${act.id})" title="Clic para editar">`:''}<span style="font-size:7px;font-weight:700;color:${cat?.color};background:${cat?.color}18;padding:1px 3px;border-radius:3px">${cat?.icon}</span> <span style="font-weight:500;font-size:11px">${act.name}</span>${isAdm?'</span>':''}</td>`;
-      h+=`<td><input class="ni" style="width:100%;font-size:9px" value="${act.responsible||''}" onchange="sstUpdAct(${act.id},'responsible',this.value)" placeholder="..."></td>`;
+      h+=`<td><input class="ni" style="width:100%;font-size:9px" value="${act.responsible||''}" onchange="sstUpdAct('${act.id}','responsible',this.value)" placeholder="..."></td>`;
       // Date realized + Duration + Alert
       const actDate=act.doc_date||'';
       const actDur=act.doc_duration||0; // years
@@ -2482,27 +2482,27 @@ function sstRender(){
       }
       if(!docAplica){
         // No aplica: grey out date and duration
-        h+=`<td style="text-align:center"><select onchange="sstUpdAct(${act.id},'doc_aplica',this.value==='si')" style="padding:3px;border-radius:5px;border:1px solid rgba(100,116,139,0.3);background:rgba(100,116,139,0.1);color:#64748b;font-size:8px;font-weight:700;cursor:pointer"><option value="no" selected>N/A</option><option value="si">APLICA</option></select></td>`;
+        h+=`<td style="text-align:center"><select onchange="sstUpdAct('${act.id}','doc_aplica',this.value==='si')" style="padding:3px;border-radius:5px;border:1px solid rgba(100,116,139,0.3);background:rgba(100,116,139,0.1);color:#64748b;font-size:8px;font-weight:700;cursor:pointer"><option value="no" selected>N/A</option><option value="si">APLICA</option></select></td>`;
         h+=`<td style="text-align:center;background:rgba(100,116,139,0.05)"><span style="font-size:9px;color:#64748b">—</span></td>`;
         h+=`<td style="text-align:center;background:rgba(100,116,139,0.05)"><span style="font-size:9px;color:#64748b">—</span></td>`;
       }else{
-        h+=`<td style="text-align:center"><div style="display:flex;flex-direction:column;align-items:center;gap:2px"><select onchange="sstUpdAct(${act.id},'doc_aplica',this.value==='si')" style="padding:2px;border-radius:4px;border:1px solid rgba(52,211,153,0.3);background:rgba(52,211,153,0.08);color:#34d399;font-size:7px;font-weight:700;cursor:pointer;margin-bottom:1px"><option value="si" selected>APLICA</option><option value="no">N/A</option></select><input class="cdt" type="date" value="${actDate}" onchange="sstUpdActDate(${act.id},this.value)" style="width:110px;font-size:10px;padding:4px" min="2020-01-01" max="2035-12-31"></div></td>`;
-        h+=`<td style="text-align:center"><select onchange="sstUpdAct(${act.id},'doc_duration',+this.value)" style="padding:3px;border-radius:5px;border:1px solid var(--bd);background:rgba(255,255,255,0.05);color:var(--t1);font-size:9px;cursor:pointer"><option value="0" ${actDur===0?'selected':''}>—</option><option value="1" ${actDur===1?'selected':''}>1 año</option><option value="2" ${actDur===2?'selected':''}>2 años</option><option value="3" ${actDur===3?'selected':''}>3 años</option><option value="4" ${actDur===4?'selected':''}>4 años</option><option value="5" ${actDur===5?'selected':''}>5 años</option></select></td>`;
+        h+=`<td style="text-align:center"><div style="display:flex;flex-direction:column;align-items:center;gap:2px"><select onchange="sstUpdAct('${act.id}','doc_aplica',this.value==='si')" style="padding:2px;border-radius:4px;border:1px solid rgba(52,211,153,0.3);background:rgba(52,211,153,0.08);color:#34d399;font-size:7px;font-weight:700;cursor:pointer;margin-bottom:1px"><option value="si" selected>APLICA</option><option value="no">N/A</option></select><input class="cdt" type="date" value="${actDate}" onchange="sstUpdActDate('${act.id}',this.value)" style="width:110px;font-size:10px;padding:4px" min="2020-01-01" max="2035-12-31"></div></td>`;
+        h+=`<td style="text-align:center"><select onchange="sstUpdAct('${act.id}','doc_duration',+this.value)" style="padding:3px;border-radius:5px;border:1px solid var(--bd);background:rgba(255,255,255,0.05);color:var(--t1);font-size:9px;cursor:pointer"><option value="0" ${actDur===0?'selected':''}>—</option><option value="1" ${actDur===1?'selected':''}>1 año</option><option value="2" ${actDur===2?'selected':''}>2 años</option><option value="3" ${actDur===3?'selected':''}>3 años</option><option value="4" ${actDur===4?'selected':''}>4 años</option><option value="5" ${actDur===5?'selected':''}>5 años</option></select></td>`;
         h+=`<td style="text-align:center;background:${alertBg}" title="${alertTitle}">${alertIcon?`<span style="font-size:14px;cursor:help" title="${alertTitle}">${alertIcon}</span>`:''}</td>`;
       }
       MO.forEach((_,mi)=>{const isP=act.planned[mi]===1,isD=act.done[mi]===1,isTrip=act.done[mi]===2;
         const isGhost=isP&&!isD&&!isTrip&&earlyDone;
         if(isD){
           const isEarly=!isP;
-          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb dn" style="border-color:${cat?.color};background:${cat?.color}22;color:${cat?.color}${isEarly?';border-style:dashed':''}" onclick="sstTogAct(${act.id},${mi})">✓</div></td>`;
+          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb dn" style="border-color:${cat?.color};background:${cat?.color}22;color:${cat?.color}${isEarly?';border-style:dashed':''}" onclick="sstTogAct('${act.id}',${mi})">✓</div></td>`;
         }else if(isTrip){
-          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" style="border-color:#f97316;background:rgba(249,115,22,0.2);color:#f97316;font-size:9px" onclick="sstTogAct(${act.id},${mi})" title="En viaje — pendiente verificar">🚐</div></td>`;
+          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" style="border-color:#f97316;background:rgba(249,115,22,0.2);color:#f97316;font-size:9px" onclick="sstTogAct('${act.id}',${mi})" title="En viaje — pendiente verificar">🚐</div></td>`;
         }else if(isGhost){
-          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" style="opacity:0.25;border-color:${cat?.color};background:${cat?.color}08" onclick="sstTogAct(${act.id},${mi})"></div></td>`;
+          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" style="opacity:0.25;border-color:${cat?.color};background:${cat?.color}08" onclick="sstTogAct('${act.id}',${mi})"></div></td>`;
         }else if(isP){
-          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" onclick="sstTogAct(${act.id},${mi})" oncontextmenu="event.preventDefault();sstTogPlan(${act.id},${mi})"></div></td>`;
+          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" onclick="sstTogAct('${act.id}',${mi})" oncontextmenu="event.preventDefault();sstTogPlan('${act.id}',${mi})"></div></td>`;
         }else{
-          h+=`<td style="text-align:center;padding:4px 1px;cursor:pointer" onclick="sstTogAct(${act.id},${mi})" oncontextmenu="event.preventDefault();sstTogPlan(${act.id},${mi})"><span style="color:rgba(255,255,255,0.05);font-size:10px">·</span></td>`;
+          h+=`<td style="text-align:center;padding:4px 1px;cursor:pointer" onclick="sstTogAct('${act.id}',${mi})" oncontextmenu="event.preventDefault();sstTogPlan('${act.id}',${mi})"><span style="color:rgba(255,255,255,0.05);font-size:10px">·</span></td>`;
         }
       });
       h+=`<td style="text-align:center;font-weight:700;font-family:var(--mn);font-size:11px;color:${pct===100?'#34d399':pct>0?'#fbbf24':'#475569'}">${pct}%</td>`;
@@ -2539,7 +2539,7 @@ function sstRender(){
       h+=`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px"><span style="color:var(--t3)">Cobertura</span><span style="color:${trC};font-weight:700;font-family:var(--mn)">${trPct}% (${tr}/${tw})</span></div><div style="height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(trPct,100)}%;background:${trC};border-radius:3px"></div></div><div style="font-size:8px;color:var(--t3);margin-top:2px">Meta ≥85%</div></div>`;
       h+=`<div style="display:flex;flex-direction:column;gap:6px"><div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Mes planificado</label><select onchange="sstSaveChPM(${ch.id},this.value)" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--bd);background:${c.select_bg_color||'rgba(255,255,255,0.05)'};color:${c.select_text_color||'var(--t1)'};font-size:11px;font-weight:600"><option value="-1" ${pm<0?'selected':''}>Sin planificar</option>`;
       MF.forEach((m,mi)=>{h+=`<option value="${mi}" ${pm===mi?'selected':''}>${m}</option>`});
-      h+=`</select></div><div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Trabajadores capacitados</label><input class="ni" style="width:100%;padding:6px" type="number" min="0" max="${tw}" value="${tr}" onchange="sstSaveChTr(${ch.id},this.value)"></div><button class="ct ${ch.done?'on':''}" onclick="sstTogCh(${ch.id})">${ch.done?'✅ Realizada':'⬜ Marcar'}</button><input class="cdt" type="date" value="${ch.date||''}" onchange="sstSaveChF(${ch.id},'date',this.value)"></div></div>`});
+      h+=`</select></div><div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Trabajadores capacitados</label><input class="ni" style="width:100%;padding:6px" type="number" min="0" max="${tw}" value="${tr}" onchange="sstSaveChTr('${ch.id}',this.value)"></div><button class="ct ${ch.done?'on':''}" onclick="sstTogCh('${ch.id}')">${ch.done?'✅ Realizada':'⬜ Marcar'}</button><input class="cdt" type="date" value="${ch.date||''}" onchange="sstSaveChF('${ch.id}','date',this.value)"></div></div>`});
     h+='</div>';
   } else if(SST_V==="verifs"){
     h+=`<div class="c"><div class="st">✅ Verificaciones — Servicios Permanentes</div><div class="hn">Clic izquierdo = marcar cumplimiento · Clic en ⚙️ = configurar meses y frecuencia · Check mensual/trimestral con observaciones.</div>`;
@@ -2559,23 +2559,23 @@ function sstRender(){
       MO.forEach((m,mi)=>{
         const act=isQ?[2,5,8,11].includes(mi):true;
         const planned=v.planned&&v.planned[mi];
-        h+=`<label style="display:flex;align-items:center;gap:3px;padding:3px 7px;border-radius:5px;border:1px solid ${planned?'#2dd4bf':'var(--bd)'};background:${planned?'rgba(45,212,191,0.12)':'transparent'};cursor:${act?'pointer':'not-allowed'};opacity:${act?1:0.3};font-size:10px;color:var(--t2)"><input type="checkbox" ${planned?'checked':''} ${act?`onchange="sstPlanVDirect(${v.id},${mi},this.checked)"`:'disabled'} style="accent-color:#2dd4bf;width:12px;height:12px">${m}</label>`;
+        h+=`<label style="display:flex;align-items:center;gap:3px;padding:3px 7px;border-radius:5px;border:1px solid ${planned?'#2dd4bf':'var(--bd)'};background:${planned?'rgba(45,212,191,0.12)':'transparent'};cursor:${act?'pointer':'not-allowed'};opacity:${act?1:0.3};font-size:10px;color:var(--t2)"><input type="checkbox" ${planned?'checked':''} ${act?`onchange="sstPlanVDirect('${v.id}',${mi},this.checked)"`:'disabled'} style="accent-color:#2dd4bf;width:12px;height:12px">${m}</label>`;
       });
       h+=`</div></div>`;
       // Quick select buttons
       h+=`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">`;
-      h+=`<button class="add-btn" style="font-size:9px;padding:2px 8px" onclick="sstPlanVAll(${v.id},true)">✅ Todos</button>`;
-      h+=`<button class="del-btn" style="font-size:9px;padding:2px 8px" onclick="sstPlanVAll(${v.id},false)">❌ Ninguno</button>`;
+      h+=`<button class="add-btn" style="font-size:9px;padding:2px 8px" onclick="sstPlanVAll('${v.id}',true)">✅ Todos</button>`;
+      h+=`<button class="del-btn" style="font-size:9px;padding:2px 8px" onclick="sstPlanVAll('${v.id}',false)">❌ Ninguno</button>`;
       if(!isQ){
-        h+=`<button class="add-btn" style="font-size:9px;padding:2px 8px;background:rgba(129,140,248,0.12);border-color:rgba(129,140,248,0.3);color:#818cf8" onclick="sstPlanVPreset(${v.id},'bimestral')">Bimestral</button>`;
-        h+=`<button class="add-btn" style="font-size:9px;padding:2px 8px;background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.3);color:#fbbf24" onclick="sstPlanVPreset(${v.id},'trimestral')">Trimestral</button>`;
-        h+=`<button class="add-btn" style="font-size:9px;padding:2px 8px;background:rgba(244,114,182,0.12);border-color:rgba(244,114,182,0.3);color:#f472b6" onclick="sstPlanVPreset(${v.id},'semestral')">Semestral</button>`;
+        h+=`<button class="add-btn" style="font-size:9px;padding:2px 8px;background:rgba(129,140,248,0.12);border-color:rgba(129,140,248,0.3);color:#818cf8" onclick="sstPlanVPreset('${v.id}','bimestral')">Bimestral</button>`;
+        h+=`<button class="add-btn" style="font-size:9px;padding:2px 8px;background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.3);color:#fbbf24" onclick="sstPlanVPreset('${v.id}','trimestral')">Trimestral</button>`;
+        h+=`<button class="add-btn" style="font-size:9px;padding:2px 8px;background:rgba(244,114,182,0.12);border-color:rgba(244,114,182,0.3);color:#f472b6" onclick="sstPlanVPreset('${v.id}','semestral')">Semestral</button>`;
       }
       h+=`</div>`;
       // Apply scope
       h+=`<div style="display:flex;gap:6px;margin-top:6px">`;
-      h+=`<button class="add-btn" style="font-size:10px;padding:4px 12px" onclick="sstPlanVApply(${v.id},false)">💾 Guardar solo esta empresa</button>`;
-      if(cos.length>1){h+=`<button class="add-btn" style="font-size:10px;padding:4px 12px;background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.3);color:#fbbf24" onclick="sstPlanVApply(${v.id},true)">🌐 Guardar en TODAS las empresas</button>`}
+      h+=`<button class="add-btn" style="font-size:10px;padding:4px 12px" onclick="sstPlanVApply('${v.id}',false)">💾 Guardar solo esta empresa</button>`;
+      if(cos.length>1){h+=`<button class="add-btn" style="font-size:10px;padding:4px 12px;background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.3);color:#fbbf24" onclick="sstPlanVApply('${v.id}',true)">🌐 Guardar en TODAS las empresas</button>`}
       h+=`</div></div>`;
       // Table
       h+=`<table><thead><tr>`;
@@ -2635,7 +2635,7 @@ function sstRender(){
     const c2=document.getElementById("sstChStat");if(c2){new Chart(c2,{type:"doughnut",data:{labels:["Cumplido","En proceso","Planificado","Vencido"],datasets:[{data:[cumplidos,enProceso,planif,vencidos],backgroundColor:["#34d399","#fbbf24","#94a3b8","#ef4444"]}]},options:{responsive:true,plugins:{legend:{labels:{color:"#94a3b8",font:{size:9}}}}}})}
   }
 }
-function sstUpdAct(id,field,val){const a=SST.acts.find(x=>x.id===id);if(!a)return;a[field]=val;sstRender();
+function sstUpdAct(id,field,val){const a=SST.acts.find(x=>String(x.id)===String(id));if(!a)return;a[field]=val;sstRender();
   if(field==='doc_aplica'){
     const allCos=confirm("¿Aplicar a TODAS las empresas?\n\n✅ Aceptar = Todas las empresas\n❌ Cancelar = Solo esta empresa");
     if(allCos){
@@ -2652,11 +2652,11 @@ function sstUpdAct(id,field,val){const a=SST.acts.find(x=>x.id===id);if(!a)retur
     dbs("sua-"+id+field,()=>sb.from("sst_poa_activities").update({[field]:val}).eq("id",id));
   }
 }
-function sstUpdActDate(id,val){const a=SST.acts.find(x=>x.id===id);if(!a)return;a.doc_date=val;sstRender();
+function sstUpdActDate(id,val){const a=SST.acts.find(x=>String(x.id)===String(id));if(!a)return;a.doc_date=val;sstRender();
   dbs("sua-date-"+id,()=>sb.from("sst_poa_activities").update({doc_date:val}).eq("id",id));
 }
 function sstTogAct(id,mi){
-  const a=SST.acts.find(x=>x.id===id);if(!a)return;
+  const a=SST.acts.find(x=>String(x.id)===String(id));if(!a)return;
   if(!a.done)a.done=Array(12).fill(0);
   if(!a.planned)a.planned=Array(12).fill(0);
   if(a.done[mi]===2)a.done[mi]=1;
@@ -2664,7 +2664,7 @@ function sstTogAct(id,mi){
   sstRender();dbs("sta-"+id,()=>sb.from("sst_poa_activities").update({done:a.done}).eq("id",id))
 }
 async function sstTogPlan(id,mi){
-  const a=SST.acts.find(x=>x.id===id);if(!a)return;
+  const a=SST.acts.find(x=>String(x.id)===String(id));if(!a)return;
   if(!a.planned)a.planned=Array(12).fill(0);
   const newVal=a.planned[mi]===1?0:1;
   const applyAll=cos.length>1&&confirm("¿Aplicar esta planificación a TODAS las empresas?\n\nAceptar = Todas las empresas\nCancelar = Solo esta empresa");
@@ -2713,7 +2713,7 @@ async function sstDelAct(id){
   }catch(e){alert("Error: "+e.message)}
 }
 // Old monthly toggle removed - now using sstUpdAct for status-based tracking
-function sstTogCh(id){const ch=SST.charlas.find(x=>x.id===id);if(!ch)return;ch.done=!ch.done;if(ch.done&&!ch.date)ch.date=new Date().toISOString().split('T')[0];sstRender();dbs("sc-"+id,()=>{const upd={done:ch.done};if(ch.done&&ch.date)upd.event_date=ch.date;return sb.from("sst_charlas").update(upd).eq("id",id)})}
+function sstTogCh(id){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch.done=!ch.done;if(ch.done&&!ch.date)ch.date=new Date().toISOString().split('T')[0];sstRender();dbs("sc-"+id,()=>{const upd={done:ch.done};if(ch.done&&ch.date)upd.event_date=ch.date;return sb.from("sst_charlas").update(upd).eq("id",id)})}
 function sstSaveCh(id,f,v){const ch=SST.charlas.find(x=>x.id===id);if(!ch)return;ch[f]=+v;sstRender();dbs("scf-"+id,()=>sb.from("sst_charlas").update({[f]:+v}).eq("id",id))}
 function sstSaveChF(id,f,v){const ch=SST.charlas.find(x=>x.id===id);if(!ch)return;ch[f]=v;sstRender();dbs("scfs-"+id,()=>sb.from("sst_charlas").update({[f]:v}).eq("id",id))}
 function sstSaveChPM(id,v){const ch=SST.charlas.find(x=>x.id===id);if(!ch)return;ch.planned_month=+v;sstRender();dbs("scpm-"+id,()=>sb.from("sst_charlas").update({planned_month:+v}).eq("id",id))}
@@ -2744,9 +2744,9 @@ async function sstReloadCharlas(){
     await sstLoad();
   }catch(e){alert("Error: "+e.message)}
 }
-function sstTogV(id,mi){const v=SST.verifs.find(x=>x.id===id);if(!v)return;if(!v.checks)v.checks=Array(12).fill(false);v.checks[mi]=!v.checks[mi];sstRender();dbs("sv-"+id,()=>sb.from("sst_verifications").update({checks:v.checks}).eq("id",id))}
+function sstTogV(id,mi){const v=SST.verifs.find(x=>String(x.id)===String(id));if(!v)return;if(!v.checks)v.checks=Array(12).fill(false);v.checks[mi]=!v.checks[mi];sstRender();dbs("sv-"+id,()=>sb.from("sst_verifications").update({checks:v.checks}).eq("id",id))}
 async function sstPlanV(id,mi){
-  const v=SST.verifs.find(x=>x.id===id);if(!v)return;
+  const v=SST.verifs.find(x=>String(x.id)===String(id));if(!v)return;
   if(!v.planned)v.planned=Array(12).fill(false);
   const newVal=!v.planned[mi];
   const applyAll=cos.length>1&&confirm("¿Aplicar esta planificación a TODAS las empresas?\n\nAceptar = Todas las empresas\nCancelar = Solo esta empresa");
@@ -2770,13 +2770,13 @@ function sstVerifConfig(id){
   if(el)el.style.display=el.style.display==="none"?"block":"none";
 }
 function sstPlanVDirect(id,mi,val){
-  const v=SST.verifs.find(x=>x.id===id);if(!v)return;
+  const v=SST.verifs.find(x=>String(x.id)===String(id));if(!v)return;
   if(!v.planned)v.planned=Array(12).fill(false);
   v.planned[mi]=val;
   sstRender();
 }
 function sstPlanVAll(id,val){
-  const v=SST.verifs.find(x=>x.id===id);if(!v)return;
+  const v=SST.verifs.find(x=>String(x.id)===String(id));if(!v)return;
   const isQ=v.frequency==="quarterly";
   if(!v.planned)v.planned=Array(12).fill(false);
   for(let i=0;i<12;i++){
@@ -2786,7 +2786,7 @@ function sstPlanVAll(id,val){
   sstRender();
 }
 function sstPlanVPreset(id,preset){
-  const v=SST.verifs.find(x=>x.id===id);if(!v)return;
+  const v=SST.verifs.find(x=>String(x.id)===String(id));if(!v)return;
   if(!v.planned)v.planned=Array(12).fill(false);
   const presets={bimestral:[0,2,4,6,8,10],trimestral:[2,5,8,11],semestral:[5,11]};
   const months=presets[preset]||[];
@@ -2795,7 +2795,7 @@ function sstPlanVPreset(id,preset){
   sstRender();
 }
 async function sstVerifFreq(id,freq){
-  const v=SST.verifs.find(x=>x.id===id);if(!v)return;
+  const v=SST.verifs.find(x=>String(x.id)===String(id));if(!v)return;
   v.frequency=freq;
   // Reset planned for inactive months if switching to quarterly
   if(freq==="quarterly"){
@@ -2806,7 +2806,7 @@ async function sstVerifFreq(id,freq){
   dbs("svf-"+id,()=>sb.from("sst_verifications").update({frequency:freq,planned:v.planned,checks:v.checks}).eq("id",id));
 }
 async function sstPlanVApply(id,applyAll){
-  const v=SST.verifs.find(x=>x.id===id);if(!v)return;
+  const v=SST.verifs.find(x=>String(x.id)===String(id));if(!v)return;
   ss("ld");
   try{
     await sb.from("sst_verifications").update({planned:v.planned}).eq("id",id);
@@ -2823,7 +2823,7 @@ async function sstPlanVApply(id,applyAll){
     sstRender();
   }catch(e){alert("Error: "+e.message);ss("er")}
 }
-function sstSaveVObs(id,mi,val){const v=SST.verifs.find(x=>x.id===id);if(!v)return;if(!v.observations)v.observations=Array(12).fill("");v.observations[mi]=val;dbs("svo-"+id,()=>sb.from("sst_verifications").update({observations:v.observations}).eq("id",id))}
+function sstSaveVObs(id,mi,val){const v=SST.verifs.find(x=>String(x.id)===String(id));if(!v)return;if(!v.observations)v.observations=Array(12).fill("");v.observations[mi]=val;dbs("svo-"+id,()=>sb.from("sst_verifications").update({observations:v.observations}).eq("id",id))}
 async function sstAddVerif(){
   const name=prompt("Nombre de la nueva verificación:");if(!name||!name.trim())return;
   const freq=prompt("Frecuencia:\n1. Mensual\n2. Trimestral","1");
@@ -2851,7 +2851,7 @@ async function sstAddVerif(){
   }catch(e){alert("Error: "+e.message);ss("er")}
 }
 async function sstDelVerif(id){
-  const v=SST.verifs.find(x=>x.id===id);if(!v)return;
+  const v=SST.verifs.find(x=>String(x.id)===String(id));if(!v)return;
   const applyAll=cos.length>1&&confirm("¿Eliminar '"+v.name+"' de TODAS las empresas?\n\nAceptar = Todas\nCancelar = Solo esta empresa");
   if(!confirm("¿Confirmar eliminación de '"+v.name+"'"+(applyAll?" en TODAS las empresas":"")+"?"))return;
   ss("ld");
