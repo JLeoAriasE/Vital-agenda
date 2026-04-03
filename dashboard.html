@@ -631,7 +631,88 @@ function disc(){if(confirm("¿Desconectar?")){localStorage.removeItem("sb_u3");l
 async function loadCos(){const{data,error}=await sb.from("companies").select("*").order("name");if(error)throw error;cos=data||[]}
 async function loadYears(){if(!CID)return;const{data}=await sb.from("poa_activities").select("year").eq("company_id",CID);const yrs=[...new Set((data||[]).map(r=>r.year))].sort();D.allYears=yrs.length?yrs:[2026];if(!yrs.includes(YR))YR=Math.max(...D.allYears);updYrSel()}
 function updYrSel(){const s=document.getElementById("yrSel");s.innerHTML=D.allYears.map(y=>`<option value="${y}" ${y===YR?'selected':''}>${y}</option>`).join("")}
+async function initSaludData(cid,yr){
+  // POA Salud Ocupacional - Actividades filtradas AM 196
+  // Categories: admin, tecnica, talento, operativos, psicosocial, drogas, servicios
+  const A=[
+  // GESTIÓN ADMINISTRATIVA
+  ["A1","Registro/actualización del profesional médico en plataforma SUT","admin","all"],
+  // GESTIÓN TÉCNICA
+  ["T1","Aplicación de planes de acción de riesgos psicosociales","tecnica","all"],
+  ["T2","Estudio de medición ergonómica de puestos de trabajo","tecnica","all"],
+  // GESTIÓN TALENTO HUMANO
+  ["TH1","Identificación de trabajadores de grupos de atención prioritaria","talento","all"],
+  // PROCEDIMIENTOS OPERATIVOS
+  ["O1","Elaboración de matriz de exámenes médicos por puesto","operativos","all"],
+  ["O2","Cronograma de exámenes médicos ocupacionales","operativos","all"],
+  ["O3","Exámenes médicos y psicológicos con informe de resultados","operativos","all"],
+  ["O4a","Certificados de aptitud médica de INGRESO","operativos","all"],
+  ["O4b","Certificados de aptitud médica PERIÓDICOS","operativos","all"],
+  ["O4c","Certificados de aptitud médica de EGRESO","operativos","all"],
+  ["O5","Informes trimestrales de gestión de salud ocupacional","operativos","all"],
+  ["O6","Procedimiento de investigación de accidentes laborales","operativos","all"],
+  ["O7","Registro interno de incidentes y accidentes de trabajo","operativos","all"],
+  ["O8","Informes de accidentes de trabajo","operativos","all"],
+  ["O9","Reporte de accidentes al IESS","operativos","all"],
+  ["O10","Medidas correctivas para evitar accidentes","operativos","all"],
+  ["O11","Procedimiento de investigación de enfermedades profesionales","operativos","all"],
+  ["O12","Reporte de enfermedades profesionales al IESS","operativos","all"],
+  ["O13","Medidas de control para enfermedades profesionales","operativos","all"],
+  // RIESGOS PSICOSOCIALES
+  ["P1","Conformación del comité antitabaco","psicosocial","all"],
+  ["P2","Sensibilización sobre riesgos psicosociales","psicosocial","all"],
+  ["P3","Aplicación de cuestionario de riesgos psicosociales","psicosocial","all"],
+  ["P4","Socialización de resultados de test psicosociales","psicosocial","all"],
+  ["P5","Planes de acción frente a riesgos psicosociales","psicosocial","all"],
+  ["P6","Seguimiento a planes de acción psicosociales","psicosocial","all"],
+  ["P7","Taller para grupos prioritarios","psicosocial","all"],
+  ["P8","Charla de prevención de VIH laboral","psicosocial","all"],
+  ["P9","Socialización del protocolo de acoso laboral","psicosocial","all"],
+  ["P10","Entrega del protocolo de prevención de acoso laboral","psicosocial","all"],
+  ["P11","Evaluación y análisis de datos psicosociales","psicosocial","all"],
+  ["P12","Campañas prevención de acoso y violencia laboral","psicosocial","all"],
+  // PREVENCIÓN DE DROGAS
+  ["D1","Socialización del programa de prevención de drogas","drogas","all"],
+  ["D2","Sensibilización sobre efectos del consumo de alcohol y drogas","drogas","all"],
+  ["D3","Capacitación sobre factores de riesgo de consumo","drogas","all"],
+  ["D4","Difusión de política empresarial sobre prevención","drogas","all"],
+  ["D5","Videoforo sobre prevención de sustancias","drogas","all"],
+  ["D6","Certificación Empresa Libre de Humo de Tabaco","drogas","all"],
+  ["D7","Charla sobre consecuencias legales del consumo","drogas","all"],
+  ["D8","Seguimiento de reinserción laboral","drogas","all"],
+  ["D9","Registro del programa en plataforma","drogas","all"],
+  // SERVICIOS PERMANENTES
+  ["S1","Inspección de botiquines de emergencia","servicios","all"],
+  ["S2","Inspección de servicios higiénicos","servicios","all"]
+  ];
+  const rows=A.map(a=>({company_id:cid,year:yr,code:a[0],name:a[1],category:a[2],size_filter:a[3],responsible:'',planned:Array(12).fill(0),done:Array(12).fill(0)}));
+  for(let i=0;i<rows.length;i+=30){
+    await sb.from("poa_activities").upsert(rows.slice(i,i+30),{onConflict:'company_id,year,code',ignoreDuplicates:true});
+  }
+  // Charlas de Salud Ocupacional
+  const CH=[
+  ["ch1","Socialización del POA de Salud","📋","#2dd4bf","all"],
+  ["ch2","Primeros Auxilios Básicos","🩹","#ef4444","all"],
+  ["ch3","Prevención de Enfermedades Ocupacionales","🏥","#3b82f6","all"],
+  ["ch4","Ergonomía y Pausas Activas","🧘","#8b5cf6","all"],
+  ["ch5","Riesgos Psicosociales en el Trabajo","🧠","#f472b6","all"],
+  ["ch6","Prevención del Consumo de Drogas y Alcohol","🛡","#34d399","all"],
+  ["ch7","Alimentación Saludable en el Trabajo","🍎","#fb923c","all"],
+  ["ch8","Manejo del Estrés Laboral","😌","#a78bfa","all"],
+  ["ch9","Prevención de Enfermedades Crónicas","❤️","#dc2626","all"],
+  ["ch10","ACV - Accidentes Cerebrovasculares","🧠","#ef4444","all"],
+  ["ch11","Higiene Personal y Prevención de Enfermedades Infecciosas","🧼","#06b6d4","all"],
+  ["ch12","Protección de la Salud Visual","👁️","#6366f1","all"]
+  ];
+  await sb.from("charlas").upsert(CH.map(c=>({company_id:cid,year:yr,charla_key:c[0],name:c[1],icon:c[2],color:c[3],size_filter:c[4]})),{onConflict:'company_id,year,charla_key'});
+}
+
 async function loadCD(){if(!CID)return;localStorage.setItem("last_c",CID);
+  // Auto-init salud data if empty
+  try{
+    const{data:checkActs}=await sb.from("poa_activities").select("id").eq("company_id",CID).eq("year",YR).limit(1);
+    if(!checkActs||checkActs.length===0){await initSaludData(CID,YR)}
+  }catch(e){console.log("Salud init check:",e.message)}
   const[coR,acR,mdR,psR,chR,arR,inR,imR]=await Promise.all([
     sb.from("companies").select("*").eq("id",CID).single(),
     sb.from("poa_activities").select("*").eq("company_id",CID).eq("year",YR).order("code"),
