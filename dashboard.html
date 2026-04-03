@@ -1975,7 +1975,7 @@ async function renderConfig(){
         const hasAlert=u.password_reset_requested;
         const roleIcon=u.role==='admin'||u.role==='administrador'?'👑':MOD_MAP[u.role]?MOD_MAP[u.role].icon:(u.modules&&u.modules[0]&&MOD_MAP[u.modules[0]]?MOD_MAP[u.modules[0]].icon:'👤');
         const roleColor=u.role==='admin'||u.role==='administrador'?'#fbbf24':MOD_MAP[u.role]?MOD_MAP[u.role].color:(u.modules&&u.modules[0]&&MOD_MAP[u.modules[0]]?MOD_MAP[u.modules[0]].color:'#94a3b8');
-        h+=`<tr style="${!u.active?'opacity:0.5':''}"><td style="font-weight:700;font-size:12px"><span style="font-size:16px;margin-right:6px">${roleIcon}</span>${u.name}${isMe?' <span style="font-size:8px;color:#2dd4bf">(Tú)</span>':''}${hasAlert?' <span style="font-size:10px" title="Solicita restablecer contraseña">🔔</span>':''}</td>`;
+        h+=`<tr style="${!u.active?'opacity:0.5':''}"><td style="font-weight:700;font-size:12px">${roleIcon} ${u.name}${isMe?' <span style="font-size:8px;color:#2dd4bf">(Tú)</span>':''}${hasAlert?' <span style="font-size:10px" title="Solicita restablecer contraseña">🔔</span>':''}</td>`;
         h+=`<td style="font-family:var(--mn);font-size:11px">${u.cedula}</td>`;
         h+=`<td>${u.role==='admin'||u.role==='administrador'?'<span style="padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(251,191,36,0.2);color:#fbbf24;border:1px solid rgba(251,191,36,0.4)">👑 Todos</span>':mods}</td>`;
         h+=`<td><span style="font-size:9px;padding:3px 8px;border-radius:4px;font-weight:700;${u.active?'color:#34d399;background:rgba(52,211,153,0.12)':'color:#ef4444;background:rgba(239,68,68,0.12)'}">${u.active?'✅ Activo':'⛔ Inactivo'}</span></td>`;
