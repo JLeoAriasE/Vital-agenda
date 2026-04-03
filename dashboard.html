@@ -574,7 +574,7 @@ async function forgotPassword(){
   await sb.from("usuarios").update({password_reset_requested:true}).eq("id",data[0].id);
   errEl.style.color="#34d399";errEl.textContent="✅ Solicitud enviada. El administrador restablecerá su contraseña pronto."
 }
-function switchModule(m){MOD=m;document.querySelectorAll(".sb-item").forEach(e=>e.classList.remove("active"));document.getElementById("sb-"+m)?.classList.add("active");["saludModule","seguridadModule","configModule","pendientesModule","talentoModule","datosModule","ambienteModule","logisticaModule","contableModule"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none"});const modMap={salud:"saludModule",seguridad:"seguridadModule",config:"configModule",pendientes:"pendientesModule",talento:"talentoModule",datos:"datosModule",ambiente:"ambienteModule",logistica:"logisticaModule",contable:"contableModule"};const target=document.getElementById(modMap[m]);if(target)target.style.display="block";if(m==="seguridad"){loadCos().then(()=>{const sc=cos.find(x=>x.mod_seguridad===true);if(sc&&sc.id!==CID){CID=sc.id;loadYears().then(()=>loadCD()).then(()=>{render();sstLoad()})}else{sstLoad()}}).catch(()=>sstLoad())}else if(m==="salud"){const _canViewAll=IS_ADMIN_OR_JEFE();const sc=_canViewAll?cos[0]:cos.find(x=>x.mod_salud===true||x.mod_salud==null);if(sc&&sc.id!==CID){CID=sc.id;loadYears().then(()=>loadCD()).then(()=>render())}else{render()}}else if(m==="config"){renderConfig()}else if(m==="pendientes"){renderPendientes()}else if(m==="talento"){tthhLoad()}else if(m==="datos"){datosLoad()}else if(m==="ambiente"){ambienteLoad()}else if(m==="logistica"){logLoad()}else if(m==="contable"){contLoad()}}
+function switchModule(m){MOD=m;document.querySelectorAll(".sb-item").forEach(e=>e.classList.remove("active"));document.getElementById("sb-"+m)?.classList.add("active");["saludModule","seguridadModule","configModule","pendientesModule","talentoModule","datosModule","ambienteModule","logisticaModule","contableModule"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none"});const modMap={salud:"saludModule",seguridad:"seguridadModule",config:"configModule",pendientes:"pendientesModule",talento:"talentoModule",datos:"datosModule",ambiente:"ambienteModule",logistica:"logisticaModule",contable:"contableModule"};const target=document.getElementById(modMap[m]);if(target)target.style.display="block";if(m==="seguridad"){loadCos().then(()=>{const sc=cos.find(x=>String(x.x)===String(mod_seguridad));if(sc&&sc.id!==CID){CID=sc.id;loadYears().then(()=>loadCD()).then(()=>{render();sstLoad()})}else{sstLoad()}}).catch(()=>sstLoad())}else if(m==="salud"){const _canViewAll=IS_ADMIN_OR_JEFE();const sc=_canViewAll?cos[0]:cos.find(x=>x.mod_salud===true||x.mod_salud==null);if(sc&&sc.id!==CID){CID=sc.id;loadYears().then(()=>loadCD()).then(()=>render())}else{render()}}else if(m==="config"){renderConfig()}else if(m==="pendientes"){renderPendientes()}else if(m==="talento"){tthhLoad()}else if(m==="datos"){datosLoad()}else if(m==="ambiente"){ambienteLoad()}else if(m==="logistica"){logLoad()}else if(m==="contable"){contLoad()}}
 const MO=["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"],MF=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const CATS=[{id:"admin",name:"G. Administrativa",color:"#2dd4bf",icon:"🏛"},{id:"tecnica",name:"G. Técnica",color:"#818cf8",icon:"⚙️"},{id:"talento",name:"G. Talento Humano",color:"#f472b6",icon:"👥"},{id:"operativos",name:"Proc. Operativos",color:"#fb923c",icon:"📋"},{id:"psicosocial",name:"R. Psicosociales",color:"#a78bfa",icon:"🧠"},{id:"drogas",name:"Prev. Drogas",color:"#34d399",icon:"🛡"},{id:"servicios",name:"Serv. Permanentes",color:"#fbbf24",icon:"🔧"}];
 const EXT=[{id:"ingreso",label:"Ex. Ingreso",color:"#2dd4bf"},{id:"periodico",label:"Ex. Periódico",color:"#818cf8"},{id:"reintegro",label:"Ex. Reintegro",color:"#f472b6"},{id:"egreso",label:"Ex. Egreso",color:"#fb923c"}];
@@ -613,7 +613,7 @@ function ga(){let acts=D.tw<=10?D.acts.filter(a=>SM.includes(a.code)):D.acts;ret
 // === CONNECTION ===
 function ckS(){const u=localStorage.getItem("sb_u3")||"https://tzvdwkzhtvutiypkkmba.supabase.co",k=localStorage.getItem("sb_k3")||"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6dmR3a3podHZ1dGl5cGtrbWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE2MTgsImV4cCI6MjA4Nzc4NzYxOH0.mhLVpvA_utETnM6E7fjhexhhFMQumm-xPd8oQhQm4v4";if(u&&k){localStorage.setItem("sb_u3",u);localStorage.setItem("sb_k3",k);document.getElementById("setupOv").style.display="none";initSB(u,k)}}
 async function doConnect(){const u=document.getElementById("sUrl").value.trim(),k=document.getElementById("sKey").value.trim(),e=document.getElementById("sErr");if(!u||!k){e.textContent="Campos obligatorios.";e.style.display="block";return}e.style.display="none";try{const c=window.supabase.createClient(u,k);const{error}=await c.from("companies").select("id").limit(1);if(error)throw error;localStorage.setItem("sb_u3",u);localStorage.setItem("sb_k3",k);document.getElementById("setupOv").style.display="none";initSB(u,k)}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
-async function initSB(u,k){sb=window.supabase.createClient(u,k);ss("ld");try{await loadCos();if(cos.length>0){const l=localStorage.getItem("last_c");CID=cos.find(c=>c.id===l)?l:cos[0].id;await loadYears();await loadCD()}ss("ok");
+async function initSB(u,k){sb=window.supabase.createClient(u,k);ss("ld");try{await loadCos();if(cos.length>0){const l=localStorage.getItem("last_c");CID=cos.find(c=>String(c.c)===String(id))?l:cos[0].id;await loadYears();await loadCD()}ss("ok");
   // Check if users table exists and has users
   const{data:users,error:ue}=await sb.from("usuarios").select("id").limit(1);
   if(!ue&&users){
@@ -739,11 +739,11 @@ async function delYear(){if(D.allYears.length<=1)return alert("Debe haber al men
 // === COMPANY/AREA CRUD ===
 function showNc(){document.getElementById("ncOv").style.display="flex"}
 function hideNc(){document.getElementById("ncOv").style.display="none"}
-async function createCo(){const n=document.getElementById("ncN").value.trim(),tw=parseInt(document.getElementById("ncW").value)||10,e=document.getElementById("ncE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("ncR").value.trim();const act=document.getElementById("ncA").value.trim();const loc=document.getElementById("ncL").value.trim();const repLegal=document.getElementById("ncRL").value.trim();const ciiu=(document.getElementById("ncCIIU")||{}).value||"";async function tryCreate(){const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_salud:true}).select().single();return{data,error}}try{let r=await tryCreate();if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await sb.from("imc_records").delete().neq("company_id","00000000-0000-0000-0000-000000000000").is("company_id",null);r=await tryCreate()}if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>c.name===n);if(f){CID=f.id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}e.innerHTML='Error del trigger IMC en Supabase.<br>Ejecuta en SQL Editor:<br><code style="font-size:10px;background:#1e1e2e;padding:4px 8px;border-radius:4px;display:block;margin-top:6px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code><br>Luego recarga.';e.style.display="block";return}if(r.error)throw r.error;CID=r.data.id;await loadCos();YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
+async function createCo(){const n=document.getElementById("ncN").value.trim(),tw=parseInt(document.getElementById("ncW").value)||10,e=document.getElementById("ncE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("ncR").value.trim();const act=document.getElementById("ncA").value.trim();const loc=document.getElementById("ncL").value.trim();const repLegal=document.getElementById("ncRL").value.trim();const ciiu=(document.getElementById("ncCIIU")||{}).value||"";async function tryCreate(){const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_salud:true}).select().single();return{data,error}}try{let r=await tryCreate();if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await sb.from("imc_records").delete().neq("company_id","00000000-0000-0000-0000-000000000000").is("company_id",null);r=await tryCreate()}if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>String(c.c)===String(name));if(f){CID=f.id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}e.innerHTML='Error del trigger IMC en Supabase.<br>Ejecuta en SQL Editor:<br><code style="font-size:10px;background:#1e1e2e;padding:4px 8px;border-radius:4px;display:block;margin-top:6px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code><br>Luego recarga.';e.style.display="block";return}if(r.error)throw r.error;CID=r.data.id;await loadCos();YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
 // SST: Create company with mod_seguridad=true
 function showSSTNc(){document.getElementById("sstNcOv").style.display="flex"}
 function hideSSTNc(){document.getElementById("sstNcOv").style.display="none"}
-async function sstCreateCo(){const n=document.getElementById("sstNcN").value.trim(),tw=parseInt(document.getElementById("sstNcW").value)||10,e=document.getElementById("sstNcE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("sstNcR").value.trim();const act=document.getElementById("sstNcA").value.trim();const loc=document.getElementById("sstNcL").value.trim();const repLegal=document.getElementById("sstNcRL").value.trim();const ciiu=(document.getElementById("sstNcCIIU")||{}).value||"";try{const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_seguridad:true}).select().single();if(error&&error.message&&error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>c.name===n);if(f){CID=f.id;SST_YR=2026;hideSSTNc();sstLoad();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;SST_YR=2026;hideSSTNc();sstLoad();return}e.innerHTML='Trigger IMC impide crear. Ejecuta en SQL Editor:<br><code style="font-size:10px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code>';e.style.display="block";return}if(error)throw error;CID=data.id;await loadCos();SST_YR=2026;hideSSTNc();sstLoad()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
+async function sstCreateCo(){const n=document.getElementById("sstNcN").value.trim(),tw=parseInt(document.getElementById("sstNcW").value)||10,e=document.getElementById("sstNcE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("sstNcR").value.trim();const act=document.getElementById("sstNcA").value.trim();const loc=document.getElementById("sstNcL").value.trim();const repLegal=document.getElementById("sstNcRL").value.trim();const ciiu=(document.getElementById("sstNcCIIU")||{}).value||"";try{const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_seguridad:true}).select().single();if(error&&error.message&&error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>String(c.c)===String(name));if(f){CID=f.id;SST_YR=2026;hideSSTNc();sstLoad();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;SST_YR=2026;hideSSTNc();sstLoad();return}e.innerHTML='Trigger IMC impide crear. Ejecuta en SQL Editor:<br><code style="font-size:10px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code>';e.style.display="block";return}if(error)throw error;CID=data.id;await loadCos();SST_YR=2026;hideSSTNc();sstLoad()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
 // SST: Add year
 function sstPromptYr(){const y=prompt("Agregar año (ej: 2027):");if(!y||isNaN(y))return;SST_YR=+y;sstLoad()}
 async function delCo(){if(!CID||cos.length<=1)return alert("Debe haber al menos 1 empresa.");if(!confirm("¿Eliminar empresa y TODOS sus datos?"))return;try{await sb.from("companies").delete().eq("id",CID);await loadCos();CID=cos[0]?.id;if(CID){await loadYears();await loadCD()}V="dashboard";ss("ok");render()}catch(e){alert(e.message)}}
@@ -768,7 +768,7 @@ function setSstPvSize(v){D.comp.sst_provider_logo_size=v;sstRender();dbs("spvs",
 function setTthhPvSize(v){D.comp.tthh_provider_logo_size=v;tthhUpdateHeader();dbs("tpvs",()=>sb.from("companies").update({tthh_provider_logo_size:v}).eq("id",CID))}
 function setDatosPvSize(v){D.comp.datos_provider_logo_size=v;datosUpdateHeader();dbs("dpvs",()=>sb.from("companies").update({datos_provider_logo_size:v}).eq("id",CID))}
 function saveSstField(f,v){D.comp[f]=v;dbs("sf-"+f,()=>sb.from("companies").update({[f]:v}).eq("id",CID))}
-function saveGenField(f,v){const c=cos.find(x=>x.id===CID);if(c)c[f]=v;if(D.comp)D.comp[f]=v;dbs("gf-"+f,()=>sb.from("companies").update({[f]:v}).eq("id",CID))}
+function saveGenField(f,v){const c=cos.find(x=>String(x.id)===String(CID));if(c)c[f]=v;if(D.comp)D.comp[f]=v;dbs("gf-"+f,()=>sb.from("companies").update({[f]:v}).eq("id",CID))}
 function setLogoSize(v){D.comp.logo_size=v;render();dbs("ls",()=>sb.from("companies").update({logo_size:v}).eq("id",CID))}
 function setHdrColor(v){D.comp.header_color=v;render();dbs("hc",()=>sb.from("companies").update({header_color:v}).eq("id",CID))}
 function setFtrColor(v){D.comp.footer_color=v;render();dbs("fc",()=>sb.from("companies").update({footer_color:v}).eq("id",CID))}
@@ -778,19 +778,19 @@ function setSelTxt(v){D.comp.select_text_color=v;render();dbs("stc",()=>sb.from(
 
 // === INCIDENT CRUD ===
 async function addInc(mi,et,ai){try{await sb.from("incident_records").upsert({company_id:CID,year:YR,month_index:mi,event_type:et,area_id:ai,male_count:0,female_count:0},{onConflict:'company_id,year,month_index,event_type,area_id'});await loadCD();ss("ok");render()}catch(e){ss("er")}}
-function updInc(id,f,v){const r=D.incidents.find(x=>x.id===id);if(!r)return; r=D.incidents.find(x=>x.id===id);if(!r)return;r[f]=Math.max(0,+v||0);render();dbs("i-"+id,()=>sb.from("incident_records").update({[f]:r[f]}).eq("id",id))}
-async function delInc(id){const backup=D.incidents.find(x=>x.id===id);const bk=backup?JSON.parse(JSON.stringify(backup)):null;try{await sb.from("incident_records").delete().eq("id",id);D.incidents=D.incidents.filter(r=>r.id!==id);ss("ok");render();if(bk)setUndo("Registro eliminado",async()=>{const{data,error}=await sb.from("incident_records").insert(bk).select().single();if(error)throw error;D.incidents.push(data);render()})}catch(e){ss("er")}}
+function updInc(id,f,v){const r=D.incidents.find(x=>String(x.id)===String(id));if(!r)return; r=D.incidents.find(x=>String(x.id)===String(id));if(!r)return;r[f]=Math.max(0,+v||0);render();dbs("i-"+id,()=>sb.from("incident_records").update({[f]:r[f]}).eq("id",id))}
+async function delInc(id){const backup=D.incidents.find(x=>String(x.id)===String(id));const bk=backup?JSON.parse(JSON.stringify(backup)):null;try{await sb.from("incident_records").delete().eq("id",id);D.incidents=D.incidents.filter(r=>r.id!==id);ss("ok");render();if(bk)setUndo("Registro eliminado",async()=>{const{data,error}=await sb.from("incident_records").insert(bk).select().single();if(error)throw error;D.incidents.push(data);render()})}catch(e){ss("er")}}
 
 // === IMC ===
 async function addImcYr(yr){yr=+yr;if(!yr||yr<2020||yr>2040)return;if(D.imc.some(r=>r.year===yr))return;
   try{for(const cat of IMC){await sb.from("imc_records").upsert({company_id:CID,year:yr,category:cat.id,male_count:0,female_count:0},{onConflict:"company_id,year,category",ignoreDuplicates:true})}await loadCD();ss("ok");render()}catch(e){console.log("IMC:",e.message);await loadCD();render()}}
-function saveImc(id,f,v){const r=D.imc.find(x=>x.id===id);if(!r)return;r[f]=Math.max(0,+v||0);render();dbs("imc-"+id,()=>sb.from("imc_records").update({[f]:r[f]}).eq("id",id))}
+function saveImc(id,f,v){const r=D.imc.find(x=>String(x.id)===String(id));if(!r)return;r[f]=Math.max(0,+v||0);render();dbs("imc-"+id,()=>sb.from("imc_records").update({[f]:r[f]}).eq("id",id))}
 async function delImcYr(yr){if(!confirm("¿Eliminar IMC "+yr+"?"))return;try{await sb.from("imc_records").delete().eq("company_id",CID).eq("year",yr);await loadCD();ss("ok");render()}catch(e){ss("er")}}
 
 // === SAVES ===
 function saveTW(v){D.tw=Math.max(1,+v||1);render();dbs("tw",()=>sb.from("companies").update({total_workers:D.tw}).eq("id",CID))}
 function saveCIIU(v){
-  const c=cos.find(x=>x.id===CID);if(c)c.ciiu_code=v.trim();
+  const c=cos.find(x=>String(x.id)===String(CID));if(c)c.ciiu_code=v.trim();
   // Update the risk label inline without full re-render
   const risk=getCIIURisk(v.trim());
   document.querySelectorAll('.ciiu-risk-badge').forEach(el=>{el.textContent=getRiskLabel(risk);el.style.color=getRiskColor(risk)});
@@ -802,15 +802,15 @@ function saveCIIU(v){
 }
 function saveTWFromPerfil(v){
   const tw=Math.max(1,+v||1);
-  const c=cos.find(x=>x.id===CID);if(c)c.total_workers=tw;
+  const c=cos.find(x=>String(x.id)===String(CID));if(c)c.total_workers=tw;
   D.tw=tw;
   dbs("tw-perfil",()=>sb.from("companies").update({total_workers:tw}).eq("id",CID));
   clearTimeout(window._twTimer);
   window._twTimer=setTimeout(()=>{if(MOD==='seguridad'){sstRender()}else{render()}},1500);
 }
 function saveField(f,v){D.comp[f]=v;dbs("f-"+f,()=>sb.from("companies").update({[f]:v}).eq("id",CID))}
-function saveRepLegal(v){D.comp.rep_legal=v;const co=cos.find(c=>c.id===CID);if(co)co.rep_legal=v;dbs("rl",()=>sb.from("companies").update({rep_legal:v}).eq("id",CID))}
-function saveCoName(v){v=v.trim();if(!v)return;D.comp.name=v;const co=cos.find(c=>c.id===CID);if(co)co.name=v;render();dbs("cn",()=>sb.from("companies").update({name:v}).eq("id",CID))}
+function saveRepLegal(v){D.comp.rep_legal=v;const co=cos.find(c=>String(c.c)===String(id));if(co)co.rep_legal=v;dbs("rl",()=>sb.from("companies").update({rep_legal:v}).eq("id",CID))}
+function saveCoName(v){v=v.trim();if(!v)return;D.comp.name=v;const co=cos.find(c=>String(c.c)===String(id));if(co)co.name=v;render();dbs("cn",()=>sb.from("companies").update({name:v}).eq("id",CID))}
 function togAct(id,mi){
   const a=D.acts.find(x=>String(x.id)===String(id));if(!a)return;
   if(!a.done||!Array.isArray(a.done))a.done=Array(12).fill(0);
@@ -871,7 +871,7 @@ async function saludAddAct(){
 }
 async function saludDelAct(id){
   if(!confirm("¿Eliminar esta actividad?"))return;
-  const backup=D.acts.find(a=>a.id===id);if(!backup)return;
+  const backup=D.acts.find(a=>String(a.a)===String(id));if(!backup)return;
   const bkCopy=JSON.parse(JSON.stringify(backup));
   try{await sb.from("poa_activities").delete().eq("id",id);D.acts=D.acts.filter(a=>a.id!==id);render();
     setUndo("Actividad eliminada: "+bkCopy.name,async()=>{const{data,error}=await sb.from("poa_activities").insert(bkCopy).select().single();if(error)throw error;D.acts.push(data);render()})
@@ -2306,7 +2306,7 @@ async function initSSTData(cid,yr){
 }
 
 async function cfgToggle(coId,mod,val){
-  const co=cos.find(x=>x.id===coId);if(!co)return;
+  const co=cos.find(x=>String(x.id)===String(coId));if(!co)return;
   co[mod]=!!val;
   if(D.comp&&D.comp.id===coId)D.comp[mod]=!!val;
   await sb.from("companies").update({[mod]:!!val}).eq("id",coId);
@@ -2394,7 +2394,7 @@ CREATE POLICY "sst_ver_pub" ON sst_verifications FOR ALL USING (true) WITH CHECK
 
 async function sstLoad(){
   if(!sb||!CID)return;
-  let c=(D.comp&&D.comp.id===CID)?D.comp:cos.find(x=>x.id===CID);
+  let c=(D.comp&&D.comp.id===CID)?D.comp:cos.find(x=>String(x.id)===String(CID));
   try{const{data:fc}=await sb.from("companies").select("*").eq("id",CID).single();if(fc){c=fc;const ci=cos.findIndex(x=>x.id===CID);if(ci>=0)cos[ci]=fc;if(D.comp&&D.comp.id===CID)D.comp=fc}}catch(e){}
   // Update SST header with same company info as Salud
   if(c){
@@ -2454,7 +2454,7 @@ function sstRNav(){const ns=[{k:"dashboard",l:"📊 Panel"},{k:"table",l:"📋 A
 
 function sstRender(){
   const mc=document.getElementById("sstMc");if(!mc)return;
-  const c=(D.comp&&D.comp.id===CID)?D.comp:cos.find(x=>x.id===CID);
+  const c=(D.comp&&D.comp.id===CID)?D.comp:cos.find(x=>String(x.id)===String(CID));
   if(!c||c.mod_seguridad!==true){mc.innerHTML='<div style="text-align:center;padding:60px;color:var(--t3)">Módulo no activado para esta empresa.</div>';sstRNav();return}
   const tw=c.total_workers||0;
   // Filter items by company size
@@ -2761,7 +2761,7 @@ async function sstTogPlan(id,mi){
   dbs("stp-"+id,()=>sb.from("sst_poa_activities").update({planned:a.planned,done:a.done}).eq("id",id));
 }
 function sstEditActName(id){
-  const a=SST.acts.find(x=>x.id===id);if(!a)return;
+  const a=SST.acts.find(x=>String(x.id)===String(id));if(!a)return;
   const nw=prompt("Editar nombre de actividad:",a.name);
   if(nw===null||!nw.trim())return;
   a.name=nw.trim();sstRender();dbs("sen-"+id,()=>sb.from("sst_poa_activities").update({name:a.name}).eq("id",id))
@@ -2783,7 +2783,7 @@ async function sstAddAct(){
 }
 async function sstDelAct(id){
   if(!confirm("¿Eliminar esta actividad?"))return;
-  const backup=SST.acts.find(a=>a.id===id);if(!backup)return;
+  const backup=SST.acts.find(a=>String(a.a)===String(id));if(!backup)return;
   const bkCopy=JSON.parse(JSON.stringify(backup));
   try{await sb.from("sst_poa_activities").delete().eq("id",id);SST.acts=SST.acts.filter(a=>a.id!==id);sstRender();
     setUndo("Actividad eliminada: "+bkCopy.name,async()=>{const{data,error}=await sb.from("sst_poa_activities").insert(bkCopy).select().single();if(error)throw error;SST.acts.push(data);sstRender()})
@@ -2791,10 +2791,10 @@ async function sstDelAct(id){
 }
 // Old monthly toggle removed - now using sstUpdAct for status-based tracking
 function sstTogCh(id){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch.done=!ch.done;if(ch.done&&!ch.date)ch.date=new Date().toISOString().split('T')[0];sstRender();dbs("sc-"+id,()=>{const upd={done:ch.done};if(ch.done&&ch.date)upd.event_date=ch.date;return sb.from("sst_charlas").update(upd).eq("id",id)})}
-function sstSaveCh(id,f,v){const ch=SST.charlas.find(x=>x.id===id);if(!ch)return;ch[f]=+v;sstRender();dbs("scf-"+id,()=>sb.from("sst_charlas").update({[f]:+v}).eq("id",id))}
+function sstSaveCh(id,f,v){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch[f]=+v;sstRender();dbs("scf-"+id,()=>sb.from("sst_charlas").update({[f]:+v}).eq("id",id))}
 function sstSaveChF(id,f,v){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch[f]=v;sstRender();dbs("scfs-"+id,()=>sb.from("sst_charlas").update({[f]:v}).eq("id",id))}
 function sstSaveChPM(id,v){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch.planned_month=+v;sstRender();dbs("scpm-"+id,()=>sb.from("sst_charlas").update({planned_month:+v}).eq("id",id))}
-function sstSaveChTr(id,v){const ch=SST.charlas.find(x=>x.id===id);if(!ch)return;ch.trained=+v;sstRender();dbs("sctr-"+id,()=>sb.from("sst_charlas").update({trained:+v}).eq("id",id))}
+function sstSaveChTr(id,v){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch.trained=+v;sstRender();dbs("sctr-"+id,()=>sb.from("sst_charlas").update({trained:+v}).eq("id",id))}
 async function sstReloadCharlas(){
   if(!confirm('¿Actualizar capacitaciones a las 10 del AM 196?\n\nEsto reemplazará las capacitaciones actuales.\nLas que ya estén marcadas como realizadas se perderán.\n\n¿Continuar?'))return;
   const allOrOne=cos.filter(c=>c.mod_seguridad).length>1?confirm('¿Actualizar TODAS las empresas?\n\nAceptar = Todas las empresas\nCancelar = Solo esta empresa'):false;
@@ -2954,7 +2954,7 @@ function _getSSTSiglas(name){
 
 async function genSSTMonthlyDocx(monthIdx){
   const MESES_FULL=["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-  const c=cos.find(x=>x.id===CID);if(!c){alert("Sin empresa");return}
+  const c=cos.find(x=>String(x.id)===String(CID));if(!c){alert("Sin empresa");return}
   const mesName=MESES_FULL[monthIdx];
   const mesNum=String(monthIdx+1).padStart(2,"0");
   const siglas=_getSSTSiglas(c.name);
@@ -3133,7 +3133,7 @@ async function genSSTMonthlyDocx(monthIdx){
 async function genSSTPDF(){
   if(!window.jspdf){alert("Libreria PDF no cargada.");return}
   ss("ld");try{await prepLogos("sst");
-  const{jsPDF}=window.jspdf;const doc=new jsPDF();const c=cos.find(x=>x.id===CID);
+  const{jsPDF}=window.jspdf;const doc=new jsPDF();const c=cos.find(x=>String(x.id)===String(CID));
   const tw=c.total_workers||0;const szLabel=tw<=10?"1-10 trab.":tw<50?"11-49 trab.":"≥50 trab.";
   function sizeOk(sf){if(sf==="all")return true;if(sf==="1-10")return tw>=1&&tw<=10;if(sf===">10")return tw>10;if(sf==="<50")return tw<50;if(sf===">=50")return tw>=50;if(sf===">=50-2km")return tw>=50;return true}
   const items=SST.acts.filter(a=>sizeOk(a.size_filter||"all"));
@@ -3176,7 +3176,7 @@ async function genSSTPDF(){
 async function genSSTCharlasPDF(){
   if(!window.jspdf){alert("Libreria PDF no cargada.");return}
   ss("ld");try{await prepLogos("sst");
-  const{jsPDF}=window.jspdf;const doc=new jsPDF();const c=cos.find(x=>x.id===CID);const tw=c.total_workers||0;
+  const{jsPDF}=window.jspdf;const doc=new jsPDF();const c=cos.find(x=>String(x.id)===String(CID));const tw=c.total_workers||0;
   let y=pdfHeader(doc,"Informe de Capacitaciones SST",`${c.name} — ${SST_YR}`);
   const chDone=SST.charlas.filter(x=>x.done).length;const chTot=SST.charlas.length;const chPct=chTot>0?Math.round(chDone/chTot*100):0;
   doc.setFontSize(10);doc.text(`Realizadas: ${chDone}/${chTot} (${chPct}%)  |  Trabajadores: ${tw}  |  Meta: ≥85%`,14,y);y+=8;
@@ -3189,7 +3189,7 @@ async function genSSTCharlasPDF(){
 async function genCombinadoPDF(){
   if(!window.jspdf){alert("Libreria PDF no cargada.");return}
   ss("ld");try{await prepLogos("combined");
-  const{jsPDF}=window.jspdf;const doc=new jsPDF();const c=cos.find(x=>x.id===CID);const s=calcS();
+  const{jsPDF}=window.jspdf;const doc=new jsPDF();const c=cos.find(x=>String(x.id)===String(CID));const s=calcS();
   const tw=c.total_workers||0;const szLabel=tw<=10?"1-10 trab.":tw<50?"11-49 trab.":"≥50 trab.";
   let y=pdfHeader(doc,"Informe Combinado SST y Salud Ocupacional",`${c.name} — ${YR}`);
   doc.setFontSize(10);doc.setTextColor(80);
@@ -3281,7 +3281,7 @@ function pickCategory(catList){
 
 function getCatLabel(catId,allCats){
   const all=[...TTHH_CATS_AUDIT,...TTHH_CATS_PLAN,...DATOS_CATS_AUDIT,...DATOS_CATS_PLAN,...(allCats||[])];
-  const found=all.find(c=>c.id===catId);
+  const found=all.find(c=>String(c.c)===String(id));
   if(found)return found.label;
   return catId.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
 }
@@ -3292,7 +3292,7 @@ async function genModLoad(mod,prefix,thColor,auditActTable,auditStTable,planActT
   const M=mod==="tthh"?TTHH:mod==="ambiente"?AMBIENTE:DATOS;
   const modKey=mod==="tthh"?"mod_tthh":mod==="ambiente"?"mod_ambiente":"mod_datos";
   const{data:freshCo}=await sb.from("companies").select("*").eq("id",CID).single();
-  const c=freshCo||((D.comp&&D.comp.id===CID)?D.comp:cos.find(x=>x.id===CID));
+  const c=freshCo||((D.comp&&D.comp.id===CID)?D.comp:cos.find(x=>String(x.id)===String(CID)));
   if(freshCo){const ci=cos.findIndex(x=>x.id===CID);if(ci>=0)cos[ci]=freshCo;if(D.comp&&D.comp.id===CID)D.comp=freshCo}
   const bsEl=document.getElementById(prefix+"BS");
   if(bsEl)bsEl.textContent=c?`${c.name} · ${c.location||""} · ${c.total_workers||0} trab.`:"";
@@ -3301,13 +3301,13 @@ async function genModLoad(mod,prefix,thColor,auditActTable,auditStTable,planActT
   if(csel){
     const modCos=cos.filter(x=>x[modKey]===true);
     if(modCos.length===0){document.getElementById(prefix+"Mc").innerHTML='<div style="text-align:center;padding:60px;color:var(--t3)">No hay empresas con este módulo activado.<br>Actívalo en ⚙️ Config → Módulos.</div>';return}
-    if(!modCos.find(x=>x.id===CID)){CID=modCos[0].id}
+    if(!modCos.find(x=>String(x.id)===String(CID))){CID=modCos[0].id}
     const loadFn=mod==="tthh"?"tthhLoad()":mod==="ambiente"?"ambienteLoad()":"datosLoad()";
     const selBg=c.select_bg_color||'rgba(255,255,255,0.05)';
     const selTx=c.select_text_color||'var(--t1)';
     const selBd=c.select_bg_color||'var(--bd)';
     const ddId=prefix+'Dd';
-    const selName=modCos.find(x=>x.id===CID)?.name||'Seleccionar';
+    const selName=modCos.find(x=>String(x.id)===String(CID))?.name||'Seleccionar';
     csel.innerHTML=`<div style="position:relative;display:inline-block" id="${ddId}"><div onclick="document.getElementById('${ddId}L').style.display=document.getElementById('${ddId}L').style.display==='block'?'none':'block'" style="padding:8px 14px;border-radius:8px;border:1px solid ${selBd};background:${selBg};color:${selTx};font-size:13px;font-weight:700;cursor:pointer;min-width:160px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${selName}</span><span style="font-size:10px">▼</span></div><div id="${ddId}L" style="display:none;position:absolute;top:100%;left:0;right:0;min-width:250px;max-height:300px;overflow-y:auto;background:${selBg};border:1px solid rgba(255,255,255,0.15);border-radius:8px;margin-top:4px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,0.4)">${modCos.map(co=>`<div onclick="CID='${co.id}';document.getElementById('${ddId}L').style.display='none';${loadFn}" style="padding:8px 14px;color:${selTx};font-size:12px;font-weight:${co.id===CID?'800':'600'};cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);background:${co.id===CID?'rgba(255,255,255,0.08)':'transparent'}" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='${co.id===CID?'rgba(255,255,255,0.08)':'transparent'}'">${co.name}${co.id===CID?' ✓':''}</div>`).join('')}</div></div>`;
     document.addEventListener('click',function _cl(e){if(!document.getElementById(ddId)?.contains(e.target)){const l=document.getElementById(ddId+'L');if(l)l.style.display='none'}},{once:false});
   }
@@ -3372,7 +3372,7 @@ function renderGenModCharlas(mod,thColor){
   const modLabel=mod==="tthh"?"Talento Humano":mod==="ambiente"?"Seguridad Ambiental":"Protección de Datos";
   const table=mod==="tthh"?"tthh_charlas":mod==="ambiente"?"ambiente_charlas":"datos_charlas";
   const curM=new Date().getMonth();
-  const c=cos.find(x=>x.id===CID)||{};
+  const c=cos.find(x=>String(x.id)===String(CID))||{};
   const tw=c.total_workers||1;
   const chDone=charlas.filter(x=>x.done).length;
   const chTot=charlas.length;
@@ -3416,12 +3416,12 @@ function renderGenModCharlas(mod,thColor){
     h+=`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px"><span style="color:var(--t3)">Cobertura</span><span style="color:${trC};font-weight:700;font-family:var(--mn)">${trPct}% (${tr}/${tw})</span></div><div style="height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(trPct,100)}%;background:${trC};border-radius:3px"></div></div></div>`;
     // Controls
     h+=`<div style="display:flex;flex-direction:column;gap:6px">`;
-    h+=`<div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Mes planificado</label><select onchange="saveGenModCharlaField('${mod}',${ch.id},'planned_month',+this.value)" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--bd);background:${c.select_bg_color||'rgba(255,255,255,0.05)'};color:${c.select_text_color||'var(--t1)'};font-size:11px;font-weight:600"><option value="-1" ${pm<0?'selected':''}>Sin planificar</option>`;
+    h+=`<div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Mes planificado</label><select onchange="saveGenModCharlaField('${mod}','${ch.id}','planned_month',+this.value)" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--bd);background:${c.select_bg_color||'rgba(255,255,255,0.05)'};color:${c.select_text_color||'var(--t1)'};font-size:11px;font-weight:600"><option value="-1" ${pm<0?'selected':''}>Sin planificar</option>`;
     MF.forEach((m,mi)=>{h+=`<option value="${mi}" ${pm===mi?'selected':''}>${m}</option>`});
     h+=`</select></div>`;
-    h+=`<div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Trabajadores capacitados</label><input class="ni" style="width:100%;padding:6px" type="number" min="0" max="${tw}" value="${tr}" onchange="saveGenModCharlaField('${mod}',${ch.id},'trained',+this.value)"></div>`;
-    h+=`<button class="ct ${ch.done?'on':''}" onclick="toggleGenModCharla('${mod}',${ch.id})">${ch.done?'✅ Realizada':'⬜ Marcar'}</button>`;
-    h+=`<input class="cdt" type="date" value="${ch.event_date||ch.date||''}" onchange="saveGenModCharlaField('${mod}',${ch.id},'event_date',this.value)">`;
+    h+=`<div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Trabajadores capacitados</label><input class="ni" style="width:100%;padding:6px" type="number" min="0" max="${tw}" value="${tr}" onchange="saveGenModCharlaField('${mod}','${ch.id}','trained',+this.value)"></div>`;
+    h+=`<button class="ct ${ch.done?'on':''}" onclick="toggleGenModCharla('${mod}','${ch.id}')">${ch.done?'✅ Realizada':'⬜ Marcar'}</button>`;
+    h+=`<input class="cdt" type="date" value="${ch.event_date||ch.date||''}" onchange="saveGenModCharlaField('${mod}','${ch.id}','event_date',this.value)">`;
     h+=`</div></div>`;
   });
   h+='</div>';
@@ -3484,10 +3484,10 @@ function editGenModCharla(mod,idx,newName){
   }
 }
 
-function toggleGenModCharla(mod,id){
+function toggleGenModCharla(mod,id){id=String(id);
   const M=mod==="tthh"?TTHH:mod==="ambiente"?AMBIENTE:DATOS;
   const table=mod==='tthh'?'tthh_charlas':'datos_charlas';
-  const ch=M.charlas.find(x=>x.id===id);if(!ch)return;
+  const ch=M.charlas.find(x=>String(x.id)===String(id));if(!ch)return;
   ch.done=!ch.done;
   if(ch.done&&!ch.event_date&&!ch.date){const td=new Date().toISOString().split('T')[0];ch.event_date=td;ch.date=td}
   // Re-render locally first
@@ -3518,10 +3518,10 @@ function toggleGenModCharla(mod,id){
   })();
 }
 
-function saveGenModCharlaField(mod,id,field,val){
+function saveGenModCharlaField(mod,id,field,val){id=String(id);
   const M=mod==="tthh"?TTHH:mod==="ambiente"?AMBIENTE:DATOS;
   const table=mod==='tthh'?'tthh_charlas':'datos_charlas';
-  const ch=M.charlas.find(x=>x.id===id);if(!ch)return;
+  const ch=M.charlas.find(x=>String(x.id)===String(id));if(!ch)return;
   ch[field]=val;
   if(field==='event_date'){ch.date=val;ch.event_date=val}
   if(field==='date'){ch.event_date=val;ch.date=val}
@@ -3548,7 +3548,7 @@ function genModCharlaSQL(mod){
 }
 
 function renderModConfig(mod,prefix,thColor){
-  const c=cos.find(x=>x.id===CID);if(!c)return'';
+  const c=cos.find(x=>String(x.id)===String(CID));if(!c)return'';
   const pvField=mod==="tthh"?"tthh_provider_logo_url":"datos_provider_logo_url";
   const pvSzField=mod==="tthh"?"tthh_provider_logo_size":"datos_provider_logo_size";
   const pvSetFn=mod==="tthh"?"setTthhPvSize":"setDatosPvSize";
@@ -3713,7 +3713,7 @@ function tthhLoad(){genModLoad("tthh","tthh","#a855f7","tthh_activities","tthh_c
 function tthhRender(){genModRender("tthh","tthh","#a855f7","tthh_company_status","tthh_plan_status","tthh_activities","tthh_plan_activities")}
 
 function tthhUpdateHeader(){
-  const c=cos.find(x=>x.id===CID);if(!c)return;
+  const c=cos.find(x=>String(x.id)===String(CID));if(!c)return;
   const lSz=c.logo_size||40;
   const el=document.getElementById("tthhCoLogo");
   if(el){if(c.logo_url){el.innerHTML=`<img src="${c.logo_url}">`;el.style.background="transparent";el.style.borderRadius="8px"}else{el.innerHTML=(c.name||"?").charAt(0);el.style.background="linear-gradient(135deg,#a855f7,#818cf8)";el.style.borderRadius="11px"}el.style.width=lSz+'px';el.style.height=lSz+'px';el.style.fontSize=(lSz*0.45)+'px'}
@@ -3731,16 +3731,16 @@ function tthhUpdateHeader(){
 
 // TTHH Audit functions
 async function tthhGetOrCreateAuditSt(actId){
-  let st=TTHH.auditSts.find(s=>s.activity_id===actId);if(st)return st;
+  let st=TTHH.auditSts.find(s=>String(s.s)===String(activity_id));if(st)return st;
   const{data}=await sb.from("tthh_company_status").insert({activity_id:actId,company_id:CID,year:YR,status:"no_tiene",planned:[0,0,0,0,0,0,0,0,0,0,0,0],done:[0,0,0,0,0,0,0,0,0,0,0,0],observations:""}).select().single();
   if(data){TTHH.auditSts.push(data);return data}return null;
 }
 async function tthhSetAuditSt(stId,actId,val){
-  let st=TTHH.auditSts.find(s=>s.id===stId);if(!st){st=await tthhGetOrCreateAuditSt(actId);if(!st)return}
+  let st=TTHH.auditSts.find(s=>String(s.id)===String(stId));if(!st){st=await tthhGetOrCreateAuditSt(actId);if(!st)return}
   st.status=val;tthhRender();dbs("ta-st-"+st.id,()=>sb.from("tthh_company_status").update({status:val}).eq("id",st.id));
 }
 async function tthhSetAuditObs(stId,actId,val){
-  let st=TTHH.auditSts.find(s=>s.id===stId);if(!st){st=await tthhGetOrCreateAuditSt(actId);if(!st)return}
+  let st=TTHH.auditSts.find(s=>String(s.id)===String(stId));if(!st){st=await tthhGetOrCreateAuditSt(actId);if(!st)return}
   st.observations=val;dbs("ta-obs-"+st.id,()=>sb.from("tthh_company_status").update({observations:val}).eq("id",st.id));
 }
 
@@ -3778,13 +3778,13 @@ async function tthhAddAudit(){
 }
 async function tthhEditAuditName(id){
   if(!canManageMod("tthh"))return;
-  const a=TTHH.auditActs.find(x=>x.id===id);if(!a)return;
+  const a=TTHH.auditActs.find(x=>String(x.id)===String(id));if(!a)return;
   const nw=prompt("Editar nombre:",a.name);if(nw===null||!nw.trim())return;
   a.name=nw.trim();tthhRender();dbs("ta-en-"+id,()=>sb.from("tthh_activities").update({name:a.name}).eq("id",id));
 }
 async function tthhDelAudit(id){
   if(!canManageMod("tthh"))return;
-  const a=TTHH.auditActs.find(x=>x.id===id);if(!a)return;
+  const a=TTHH.auditActs.find(x=>String(x.id)===String(id));if(!a)return;
   const allCos=confirm("¿Eliminar de TODAS las empresas?\n\n✅ Aceptar = Eliminar de todas\n❌ Cancelar = Solo de esta empresa");
   try{
     if(allCos){
@@ -3802,28 +3802,28 @@ async function tthhDelAudit(id){
 
 // TTHH Plan functions
 async function tthhGetOrCreatePlanSt(actId){
-  let st=TTHH.planSts.find(s=>s.activity_id===actId);if(st)return st;
+  let st=TTHH.planSts.find(s=>String(s.s)===String(activity_id));if(st)return st;
   const{data}=await sb.from("tthh_plan_status").insert({activity_id:actId,company_id:CID,year:YR,status:"pendiente",planned:[0,0,0,0,0,0,0,0,0,0,0,0],done:[0,0,0,0,0,0,0,0,0,0,0,0],observations:""}).select().single();
   if(data){TTHH.planSts.push(data);return data}return null;
 }
 async function tthhSetPlanSt(stId,actId,val){
-  let st=TTHH.planSts.find(s=>s.id===stId);if(!st){st=await tthhGetOrCreatePlanSt(actId);if(!st)return}
+  let st=TTHH.planSts.find(s=>String(s.id)===String(stId));if(!st){st=await tthhGetOrCreatePlanSt(actId);if(!st)return}
   st.status=val;tthhRender();dbs("tp-st-"+st.id,()=>sb.from("tthh_plan_status").update({status:val}).eq("id",st.id));
 }
 async function tthhTogPlanDone(stId,actId,mi){
-  let st=TTHH.planSts.find(s=>s.id===stId);if(!st){st=await tthhGetOrCreatePlanSt(actId);if(!st)return}
+  let st=TTHH.planSts.find(s=>String(s.id)===String(stId));if(!st){st=await tthhGetOrCreatePlanSt(actId);if(!st)return}
   let done=Array.isArray(st.done)?[...st.done]:JSON.parse(st.done||'[0,0,0,0,0,0,0,0,0,0,0,0]');
   done[mi]=done[mi]?0:1;st.done=done;
   tthhRender();dbs("tp-d-"+st.id+mi,()=>sb.from("tthh_plan_status").update({done:done}).eq("id",st.id));
 }
 async function tthhTogPlanPlan(stId,actId,mi){
-  let st=TTHH.planSts.find(s=>s.id===stId);if(!st){st=await tthhGetOrCreatePlanSt(actId);if(!st)return}
+  let st=TTHH.planSts.find(s=>String(s.id)===String(stId));if(!st){st=await tthhGetOrCreatePlanSt(actId);if(!st)return}
   let planned=Array.isArray(st.planned)?[...st.planned]:JSON.parse(st.planned||'[0,0,0,0,0,0,0,0,0,0,0,0]');
   planned[mi]=planned[mi]?0:1;st.planned=planned;
   tthhRender();dbs("tp-p-"+st.id+mi,()=>sb.from("tthh_plan_status").update({planned:planned}).eq("id",st.id));
 }
 async function tthhSetPlanObs(stId,actId,val){
-  let st=TTHH.planSts.find(s=>s.id===stId);if(!st){st=await tthhGetOrCreatePlanSt(actId);if(!st)return}
+  let st=TTHH.planSts.find(s=>String(s.id)===String(stId));if(!st){st=await tthhGetOrCreatePlanSt(actId);if(!st)return}
   st.observations=val;dbs("tp-obs-"+st.id,()=>sb.from("tthh_plan_status").update({observations:val}).eq("id",st.id));
 }
 async function tthhAddPlan(){
@@ -3851,13 +3851,13 @@ async function tthhAddPlan(){
 }
 async function tthhEditPlanName(id){
   if(!canManageMod("tthh"))return;
-  const a=TTHH.planActs.find(x=>x.id===id);if(!a)return;
+  const a=TTHH.planActs.find(x=>String(x.id)===String(id));if(!a)return;
   const nw=prompt("Editar nombre:",a.name);if(nw===null||!nw.trim())return;
   a.name=nw.trim();tthhRender();dbs("tp-en-"+id,()=>sb.from("tthh_plan_activities").update({name:a.name}).eq("id",id));
 }
 async function tthhDelPlan(id){
   if(!canManageMod("tthh"))return;
-  const a=TTHH.planActs.find(x=>x.id===id);if(!a)return;
+  const a=TTHH.planActs.find(x=>String(x.id)===String(id));if(!a)return;
   const allCos=confirm("¿Eliminar de TODAS las empresas?\n\n✅ Aceptar = Eliminar de todas\n❌ Cancelar = Solo de esta empresa");
   try{
     if(allCos){
@@ -3877,7 +3877,7 @@ function datosLoad(){genModLoad("datos","datos","#10b981","datos_activities","da
 function datosRender(){genModRender("datos","datos","#10b981","datos_company_status","datos_plan_status","datos_activities","datos_plan_activities")}
 
 function datosUpdateHeader(){
-  const c=cos.find(x=>x.id===CID);if(!c)return;
+  const c=cos.find(x=>String(x.id)===String(CID));if(!c)return;
   const lSz=c.logo_size||40;
   const el=document.getElementById("datosCoLogo");
   if(el){if(c.logo_url){el.innerHTML=`<img src="${c.logo_url}">`;el.style.background="transparent";el.style.borderRadius="8px"}else{el.innerHTML=(c.name||"?").charAt(0);el.style.background="linear-gradient(135deg,#10b981,#34d399)";el.style.borderRadius="11px"}el.style.width=lSz+'px';el.style.height=lSz+'px';el.style.fontSize=(lSz*0.45)+'px'}
@@ -3895,16 +3895,16 @@ function datosUpdateHeader(){
 
 // DATOS Audit functions
 async function datosGetOrCreateAuditSt(actId){
-  let st=DATOS.auditSts.find(s=>s.activity_id===actId);if(st)return st;
+  let st=DATOS.auditSts.find(s=>String(s.s)===String(activity_id));if(st)return st;
   const{data}=await sb.from("datos_company_status").insert({activity_id:actId,company_id:CID,year:YR,status:"no_tiene",planned:[0,0,0,0,0,0,0,0,0,0,0,0],done:[0,0,0,0,0,0,0,0,0,0,0,0],observations:""}).select().single();
   if(data){DATOS.auditSts.push(data);return data}return null;
 }
 async function datosSetAuditSt(stId,actId,val){
-  let st=DATOS.auditSts.find(s=>s.id===stId);if(!st){st=await datosGetOrCreateAuditSt(actId);if(!st)return}
+  let st=DATOS.auditSts.find(s=>String(s.id)===String(stId));if(!st){st=await datosGetOrCreateAuditSt(actId);if(!st)return}
   st.status=val;datosRender();dbs("da-st-"+st.id,()=>sb.from("datos_company_status").update({status:val}).eq("id",st.id));
 }
 async function datosSetAuditObs(stId,actId,val){
-  let st=DATOS.auditSts.find(s=>s.id===stId);if(!st){st=await datosGetOrCreateAuditSt(actId);if(!st)return}
+  let st=DATOS.auditSts.find(s=>String(s.id)===String(stId));if(!st){st=await datosGetOrCreateAuditSt(actId);if(!st)return}
   st.observations=val;dbs("da-obs-"+st.id,()=>sb.from("datos_company_status").update({observations:val}).eq("id",st.id));
 }
 
@@ -3917,7 +3917,7 @@ function ambienteLoad(){genModLoad("ambiente","amb","#22c55e","ambiente_activiti
 function ambienteRender(){genModRender("ambiente","amb","#22c55e","ambiente_company_status","ambiente_plan_status","ambiente_activities","ambiente_plan_activities")}
 
 function ambienteUpdateHeader(){
-  const c=cos.find(x=>x.id===CID);if(!c)return;
+  const c=cos.find(x=>String(x.id)===String(CID));if(!c)return;
   const lSz=c.logo_size||40;
   const el=document.getElementById("ambCoLogo");
   if(el){if(c.logo_url){el.innerHTML=`<img src="${c.logo_url}">`;el.style.background="transparent";el.style.borderRadius="8px"}else{el.innerHTML=(c.name||"?").charAt(0);el.style.background="linear-gradient(135deg,#22c55e,#4ade80)";el.style.borderRadius="11px"}el.style.width=lSz+'px';el.style.height=lSz+'px';el.style.fontSize=(lSz*0.45)+'px'}
@@ -3934,16 +3934,16 @@ function ambienteUpdateHeader(){
 }
 
 async function ambienteGetOrCreateAuditSt(actId){
-  let st=AMBIENTE.auditSts.find(s=>s.activity_id===actId);if(st)return st;
+  let st=AMBIENTE.auditSts.find(s=>String(s.s)===String(activity_id));if(st)return st;
   const{data}=await sb.from("ambiente_company_status").insert({activity_id:actId,company_id:CID,year:YR,status:"no_tiene",planned:[0,0,0,0,0,0,0,0,0,0,0,0],done:[0,0,0,0,0,0,0,0,0,0,0,0],observations:""}).select().single();
   if(data){AMBIENTE.auditSts.push(data);return data}return null;
 }
 async function ambienteSetAuditSt(stId,actId,val){
-  let st=AMBIENTE.auditSts.find(s=>s.id===stId);if(!st){st=await ambienteGetOrCreateAuditSt(actId);if(!st)return}
+  let st=AMBIENTE.auditSts.find(s=>String(s.id)===String(stId));if(!st){st=await ambienteGetOrCreateAuditSt(actId);if(!st)return}
   st.status=val;ambienteRender();dbs("amb-st-"+st.id,()=>sb.from("ambiente_company_status").update({status:val}).eq("id",st.id));
 }
 async function ambienteSetAuditObs(stId,actId,val){
-  let st=AMBIENTE.auditSts.find(s=>s.id===stId);if(!st){st=await ambienteGetOrCreateAuditSt(actId);if(!st)return}
+  let st=AMBIENTE.auditSts.find(s=>String(s.id)===String(stId));if(!st){st=await ambienteGetOrCreateAuditSt(actId);if(!st)return}
   st.observations=val;dbs("amb-obs-"+st.id,()=>sb.from("ambiente_company_status").update({observations:val}).eq("id",st.id));
 }
 async function datosAddAudit(){
@@ -3971,13 +3971,13 @@ async function datosAddAudit(){
 }
 async function datosEditAuditName(id){
   if(!canManageMod("datos"))return;
-  const a=DATOS.auditActs.find(x=>x.id===id);if(!a)return;
+  const a=DATOS.auditActs.find(x=>String(x.id)===String(id));if(!a)return;
   const nw=prompt("Editar nombre:",a.name);if(nw===null||!nw.trim())return;
   a.name=nw.trim();datosRender();dbs("da-en-"+id,()=>sb.from("datos_activities").update({name:a.name}).eq("id",id));
 }
 async function datosDelAudit(id){
   if(!canManageMod("datos"))return;
-  const a=DATOS.auditActs.find(x=>x.id===id);if(!a)return;
+  const a=DATOS.auditActs.find(x=>String(x.id)===String(id));if(!a)return;
   const allCos=confirm("¿Eliminar de TODAS las empresas?\n\n✅ Aceptar = Eliminar de todas\n❌ Cancelar = Solo de esta empresa");
   try{
     if(allCos){
@@ -3994,28 +3994,28 @@ async function datosDelAudit(id){
 
 // DATOS Plan functions
 async function datosGetOrCreatePlanSt(actId){
-  let st=DATOS.planSts.find(s=>s.activity_id===actId);if(st)return st;
+  let st=DATOS.planSts.find(s=>String(s.s)===String(activity_id));if(st)return st;
   const{data}=await sb.from("datos_plan_status").insert({activity_id:actId,company_id:CID,year:YR,status:"pendiente",planned:[0,0,0,0,0,0,0,0,0,0,0,0],done:[0,0,0,0,0,0,0,0,0,0,0,0],observations:""}).select().single();
   if(data){DATOS.planSts.push(data);return data}return null;
 }
 async function datosSetPlanSt(stId,actId,val){
-  let st=DATOS.planSts.find(s=>s.id===stId);if(!st){st=await datosGetOrCreatePlanSt(actId);if(!st)return}
+  let st=DATOS.planSts.find(s=>String(s.id)===String(stId));if(!st){st=await datosGetOrCreatePlanSt(actId);if(!st)return}
   st.status=val;datosRender();dbs("dp-st-"+st.id,()=>sb.from("datos_plan_status").update({status:val}).eq("id",st.id));
 }
 async function datosTogPlanDone(stId,actId,mi){
-  let st=DATOS.planSts.find(s=>s.id===stId);if(!st){st=await datosGetOrCreatePlanSt(actId);if(!st)return}
+  let st=DATOS.planSts.find(s=>String(s.id)===String(stId));if(!st){st=await datosGetOrCreatePlanSt(actId);if(!st)return}
   let done=Array.isArray(st.done)?[...st.done]:JSON.parse(st.done||'[0,0,0,0,0,0,0,0,0,0,0,0]');
   done[mi]=done[mi]?0:1;st.done=done;
   datosRender();dbs("dp-d-"+st.id+mi,()=>sb.from("datos_plan_status").update({done:done}).eq("id",st.id));
 }
 async function datosTogPlanPlan(stId,actId,mi){
-  let st=DATOS.planSts.find(s=>s.id===stId);if(!st){st=await datosGetOrCreatePlanSt(actId);if(!st)return}
+  let st=DATOS.planSts.find(s=>String(s.id)===String(stId));if(!st){st=await datosGetOrCreatePlanSt(actId);if(!st)return}
   let planned=Array.isArray(st.planned)?[...st.planned]:JSON.parse(st.planned||'[0,0,0,0,0,0,0,0,0,0,0,0]');
   planned[mi]=planned[mi]?0:1;st.planned=planned;
   datosRender();dbs("dp-p-"+st.id+mi,()=>sb.from("datos_plan_status").update({planned:planned}).eq("id",st.id));
 }
 async function datosSetPlanObs(stId,actId,val){
-  let st=DATOS.planSts.find(s=>s.id===stId);if(!st){st=await datosGetOrCreatePlanSt(actId);if(!st)return}
+  let st=DATOS.planSts.find(s=>String(s.id)===String(stId));if(!st){st=await datosGetOrCreatePlanSt(actId);if(!st)return}
   st.observations=val;dbs("dp-obs-"+st.id,()=>sb.from("datos_plan_status").update({observations:val}).eq("id",st.id));
 }
 async function datosAddPlan(){
@@ -4043,13 +4043,13 @@ async function datosAddPlan(){
 }
 async function datosEditPlanName(id){
   if(!canManageMod("datos"))return;
-  const a=DATOS.planActs.find(x=>x.id===id);if(!a)return;
+  const a=DATOS.planActs.find(x=>String(x.id)===String(id));if(!a)return;
   const nw=prompt("Editar nombre:",a.name);if(nw===null||!nw.trim())return;
   a.name=nw.trim();datosRender();dbs("dp-en-"+id,()=>sb.from("datos_plan_activities").update({name:a.name}).eq("id",id));
 }
 async function datosDelPlan(id){
   if(!canManageMod("datos"))return;
-  const a=DATOS.planActs.find(x=>x.id===id);if(!a)return;
+  const a=DATOS.planActs.find(x=>String(x.id)===String(id));if(!a)return;
   const allCos=confirm("¿Eliminar de TODAS las empresas?\n\n✅ Aceptar = Eliminar de todas\n❌ Cancelar = Solo de esta empresa");
   try{
     if(allCos){
@@ -4066,7 +4066,7 @@ async function datosDelPlan(id){
 
 // Toggle module for company
 async function toggleMod(mod,val){
-  const c=cos.find(x=>x.id===CID);if(!c)return;
+  const c=cos.find(x=>String(x.id)===String(CID));if(!c)return;
   c[mod]=!!val;
   if(D.comp)D.comp[mod]=!!val;
   await sb.from("companies").update({[mod]:!!val}).eq("id",CID);
@@ -4128,12 +4128,12 @@ async function logLoad(){
     if(LOG.trips.length>0){
       const tids=LOG.trips.map(t=>t.id);
       const loads=[
-        sb.from("logistics_trip_members").select("*,usuarios(name,role)").in("trip_id",tids),
+        sb.from("logistics_trip_members").select("*,usuarios(nombre,rol)").in("trip_id",tids),
         sb.from("logistics_trip_activities").select("*").in("trip_id",tids),
         sb.from("logistics_trip_companies").select("*,companies(name,location)").in("trip_id",tids)
       ];
       // Admin loads ALL notifications for these trips to see who read
-      if(isAdmin)loads.push(sb.from("logistics_notifications").select("*,usuarios(name)").in("trip_id",tids));
+      if(isAdmin)loads.push(sb.from("logistics_notifications").select("*,usuarios(nombre)").in("trip_id",tids));
       const results=await Promise.all(loads);
       LOG.members=results[0].data||[];
       LOG.activities=results[1].data||[];
@@ -5275,7 +5275,7 @@ function agGetVal(companyId,deptId,field){
       const roleMatch=deptRoleMap[deptId];
       const roles=Array.isArray(roleMatch)?roleMatch:[roleMatch];
       for(const tid of coTripIds){
-        const trip=trips.find(t=>t.id===tid);
+        const trip=trips.find(t=>String(t.t)===String(id));
         const members=tripMembers.filter(m=>m.trip_id===tid);
         if(members.length>0){
           // Has members: only mark departments whose members are assigned
@@ -5887,7 +5887,7 @@ CREATE POLICY "agendamiento_pub" ON agendamiento FOR ALL USING (true) WITH CHECK
 const DEPT_FULL_LABELS={seguridad:'Seguridad Industrial (SST)',salud:'Salud Ocupacional',ambiente:'Ambiente',datos:'Protección de Datos (LOPDPD)',tthh:'Talento Humano',talento:'Talento Humano',psicologo:'Psicología Ocupacional'};
 
 async function logToggleConvocatoria(tripId){
-  const trip=LOG.trips.find(t=>t.id===tripId);if(!trip)return;
+  const trip=LOG.trips.find(t=>String(t.t)===String(id));if(!trip)return;
   const newVal=!trip.convocatoria_enviada;
   const fecha=newVal?new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'}):'';
   try{
@@ -6033,7 +6033,7 @@ function logEditGroupWA(){
 
 async function logSendWA(tripId){
   event.stopPropagation();
-  const t=LOG.trips.find(x=>x.id===tripId);if(!t)return;
+  const t=LOG.trips.find(x=>String(x.id)===String(tripId));if(!t)return;
   const tcs=LOG.tripCompanies?.filter(tc=>tc.trip_id===t.id)||[];
   const members=LOG.members.filter(m=>m.trip_id===t.id);
   if(tcs.length===0){alert("Este viaje no tiene empresas asignadas");return}
@@ -6137,7 +6137,7 @@ async function logSendWA(tripId){
 
 async function logEditWA(tripId){
   event.stopPropagation();
-  const t=LOG.trips.find(x=>x.id===tripId);if(!t)return;
+  const t=LOG.trips.find(x=>String(x.id)===String(tripId));if(!t)return;
   const tcs=LOG.tripCompanies?.filter(tc=>tc.trip_id===t.id)||[];
   for(const tc of tcs){
     if(tc.custom_name){
@@ -6172,7 +6172,7 @@ function logNewTrip(dateStr){
 }
 
 function logViewTrip(tripId){
-  const t=LOG.trips.find(x=>x.id===tripId);if(!t)return;
+  const t=LOG.trips.find(x=>String(x.id)===String(tripId));if(!t)return;
   const isAdmin=CURRENT_USER&&CURRENT_USER.role==="admin";
   const isJefe=IS_JEFE();
   const isMember=LOG.members.some(m=>m.trip_id===tripId&&m.user_id===CURRENT_USER?.id);
@@ -6199,7 +6199,7 @@ function logViewTrip(tripId){
 
 function logRenderWorkerView(){
   const tripId=LOG.viewTripId;
-  const t=LOG.trips.find(x=>x.id===tripId);if(!t)return'<div style="text-align:center;padding:30px;color:var(--t3)">Viaje no encontrado</div>';
+  const t=LOG.trips.find(x=>String(x.id)===String(tripId));if(!t)return'<div style="text-align:center;padding:30px;color:var(--t3)">Viaje no encontrado</div>';
   const members=LOG.members.filter(m=>m.trip_id===tripId);
   const allActs=LOG.activities.filter(a=>a.trip_id===tripId);
   const isAdminUser=CURRENT_USER&&CURRENT_USER.role==="admin";
@@ -6362,7 +6362,7 @@ async function logLoadPoaSuggestionsUI(tripId){
     const tripCompanyIds=tcs.map(tc=>tc.company_id).filter(Boolean);
     // If no companies assigned to trip, use all companies
     const companyFilter=tripCompanyIds.length>0?tripCompanyIds:cos.map(c=>c.id);
-    const companyNames=companyFilter.map(cid=>{const co=cos.find(c=>c.id===cid);return co?.name||cid});
+    const companyNames=companyFilter.map(cid=>{const co=cos.find(c=>String(c.c)===String(id));return co?.name||cid});
     console.log("[POA] Trip companies:",companyNames,"IDs:",companyFilter);
     
     let suggestions=[];
@@ -6689,7 +6689,7 @@ async function logToggleActivity(actId,completed){
     const upd={completed:completed,completed_at:completed?new Date().toISOString():null};
     if(completed){upd.not_completed=false;upd.not_completed_reason=null}
     await sb.from("logistics_trip_activities").update(upd).eq("id",actId);
-    const act=LOG.activities.find(a=>a.id===actId);
+    const act=LOG.activities.find(a=>String(a.a)===String(id));
     const att=act?.attendees_count||0;
     // Get trip date for the charla date
     const trip=LOG.trips.find(t=>t.id===act?.trip_id);
@@ -6703,7 +6703,7 @@ async function logToggleActivity(actId,completed){
 
 async function logMarkNotCompleted(actId){
   try{
-    const act=LOG.activities.find(a=>a.id===actId);
+    const act=LOG.activities.find(a=>String(a.a)===String(id));
     const newState=!(act&&act.not_completed);
     await sb.from("logistics_trip_activities").update({not_completed:newState,completed:false,completed_at:null,not_completed_reason:newState?'':null}).eq("id",actId);
     await syncTripActivityToCharla(actId,{completed:false});
@@ -6718,7 +6718,7 @@ async function logSaveReason(actId){
   if(!el)return;
   const reason=el.value.trim();
   if(!reason){alert("⚠️ El motivo es obligatorio");return}
-  const act=LOG.activities.find(a=>a.id===actId);
+  const act=LOG.activities.find(a=>String(a.a)===String(id));
   if(act)act.not_completed_reason=reason;
   logRender();
   try{
@@ -6727,7 +6727,7 @@ async function logSaveReason(actId){
 }
 
 async function logEditReason(actId){
-  const act=LOG.activities.find(a=>a.id===actId);
+  const act=LOG.activities.find(a=>String(a.a)===String(id));
   const newReason=prompt("Editar motivo de incumplimiento:",act?.not_completed_reason||'');
   if(newReason===null)return;
   if(!newReason.trim()){alert("⚠️ El motivo es obligatorio");return}
@@ -6740,7 +6740,7 @@ async function logEditReason(actId){
 
 async function logSaveAttendees(actId,val){
   val=Math.max(0,val||0);
-  const act=LOG.activities.find(a=>a.id===actId);
+  const act=LOG.activities.find(a=>String(a.a)===String(id));
   if(act)act.attendees_count=val;
   dbs("att-"+actId,async()=>{
     try{
@@ -6753,7 +6753,7 @@ async function logSaveAttendees(actId,val){
 async function logDeleteActivity(actId){
   if(!confirm("¿Eliminar esta actividad?"))return;
   try{
-    const act=LOG.activities.find(a=>a.id===actId);
+    const act=LOG.activities.find(a=>String(a.a)===String(id));
     // Revert POA status to 0
     if(act&&act.poa_table){
       try{await syncPoaFromTrip(act.poa_table,0)}catch(pe){console.error("POA revert:",pe)}
@@ -6807,7 +6807,7 @@ function logRenderForm(){
   if(coSearchTerm)h+=`<div style="font-size:10px;color:var(--t3);margin-bottom:6px">${visibleFormCos.length} de ${cos.length} empresas · <span onclick="LOG._coSearch='';logRender()" style="color:#ef4444;cursor:pointer;text-decoration:underline">✕ Limpiar</span></div>`;
   // Show selected companies first (always visible)
   const selCosIds=e._selectedCompanies||[];
-  const selectedCos=selCosIds.map(id=>cos.find(c=>c.id===id)).filter(Boolean);
+  const selectedCos=selCosIds.map(id=>cos.find(c=>String(c.c)===String(id))).filter(Boolean);
   if(selectedCos.length>0&&coSearchTerm){
     h+=`<div style="margin-bottom:6px">`;
     selectedCos.forEach(c=>{
@@ -6823,7 +6823,7 @@ function logRenderForm(){
   });
   h+=`</div>`;
   if(e._selectedCompanies.length>0){
-    const selCos=e._selectedCompanies.map(id=>cos.find(c=>c.id===id)).filter(Boolean);
+    const selCos=e._selectedCompanies.map(id=>cos.find(c=>String(c.c)===String(id))).filter(Boolean);
     const cities=[...new Set(selCos.map(c=>c.location).filter(Boolean))];
     if(cities.length>0)h+=`<div style="font-size:10px;color:#34d399;margin-top:4px">📍 Destino: ${cities.join(', ')}</div>`;
   }
@@ -7010,7 +7010,7 @@ function logFormSelectCompany(coId){
     LOG.editTrip._selectedCompanies.push(coId);
   }
   // Auto-set destination city from selected companies' locations
-  const selCos=LOG.editTrip._selectedCompanies.map(id=>cos.find(c=>c.id===id)).filter(Boolean);
+  const selCos=LOG.editTrip._selectedCompanies.map(id=>cos.find(c=>String(c.c)===String(id))).filter(Boolean);
   if(selCos.length>0){
     const loc=selCos[0].location||'';
     // Match location to existing destinations
@@ -7154,14 +7154,14 @@ async function logDeleteTrip(tripId){
 
 // === Helper: gather trip data for reports ===
 async function _getTripData(tripId){
-  const t=LOG.trips.find(x=>x.id===tripId);if(!t)throw new Error("Viaje no encontrado");
+  const t=LOG.trips.find(x=>String(x.id)===String(tripId));if(!t)throw new Error("Viaje no encontrado");
   const members=LOG.members.filter(m=>m.trip_id===tripId);
   const acts=LOG.activities.filter(a=>a.trip_id===tripId);
   const tcs=LOG.tripCompanies?.filter(tc=>tc.trip_id===tripId)||[];
   const dd=new Date(t.trip_date+'T12:00:00');
   const dateStr=dd.toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const companyId=tcs.length>0?tcs[0].company_id:CID;
-  let comp=cos.find(c=>c.id===companyId)||D.comp||{};
+  let comp=cos.find(c=>String(c.c)===String(id))||D.comp||{};
   if(!comp.logo_url&&companyId){try{const{data:fc}=await sb.from("companies").select("*").eq("id",companyId).single();if(fc)comp=fc}catch(e){}}
   const companies=tcs.map(tc=>tc.companies?.name||'').filter(Boolean);
   if(t.status==='planned'||t.status==='in_progress'){try{await sb.from("logistics_trips").update({status:'completed'}).eq("id",tripId);t.status='completed'}catch(e){}}
@@ -7420,7 +7420,7 @@ async function contNewClient(){
 }
 
 async function contEditClient(id){
-  const cl=(CONT.clients||[]).find(c=>c.id===id);if(!cl)return;
+  const cl=(CONT.clients||[]).find(c=>String(c.c)===String(id));if(!cl)return;
   const name=prompt("Nombre:",cl.name);if(name===null)return;
   const ruc=prompt("RUC/Cédula:",cl.ruc);if(ruc===null)return;
   const address=prompt("Dirección:",cl.address);if(address===null)return;
@@ -7826,7 +7826,7 @@ function contInvSelectCo(val){
   if(val==='_custom'){
     CONT._invForm.company_id='_custom';CONT._invForm.company_name='';CONT._invForm.ruc='';
   }else if(val){
-    const co=cos.find(c=>c.id===val)||(CONT.clients||[]).find(c=>c.id===val);
+    const co=cos.find(c=>String(c.c)===String(id))||(CONT.clients||[]).find(c=>String(c.c)===String(id));
     CONT._invForm.company_id=val;
     CONT._invForm.company_name=co?.name||'';
     CONT._invForm.ruc=co?.ruc||'';
@@ -7877,7 +7877,7 @@ async function contSaveInvForm(){
   const total=subtotal+iva;
   const concept=f.concept||f.items.map(i=>i.desc).filter(Boolean).join(', ');
   const coId=f.company_id&&f.company_id!=='_custom'?f.company_id:null;
-  const coName=f.company_name||(coId?cos.find(c=>c.id===coId)?.name:'');
+  const coName=f.company_name||(coId?cos.find(c=>String(c.c)===String(id))?.name:'');
 
   const payload={
     cont_company_id:CONT.companyId,
@@ -7914,7 +7914,7 @@ async function contNewPayment(){
   const coId=prompt("Nombre de la empresa:");if(!coId)return;
   const co=cos.find(c=>c.name.toLowerCase().includes(coId.toLowerCase()));
   const invNum=prompt("N° Factura (opcional):")||'';
-  const inv=invNum?CONT.invoices.find(i=>i.invoice_number===invNum):null;
+  const inv=invNum?CONT.invoices.find(i=>String(i.i)===String(invoice_number)):null;
   const amount=parseFloat(prompt("Monto cobrado:")||0);if(!amount)return;
   const method=prompt("Método (transferencia/efectivo/cheque/tarjeta):","transferencia");
   const date=prompt("Fecha (YYYY-MM-DD):",new Date().toISOString().split('T')[0]);
@@ -7954,7 +7954,7 @@ async function contDelInv(id){if(!confirm("¿Eliminar factura?"))return;await sb
 const RESEND_KEY='';
 
 async function contSendInvEmail(invId){
-  const inv=CONT.invoices.find(i=>i.id===invId);if(!inv){alert("Factura no encontrada");return}
+  const inv=CONT.invoices.find(i=>String(i.i)===String(id));if(!inv){alert("Factura no encontrada");return}
   const contCo=CONT.companies.find(c=>c.id===CONT.companyId);if(!contCo){alert("Empresa no configurada");return}
   
   // Get client email
@@ -8213,7 +8213,7 @@ async function contImportSRIXml(files){
           }
 
           // Match company
-          const matchCo=cos.find(c=>c.ruc===companyRuc);
+          const matchCo=cos.find(c=>String(c.c)===String(ruc));
 
           const ivaRate=subtotal>0?Math.round(iva/subtotal*100):15;
 
@@ -8249,7 +8249,7 @@ async function contImportSRIXml(files){
 }
 
 async function contEditInv(id){
-  const inv=CONT.invoices.find(i=>i.id===id);if(!inv)return;
+  const inv=CONT.invoices.find(i=>String(i.i)===String(id));if(!inv)return;
   const newSt=prompt("Nuevo estado (emitida/pagada/parcial/vencida/anulada):",inv.status);
   if(!newSt||newSt===inv.status)return;
   await sb.from("cont_invoices").update({status:newSt}).eq("id",id);
@@ -8427,7 +8427,7 @@ async function logRemoveMember(memberId){
   try{
     await sb.from("logistics_trip_members").delete().eq("id",memberId);
     await logLoad();
-    if(tripId2){const t=LOG.trips.find(x=>x.id===tripId2);if(t){const ms=LOG.members.filter(m=>m.trip_id===tripId2);LOG.editTrip={...t,num_people:ms.length||1};LOG.tab='form';logRender()}}
+    if(tripId2){const t=LOG.trips.find(x=>String(x.id)===String(tripId2));if(t){const ms=LOG.members.filter(m=>m.trip_id===tripId2);LOG.editTrip={...t,num_people:ms.length||1};LOG.tab='form';logRender()}}
   }catch(e){alert("Error: "+e.message)}
 }
 
@@ -8438,7 +8438,7 @@ async function logAddMember(tripId){
   if(!userSel||!userSel.value){alert("Selecciona una persona del listado");return}
   const userId=userSel.value;
   // Auto-detect department from user's role
-  const user=(LOG.users||[]).find(u=>u.id===userId);
+  const user=(LOG.users||[]).find(u=>String(u.u)===String(id));
   const role=user?.role||'salud';
   const roleMap={'salud':'salud','psicologo':'psicologo','seguridad':'seguridad','tthh':'tthh','talento':'tthh','datos':'datos','admin':'salud'};
   let dept=roleMap[role]||'salud';
@@ -8453,7 +8453,7 @@ async function logAddMember(tripId){
     const tid=LOG.editTrip?.id;
     await logLoad();
     if(tid){
-      const t=LOG.trips.find(x=>x.id===tid);
+      const t=LOG.trips.find(x=>String(x.id)===String(tid));
       if(t){const ms=LOG.members.filter(m=>m.trip_id===tid);LOG.editTrip={...t,num_people:ms.length||1};LOG.tab='form';logRender();}
     }
   }catch(e){alert("Error al agregar: "+e.message+"\n\nSi el error persiste, verifica que el SQL de logística fue ejecutado correctamente.")}
@@ -8479,7 +8479,7 @@ async function logMarkRead(id){
 }
 
 async function logSendNotifications(tripId){
-  const t=LOG.trips.find(x=>x.id===tripId)||LOG.editTrip;if(!t)return;
+  const t=LOG.trips.find(x=>String(x.id)===String(tripId))||LOG.editTrip;if(!t)return;
   const members=LOG.members.filter(m=>m.trip_id===tripId);
   if(members.length===0){alert("No hay personas asignadas al viaje.\nPrimero agrega personas.");return}
   const dd=new Date((t.trip_date||'')+'T12:00:00');
@@ -8502,7 +8502,7 @@ async function logSendNotifications(tripId){
     alert('✅ Notificación enviada a '+members.length+' persona(s)');
     const tid=LOG.editTrip?.id;
     await logLoad();
-    if(tid){const tr=LOG.trips.find(x=>x.id===tid);if(tr){const ms=LOG.members.filter(m=>m.trip_id===tid);LOG.editTrip={...tr,num_people:ms.length||1};LOG.tab='form';logRender()}}
+    if(tid){const tr=LOG.trips.find(x=>String(x.id)===String(tid));if(tr){const ms=LOG.members.filter(m=>m.trip_id===tid);LOG.editTrip={...tr,num_people:ms.length||1};LOG.tab='form';logRender()}}
   }catch(e){alert('Error al enviar: '+e.message)}
 }
 </script></body></html>
