@@ -4149,7 +4149,7 @@ async function logLoad(){
       LOG.allNotifs=isAdmin?(results[3]?.data||[]):[];
     }else{LOG.members=[];LOG.activities=[];LOG.tripCompanies=[];LOG.allNotifs=[];}
     // Load all users (admin: for member selector; all: for activity creator names)
-    const{data:_u}=await sb.from("usuarios").select("id,nombre,rol").order("nombre");const u=(_u||[]).map(function(x){return{id:x.id,name:x.nombre,role:x.rol}});
+    const{data:_u}=await sb.from("usuarios").select("id,nombre,rol").order("nombre");const u=(_u||[]).map(function(x){const roleMap={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo"};return{id:x.id,name:x.nombre,role:roleMap[x.rol]||x.rol}});
     LOG.users=u||[];
     // POA suggestions now load on-demand in logLoadPoaSuggestionsUI()
     console.log("[LOG] trips:",LOG.trips.length,"members:",LOG.members.length,"notifs:",LOG.notifications.length,"user:",CURRENT_USER?.id,"isAdmin:",isAdmin);
@@ -6947,7 +6947,7 @@ function logRenderForm(){
       const hasAdminAvail=availUsers.some(u=>u.role==='admin');
       if(hasAdminAvail){
         h+=`<select id="logAddDeptSel" style="padding:8px;border-radius:8px;border:1px solid var(--bd);background:rgba(255,255,255,0.06);color:var(--t1);font-size:12px">`;
-        h+=`<option value="salud">🩺 Doctor(a)</option><option value="psicologo">🧠 Psicólogo(a)</option><option value="seguridad">🔧 Seguridad</option><option value="tthh">👥 TTHH</option><option value="datos">🛡 Datos</option>`;
+        h+=`<option value="salud">🩺 Doctor(a)</option><option value="psicologo">🧠 Psicólogo(a)</option><option value="seguridad">🔧 Seguridad</option><option value="tthh">👥 TTHH</option><option value="datos">🛡 Datos</option><option value="ambiente">🌿 Ambiente</option>`;
         h+=`</select>`;
       }
       h+=`<button onclick="logAddMember('${e.id}')" style="background:${LOG_COLOR};color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer">+ Agregar</button>`;
