@@ -334,7 +334,7 @@ async function doLogin(){
     if(user.pass!==pwd){errEl.style.color="#ef4444";errEl.textContent="❌ Contraseña incorrecta";return}
     if(user.activo===false){errEl.style.color="#ef4444";errEl.textContent="⛔ Usuario desactivado";return}
     user.name=user.nombre||'';
-    user.role=user.rol==='administrador'?'admin':user.rol==='medico'?'salud':user.rol==='enfermera'?'salud':user.rol||'salud';
+    user.role={'administrador':'admin','enfermera':'salud','medico':'salud','laboratorio':'salud','radiologia':'salud','psicologia':'psicologo'}[user.rol]||'salud';
     user.email=user.cedula||'';
     user.password=user.pass||'';
     user.active=user.activo!==false;
@@ -349,7 +349,7 @@ async function autoLogin(){
   const saved=localStorage.getItem("poa_user");if(!saved)return false;
   try{const{cedula,password}=JSON.parse(saved);
   const{data}=await sb.from("usuarios").select("*").eq("cedula",cedula).eq("pass",password).limit(1);
-  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||'';u.role=u.rol==='administrador'?'admin':u.rol||'salud';u.email=u.cedula||'';u.password=u.pass||'';u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
+  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||'';u.role={'administrador':'admin','enfermera':'salud','medico':'salud','laboratorio':'salud','radiologia':'salud','psicologia':'psicologo'}[u.rol]||'salud';u.email=u.cedula||'';u.password=u.pass||'';u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
   return false
 }
 function applyUserRole(){
