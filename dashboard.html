@@ -4055,12 +4055,12 @@ async function logLoad(){
     if(LOG.trips.length>0){
       const tids=LOG.trips.map(t=>t.id);
       const loads=[
-        sb.from("logistics_trip_members").select("*,usuarios(name,role)").in("trip_id",tids),
+        sb.from("logistics_trip_members").select("*,usuarios(nombre,rol)").in("trip_id",tids),
         sb.from("logistics_trip_activities").select("*").in("trip_id",tids),
         sb.from("logistics_trip_companies").select("*,companies(name,location)").in("trip_id",tids)
       ];
       // Admin loads ALL notifications for these trips to see who read
-      if(isAdmin)loads.push(sb.from("logistics_notifications").select("*,usuarios(name)").in("trip_id",tids));
+      if(isAdmin)loads.push(sb.from("logistics_notifications").select("*,usuarios(nombre)").in("trip_id",tids));
       const results=await Promise.all(loads);
       LOG.members=results[0].data||[];
       LOG.activities=results[1].data||[];
@@ -6906,7 +6906,7 @@ function logRenderForm(){
     tripNotifs.forEach(n=>{
       const rd=n.read;
       const readDate=n.read_at?new Date(n.read_at).toLocaleDateString('es-EC',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-      h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px"><span style="color:${rd?'#34d399':'#ef4444'}">${rd?'✅':'❌'} ${n.usuarios?.name||'?'}</span><span style="color:var(--t3);font-size:10px">${rd?readDate:'Pendiente'}</span></div>`;
+      h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px"><span style="color:${rd?'#34d399':'#ef4444'}">${rd?'✅':'❌'} ${n.usuarios?.nombre||'?'}</span><span style="color:var(--t3);font-size:10px">${rd?readDate:'Pendiente'}</span></div>`;
     });
     h+=`</div>`;
   }
