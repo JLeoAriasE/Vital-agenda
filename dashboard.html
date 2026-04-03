@@ -327,14 +327,20 @@ async function doLogin(){
   if(!sb){errEl.textContent="Error: No hay conexión a Supabase";return}
   errEl.textContent="⏳ Verificando...";errEl.style.color="#fbbf24";
   try{
-    const{data,error}=await sb.from("app_users").select("*").eq("cedula",ced).limit(1);
+    const{data,error}=await sb.from("usuarios").select("*").eq("cedula",ced).limit(1);
     if(error){errEl.style.color="#ef4444";errEl.textContent="Error BD: "+error.message;return}
     if(!data||data.length===0){errEl.style.color="#ef4444";errEl.textContent="❌ Usuario no encontrado";return}
     const user=data[0];
-    if(user.password!==pwd){errEl.style.color="#ef4444";errEl.textContent="❌ Contraseña incorrecta";return}
-    if(!user.active){errEl.style.color="#ef4444";errEl.textContent="⛔ Usuario desactivado";return}
+    if(user.pass!==pwd){errEl.style.color="#ef4444";errEl.textContent="❌ Contraseña incorrecta";return}
+    if(user.activo===false){errEl.style.color="#ef4444";errEl.textContent="⛔ Usuario desactivado";return}
+    // Normalize VitalWork user fields to dashboard format
+    user.name=user.nombre||'';
+    user.role=user.rol==='administrador'?'admin':user.rol==='medico'?'salud':user.rol==='enfermera'?'salud':user.rol||'salud';
+    user.email=user.cedula||'';
+    user.password=user.pass||'';
+    user.active=user.activo!==false;
     CURRENT_USER=user;
-    sb.from("app_users").update({last_login:new Date().toISOString()}).eq("id",user.id).then(()=>{});
+    sb.from("usuarios").update({last_login:new Date().toISOString()}).eq("id",user.id).then(()=>{}).catch(()=>{});
     errEl.textContent="✅ Login OK, cargando...";errEl.style.color="#34d399";
     hideLogin();
     applyUserRole();
@@ -343,8 +349,8 @@ async function doLogin(){
 async function autoLogin(){
   const saved=localStorage.getItem("poa_user");if(!saved)return false;
   try{const{cedula,password}=JSON.parse(saved);
-  const{data}=await sb.from("app_users").select("*").eq("cedula",cedula).eq("password",password).limit(1);
-  if(data&&data.length>0&&data[0].active){CURRENT_USER=data[0];applyUserRole();return true}}catch(e){}
+  const{data}=await sb.from("usuarios").select("*").eq("cedula",cedula).eq("pass",password).limit(1);
+  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||'';u.role=u.rol==='administrador'?'admin':u.rol||'salud';u.email=u.cedula||'';u.password=u.pass||'';u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
   return false
 }
 function applyUserRole(){
@@ -496,7 +502,7 @@ async function createAdmin(){
   if(!name||!ced||!pwd){document.getElementById("asErr").textContent="Complete todos los campos";return}
   if(pwd.length<4){document.getElementById("asErr").textContent="La contraseña debe tener mínimo 4 caracteres";return}
   if(pwd!==pwd2){document.getElementById("asErr").textContent="Las contraseñas no coinciden";return}
-  const{error}=await sb.from("app_users").insert({cedula:ced,password:pwd,name:name,role:"admin",modules:["salud","seguridad","talento","datos"]});
+  const{error}=await sb.from("usuarios").insert({cedula:ced,pass:pwd,nombre:name,rol:"administrador",modules:["salud","seguridad","talento","datos"]});
   if(error){document.getElementById("asErr").textContent="Error: "+error.message;return}
   document.getElementById("adminSetupOv").style.display="none";
   document.getElementById("lgCed").value=ced;document.getElementById("lgPwd").value=pwd;
@@ -509,20 +515,20 @@ async function createUser(){
   const mods=[...document.querySelectorAll("#nuMods input:checked")].map(e=>e.value);
   if(!name||!ced||!pwd){document.getElementById("nuErr").textContent="Complete todos los campos";return}
   if(mods.length===0){document.getElementById("nuErr").textContent="Seleccione al menos un módulo";return}
-  const{error}=await sb.from("app_users").insert({cedula:ced,password:pwd,name:name,role:mods.includes('jefe')?'jefe':(mods.length>1?"multi":mods[0]),modules:mods,created_by:CURRENT_USER.id});
+  const{error}=await sb.from("usuarios").insert({cedula:ced,pass:pwd,nombre:name,rol:mods.includes('jefe')?'jefe':(mods.length>1?"multi":mods[0]),modules:mods,created_by:CURRENT_USER.id});
   if(error){document.getElementById("nuErr").textContent="Error: "+error.message;return}
   hideNewUser();renderConfig()
 }
 async function toggleUserActive(uid,active){
-  await sb.from("app_users").update({active:!active}).eq("id",uid);renderConfig()
+  await sb.from("usuarios").update({activo:!active}).eq("id",uid);renderConfig()
 }
 async function deleteUser(uid,name){
   if(!confirm(`¿Eliminar permanentemente al usuario "${name||''}"?\n\nEsta acción no se puede deshacer.`))return;
-  await sb.from("app_users").delete().eq("id",uid);renderConfig()
+  await sb.from("usuarios").delete().eq("id",uid);renderConfig()
 }
 // Edit user profile
 async function showEditUser(uid){
-  const{data}=await sb.from("app_users").select("*").eq("id",uid).single();
+  const{data}=await sb.from("usuarios").select("*").eq("id",uid).single();
   if(!data)return;
   document.getElementById("euId").value=data.id;
   document.getElementById("euName").value=data.name;
@@ -544,7 +550,7 @@ async function saveEditUser(){
   if(newPwd&&newPwd.length<4){document.getElementById("euErr").textContent="La contraseña debe tener mínimo 4 caracteres";return}
   const upd={name:name,modules:mods,role:mods.includes('jefe')?'jefe':(mods.length>1?"multi":mods[0])};
   if(newPwd)upd.password=newPwd;
-  const{error}=await sb.from("app_users").update(upd).eq("id",uid);
+  const{error}=await sb.from("usuarios").update(upd).eq("id",uid);
   if(error){document.getElementById("euErr").textContent="Error: "+error.message;return}
   hideEditUser();renderConfig()
 }
@@ -553,13 +559,13 @@ async function resetUserPwd(uid,userName){
   const newPwd=prompt(`Nueva contraseña para ${userName}:`);
   if(!newPwd)return;
   if(newPwd.length<4){alert("La contraseña debe tener mínimo 4 caracteres");return}
-  const{error}=await sb.from("app_users").update({password:newPwd,password_reset_requested:false}).eq("id",uid);
+  const{error}=await sb.from("usuarios").update({password:newPwd,password_reset_requested:false}).eq("id",uid);
   if(error){alert("Error: "+error.message);return}
   alert(`✅ Contraseña de ${userName} actualizada`);renderConfig()
 }
 // Dismiss reset request
 async function dismissReset(uid){
-  await sb.from("app_users").update({password_reset_requested:false}).eq("id",uid);renderConfig()
+  await sb.from("usuarios").update({password_reset_requested:false}).eq("id",uid);renderConfig()
 }
 // Forgot password (from login screen)
 async function forgotPassword(){
@@ -568,9 +574,9 @@ async function forgotPassword(){
   if(!ced){errEl.style.color="#fbbf24";errEl.textContent="Ingrese su cédula para solicitar ayuda";return}
   if(!sb){errEl.style.color="#ef4444";errEl.textContent="Error: Sin conexión";return}
   errEl.style.color="#fbbf24";errEl.textContent="⏳ Enviando solicitud...";
-  const{data,error}=await sb.from("app_users").select("id,name").eq("cedula",ced).limit(1);
+  const{data,error}=await sb.from("usuarios").select("id,name").eq("cedula",ced).limit(1);
   if(error||!data||data.length===0){errEl.style.color="#ef4444";errEl.textContent="❌ Cédula no registrada en el sistema";return}
-  await sb.from("app_users").update({password_reset_requested:true}).eq("id",data[0].id);
+  await sb.from("usuarios").update({password_reset_requested:true}).eq("id",data[0].id);
   errEl.style.color="#34d399";errEl.textContent="✅ Solicitud enviada. El administrador restablecerá su contraseña pronto."
 }
 function switchModule(m){MOD=m;document.querySelectorAll(".sb-item").forEach(e=>e.classList.remove("active"));document.getElementById("sb-"+m)?.classList.add("active");["saludModule","seguridadModule","configModule","pendientesModule","talentoModule","datosModule","ambienteModule","logisticaModule","contableModule"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none"});const modMap={salud:"saludModule",seguridad:"seguridadModule",config:"configModule",pendientes:"pendientesModule",talento:"talentoModule",datos:"datosModule",ambiente:"ambienteModule",logistica:"logisticaModule",contable:"contableModule"};const target=document.getElementById(modMap[m]);if(target)target.style.display="block";if(m==="seguridad"){loadCos().then(()=>{const sc=cos.find(x=>x.mod_seguridad===true);if(sc&&sc.id!==CID){CID=sc.id;loadYears().then(()=>loadCD()).then(()=>{render();sstLoad()})}else{sstLoad()}}).catch(()=>sstLoad())}else if(m==="salud"){const _canViewAll=IS_ADMIN_OR_JEFE();const sc=_canViewAll?cos[0]:cos.find(x=>x.mod_salud===true||x.mod_salud==null);if(sc&&sc.id!==CID){CID=sc.id;loadYears().then(()=>loadCD()).then(()=>render())}else{render()}}else if(m==="config"){renderConfig()}else if(m==="pendientes"){renderPendientes()}else if(m==="talento"){tthhLoad()}else if(m==="datos"){datosLoad()}else if(m==="ambiente"){ambienteLoad()}else if(m==="logistica"){logLoad()}else if(m==="contable"){contLoad()}}
@@ -614,7 +620,7 @@ function ckS(){const u=localStorage.getItem("sb_u3")||'https://tzvdwkzhtvutiypkk
 async function doConnect(){const u=document.getElementById("sUrl").value.trim(),k=document.getElementById("sKey").value.trim(),e=document.getElementById("sErr");if(!u||!k){e.textContent="Campos obligatorios.";e.style.display="block";return}e.style.display="none";try{const c=window.supabase.createClient(u,k);const{error}=await c.from("companies").select("id").limit(1);if(error)throw error;localStorage.setItem("sb_u3",u);localStorage.setItem("sb_k3",k);document.getElementById("setupOv").style.display="none";initSB(u,k)}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
 async function initSB(u,k){sb=window.supabase.createClient(u,k);ss("ld");try{await loadCos();if(cos.length>0){const l=localStorage.getItem("last_c");CID=cos.find(c=>c.id===l)?l:cos[0].id;await loadYears();await loadCD()}ss("ok");
   // Check if users table exists and has users
-  const{data:users,error:ue}=await sb.from("app_users").select("id").limit(1);
+  const{data:users,error:ue}=await sb.from("usuarios").select("id").limit(1);
   if(!ue&&users){
     // Users table exists - ALWAYS show login screen
     if(users.length===0){showLogin();return}
@@ -1869,7 +1875,7 @@ async function renderConfig(){
   h+=`</div>`;
   // USER MANAGEMENT (admin only)
   if(CURRENT_USER&&CURRENT_USER.role==="admin"){
-    const{data:allUsers}=await sb.from("app_users").select("*").order("created_at");
+    const{data:allUsers}=await sb.from("usuarios").select("*").order("created_at");
     const users=allUsers||[];
     h+=`<div class="c" style="margin-top:20px;border-color:rgba(129,140,248,0.3)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="st" style="margin:0;color:#818cf8">👤 Gestión de Usuarios</div><button class="add-btn" onclick="showNewUser()">+ Nuevo Usuario</button></div>`;
     h+=`<div class="hn">Administra los accesos al sistema. Los usuarios desactivados no pueden iniciar sesión pero sus datos se conservan.</div>`;
@@ -1918,7 +1924,7 @@ async function doBackup(){
   if(!sb||!CURRENT_USER)return;
   const st=document.getElementById("backupStatus");if(st)st.innerHTML='<span style="color:#fbbf24">⏳ Creando respaldo...</span>';
   try{
-    const tbls=["companies","poa_activities","charlas","medical_records","psych_records","incident_records","imc_records","areas","sst_poa_activities","sst_charlas","sst_verifications","app_users"];
+    const tbls=["companies","poa_activities","charlas","medical_records","psych_records","incident_records","imc_records","areas","sst_poa_activities","sst_charlas","sst_verifications","usuarios"];
     const snapshot={};
     for(const t of tbls){const{data}=await sb.from(t).select("*");snapshot[t]=data||[]}
     const ts=new Date().toISOString();
@@ -4050,12 +4056,12 @@ async function logLoad(){
     if(LOG.trips.length>0){
       const tids=LOG.trips.map(t=>t.id);
       const loads=[
-        sb.from("logistics_trip_members").select("*,app_users(name,role)").in("trip_id",tids),
+        sb.from("logistics_trip_members").select("*,usuarios(name,role)").in("trip_id",tids),
         sb.from("logistics_trip_activities").select("*").in("trip_id",tids),
         sb.from("logistics_trip_companies").select("*,companies(name,location)").in("trip_id",tids)
       ];
       // Admin loads ALL notifications for these trips to see who read
-      if(isAdmin)loads.push(sb.from("logistics_notifications").select("*,app_users(name)").in("trip_id",tids));
+      if(isAdmin)loads.push(sb.from("logistics_notifications").select("*,usuarios(name)").in("trip_id",tids));
       const results=await Promise.all(loads);
       LOG.members=results[0].data||[];
       LOG.activities=results[1].data||[];
@@ -4063,7 +4069,7 @@ async function logLoad(){
       LOG.allNotifs=isAdmin?(results[3]?.data||[]):[];
     }else{LOG.members=[];LOG.activities=[];LOG.tripCompanies=[];LOG.allNotifs=[];}
     // Load all users (admin: for member selector; all: for activity creator names)
-    const{data:u}=await sb.from("app_users").select("id,name,role").order("name");
+    const{data:u}=await sb.from("usuarios").select("id,name,role").order("name");
     LOG.users=u||[];
     // POA suggestions now load on-demand in logLoadPoaSuggestionsUI()
     console.log("[LOG] trips:",LOG.trips.length,"members:",LOG.members.length,"notifs:",LOG.notifications.length,"user:",CURRENT_USER?.id,"isAdmin:",isAdmin);
@@ -4134,7 +4140,7 @@ function logRender(){
       h+=`<div style="font-size:12px;color:var(--t2);margin-bottom:4px">📅 ${dd.toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long'})} · ⏰ Salida: ${next.departure_time||'07:00'}</div>`;
       h+=`<div style="font-size:11px;color:var(--t3);margin-bottom:8px">🚗 ${next.transport_type==='car'?'Vehículo':next.transport_type==='bus'?'Bus':'Mixto'} · ${next.days||1} día${(next.days||1)>1?'s':''}</div>`;
       h+=`<div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:4px">👥 Equipo:</div>`;
-      nextMembers.forEach(m=>{h+=`<span style="display:inline-block;background:rgba(255,255,255,0.06);border-radius:12px;padding:3px 10px;font-size:10px;color:var(--t2);margin:2px 4px 2px 0">${DEPT_ICONS[m.department]||'👤'} ${m.app_users?.name||DEPT_LABELS[m.department]||m.department}</span>`});
+      nextMembers.forEach(m=>{h+=`<span style="display:inline-block;background:rgba(255,255,255,0.06);border-radius:12px;padding:3px 10px;font-size:10px;color:var(--t2);margin:2px 4px 2px 0">${DEPT_ICONS[m.department]||'👤'} ${m.usuarios?.name||DEPT_LABELS[m.department]||m.department}</span>`});
       if(myActs.length>0){
         h+=`<div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--t2)">📋 Tus actividades:</div>`;
         myActs.forEach(a=>{h+=`<div style="font-size:10px;color:var(--t3);padding:2px 0">${a.completed?'✅':'⬜'} ${a.activity_name}</div>`});
@@ -4318,7 +4324,7 @@ function logRenderWeek(isAdmin,visibleTrips){
       h+=`<div style="margin-bottom:6px">`;
       members.forEach(m=>{
         const isMe=CURRENT_USER&&m.user_id===CURRENT_USER.id;
-        h+=`<span style="display:inline-block;background:${isMe?LOG_COLOR+'25':'rgba(255,255,255,0.06)'};border:1px solid ${isMe?LOG_COLOR+'50':'transparent'};border-radius:12px;padding:3px 10px;font-size:10px;color:${isMe?LOG_COLOR:'var(--t2)'};margin:2px 4px 2px 0;font-weight:${isMe?'700':'400'}">${DEPT_ICONS[m.department]||'👤'} ${m.app_users?.name||DEPT_LABELS[m.department]||m.department}${isMe?' (tú)':''}</span>`;
+        h+=`<span style="display:inline-block;background:${isMe?LOG_COLOR+'25':'rgba(255,255,255,0.06)'};border:1px solid ${isMe?LOG_COLOR+'50':'transparent'};border-radius:12px;padding:3px 10px;font-size:10px;color:${isMe?LOG_COLOR:'var(--t2)'};margin:2px 4px 2px 0;font-weight:${isMe?'700':'400'}">${DEPT_ICONS[m.department]||'👤'} ${m.usuarios?.name||DEPT_LABELS[m.department]||m.department}${isMe?' (tú)':''}</span>`;
       });
       h+=`</div>`;
       // Activities grouped by department (in LEFT panel - remove from here)
@@ -4443,7 +4449,7 @@ function logRenderCalendar(isAdmin,visibleTrips){
       h+=`<div style="min-width:45px;text-align:center"><div style="font-size:14px;font-weight:800;color:${st.color}">${dd.getDate()}</div><div style="font-size:9px;color:var(--t3)">${dateLabel.split(' ')[0]}</div></div>`;
       h+=`<div style="flex:1"><div style="font-weight:700;font-size:12px;color:var(--t1)">🚐 ${t.destination_city}</div>`;
       h+=`<div style="font-size:10px;color:var(--t3)">⏰ ${t.departure_time||'07:00'} · 🚗 ${t.transport_type==='car'?'Vehículo':t.transport_type==='bus'?'Bus':'Mixto'} · ${t.days||1}d</div>`;
-      h+=`<div style="font-size:10px;color:var(--t3);margin-top:2px">👥 ${members.map(m=>m.app_users?.name||m.department).join(', ')||'Sin asignar'}</div>`;
+      h+=`<div style="font-size:10px;color:var(--t3);margin-top:2px">👥 ${members.map(m=>m.usuarios?.name||m.department).join(', ')||'Sin asignar'}</div>`;
       if(tcs.length>0){
         h+=`<div style="font-size:9px;color:var(--t3);margin-top:2px">🏢 ${tcs.map(c=>c.custom_name?'⭐ '+c.custom_name:c.companies?.name||'').join(', ')}</div>`;
         const tcC=tcs.map(tc=>{
@@ -4540,7 +4546,7 @@ function logRenderBudget(isAdmin){
       h+=`<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;font-size:10px">`;
       members.forEach(m=>{
         h+=`<div style="display:flex;justify-content:space-between;padding:3px 0">`;
-        h+=`<span style="color:var(--t2)">${DEPT_ICONS[m.department]||'👤'} ${m.app_users?.name||m.department}</span>`;
+        h+=`<span style="color:var(--t2)">${DEPT_ICONS[m.department]||'👤'} ${m.usuarios?.name||m.department}</span>`;
         if(m.extra_cost>0)h+=`<span style="color:#fbbf24;font-weight:700">+$${m.extra_cost.toFixed(2)} <span style="font-weight:400;color:var(--t3)">(${m.extra_cost_note||'extra'})</span></span>`;
         h+=`</div>`;
       });
@@ -5901,7 +5907,7 @@ async function logSendGroupWA(tipo){
       const DEPT_FULL={seguridad:'SST',salud:'Salud',ambiente:'Ambiente',datos:'Datos',tthh:'TTHH',talento:'TTHH',psicologo:'Psicología'};
       msg+=people+' Equipo:\n';
       members.forEach(m=>{
-        const name=m.app_users?.name||m.department;
+        const name=m.usuarios?.name||m.department;
         const dept=DEPT_FULL[m.department]||m.department;
         msg+='   '+check+' '+name+' ('+dept+')\n';
       });
@@ -6161,7 +6167,7 @@ function logRenderWorkerView(){
     const isMe=CURRENT_USER&&m.user_id===CURRENT_USER.id;
     h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${isMe?LOG_COLOR+'12':'rgba(255,255,255,0.03)'};border:1px solid ${isMe?LOG_COLOR+'30':'rgba(255,255,255,0.06)'};border-radius:8px;margin-bottom:3px">`;
     h+=`<span style="font-size:14px">${DEPT_ICONS[m.department]||'👤'}</span>`;
-    h+=`<span style="flex:1;font-size:12px;color:${isMe?LOG_COLOR:'var(--t1)'};font-weight:${isMe?'700':'500'}">${m.app_users?.name||m.department}${isMe?' (tú)':''}</span>`;
+    h+=`<span style="flex:1;font-size:12px;color:${isMe?LOG_COLOR:'var(--t1)'};font-weight:${isMe?'700':'500'}">${m.usuarios?.name||m.department}${isMe?' (tú)':''}</span>`;
     h+=`<span style="font-size:10px;color:var(--t3)">${m.department}</span>`;
     h+=`</div>`;
   });
@@ -6836,7 +6842,7 @@ function logRenderForm(){
       members.forEach(m=>{
         h+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:4px">`;
         h+=`<span style="font-size:16px">${DEPT_ICONS[m.department]||'👤'}</span>`;
-        h+=`<span style="flex:1;font-size:12px;color:var(--t1);font-weight:600">${m.app_users?.name||'?'}</span>`;
+        h+=`<span style="flex:1;font-size:12px;color:var(--t1);font-weight:600">${m.usuarios?.name||'?'}</span>`;
         h+=`<span style="font-size:10px;color:var(--t3);background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:10px">${DEPT_LABELS[m.department]||m.department}</span>`;
         if(m.extra_cost>0)h+=`<span style="font-size:10px;color:#fbbf24;font-weight:700">+$${m.extra_cost.toFixed(2)}</span>`;
         h+=`<button onclick="logRemoveMember('${m.id}')" style="background:#ef444420;border:1px solid #ef444440;color:#ef4444;border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer" title="Quitar del viaje">✕</button>`;
@@ -6901,7 +6907,7 @@ function logRenderForm(){
     tripNotifs.forEach(n=>{
       const rd=n.read;
       const readDate=n.read_at?new Date(n.read_at).toLocaleDateString('es-EC',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-      h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px"><span style="color:${rd?'#34d399':'#ef4444'}">${rd?'✅':'❌'} ${n.app_users?.name||'?'}</span><span style="color:var(--t3);font-size:10px">${rd?readDate:'Pendiente'}</span></div>`;
+      h+=`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px"><span style="color:${rd?'#34d399':'#ef4444'}">${rd?'✅':'❌'} ${n.usuarios?.name||'?'}</span><span style="color:var(--t3);font-size:10px">${rd?readDate:'Pendiente'}</span></div>`;
     });
     h+=`</div>`;
   }
