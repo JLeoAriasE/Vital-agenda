@@ -8446,9 +8446,9 @@ async function logAddMember(tripId){
   if(!userSel||!userSel.value){alert("Selecciona una persona del listado");return}
   const userId=userSel.value;
   // Auto-detect department from user's role
-  const user=(LOG.users||[]).find(u=>String(u.u)===String(id));
+  const user=(LOG.users||[]).find(u=>String(u.id)===String(userId));
   const role=user?.role||'salud';
-  const roleMap={'salud':'salud','psicologo':'psicologo','seguridad':'seguridad','tthh':'tthh','talento':'tthh','datos':'datos','admin':'salud'};
+  const roleMap={'salud':'salud','psicologo':'psicologo','seguridad':'seguridad','tthh':'tthh','talento':'tthh','datos':'datos','ambiente':'ambiente','admin':'salud'};
   let dept=roleMap[role]||'salud';
   // Only ask for admin users
   if(role==='admin'){
