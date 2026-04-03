@@ -836,9 +836,20 @@ function saludEditActName(id){
   if(nw===null||!nw.trim())return;
   a.name=nw.trim();render();dbs("en-"+id,()=>sb.from("poa_activities").update({name:a.name}).eq("id",id))
 }
-function saludUpdResp(id,v){
+async function saludUpdResp(id,v){
   const a=D.acts.find(x=>String(x.id)===String(id));if(!a)return;
-  a.responsible=v;dbs("sr-"+id,()=>sb.from("poa_activities").update({responsible:v}).eq("id",id))
+  a.responsible=v;
+  const applyAll=cos.length>1&&confirm("¿Aplicar este responsable a TODAS las empresas?\n\nAceptar = Todas las empresas\nCancelar = Solo esta empresa");
+  if(applyAll){
+    try{
+      const modCos=cos.filter(c=>c.mod_salud===true||c.mod_salud==null);
+      for(const co of modCos){
+        await sb.from("poa_activities").update({responsible:v}).eq("code",a.code).eq("company_id",co.id).eq("year",YR);
+      }
+    }catch(e){console.error("Error aplicando a todas:",e)}
+  }else{
+    dbs("sr-"+id,()=>sb.from("poa_activities").update({responsible:v}).eq("id",id));
+  }
 }
 function saludUpdObs(id,v){
   const a=D.acts.find(x=>String(x.id)===String(id));if(!a)return;
