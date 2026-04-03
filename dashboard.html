@@ -814,42 +814,37 @@ function saveField(f,v){D.comp[f]=v;dbs("f-"+f,()=>sb.from("companies").update({
 function saveRepLegal(v){D.comp.rep_legal=v;const co=cos.find(c=>c.id===CID);if(co)co.rep_legal=v;dbs("rl",()=>sb.from("companies").update({rep_legal:v}).eq("id",CID))}
 function saveCoName(v){v=v.trim();if(!v)return;D.comp.name=v;const co=cos.find(c=>c.id===CID);if(co)co.name=v;render();dbs("cn",()=>sb.from("companies").update({name:v}).eq("id",CID))}
 function togAct(id,mi){
-  const a=D.acts.find(x=>x.id===id);if(!a)return;
-  if(!a.done)a.done=Array(12).fill(0);
-  // Cycle: 0 (empty) → 1 (done) → 0, but if 2 (in trip) → 1 (done, verify)
-  if(a.done[mi]===2)a.done[mi]=1; // in trip → mark as done (verified)
-  else a.done[mi]=a.done[mi]===1?0:1;
-  render();dbs("ta-"+id,()=>sb.from("poa_activities").update({done:a.done}).eq("id",id))
+  const a=D.acts.find(x=>String(x.id)===String(id));if(!a)return;
+  if(!a.done||!Array.isArray(a.done))a.done=Array(12).fill(0);
+  if(!a.planned||!Array.isArray(a.planned))a.planned=Array(12).fill(0);
+  // Left click: toggle done
+  a.done[mi]=a.done[mi]===1?0:1;
+  if(a.done[mi]===1&&a.planned[mi]===0)a.planned[mi]=1;
+  render();dbs("ta-"+id,()=>sb.from("poa_activities").update({done:a.done,planned:a.planned}).eq("id",id));
 }
 async function saludTogPlan(id,mi){
-  const a=D.acts.find(x=>x.id===id);if(!a)return;
-  if(!a.planned)a.planned=Array(12).fill(0);
-  const newVal=a.planned[mi]===1?0:1;
-  const applyAll=cos.length>1&&confirm("¿Aplicar esta planificación a TODAS las empresas?\n\nAceptar = Todas las empresas\nCancelar = Solo esta empresa");
-  a.planned[mi]=newVal;
+  const a=D.acts.find(x=>String(x.id)===String(id));if(!a)return;
+  if(!a.planned||!Array.isArray(a.planned))a.planned=Array(12).fill(0);
+  if(!a.done||!Array.isArray(a.done))a.done=Array(12).fill(0);
+  // Right click: toggle planned
+  a.planned[mi]=a.planned[mi]===1?0:1;
+  if(a.planned[mi]===0&&a.done[mi]===1)a.done[mi]=0;
   render();
-  if(applyAll){
-    try{
-      const{data:allActs}=await sb.from("poa_activities").select("id,planned,company_id").eq("code",a.code).eq("year",YR);
-      if(allActs){for(const oa of allActs){
-        if(!oa.planned)oa.planned=Array(12).fill(0);
-        oa.planned[mi]=newVal;
-        await sb.from("poa_activities").update({planned:oa.planned}).eq("id",oa.id);
-      }}
-    }catch(e){console.error("Error aplicando a todas:",e)}
-  }else{
-    dbs("sp-"+id,()=>sb.from("poa_activities").update({planned:a.planned}).eq("id",id));
-  }
+  dbs("sp-"+id,()=>sb.from("poa_activities").update({planned:a.planned,done:a.done}).eq("id",id));
 }
 function saludEditActName(id){
-  const a=D.acts.find(x=>x.id===id);if(!a)return;
+  const a=D.acts.find(x=>String(x.id)===String(id));if(!a)return;
   const nw=prompt("Editar nombre de actividad:",a.name);
   if(nw===null||!nw.trim())return;
   a.name=nw.trim();render();dbs("en-"+id,()=>sb.from("poa_activities").update({name:a.name}).eq("id",id))
 }
 function saludUpdResp(id,v){
-  const a=D.acts.find(x=>x.id===id);if(!a)return;
+  const a=D.acts.find(x=>String(x.id)===String(id));if(!a)return;
   a.responsible=v;dbs("sr-"+id,()=>sb.from("poa_activities").update({responsible:v}).eq("id",id))
+}
+function saludUpdObs(id,v){
+  const a=D.acts.find(x=>String(x.id)===String(id));if(!a)return;
+  a.observations=v;dbs("so-"+id,()=>sb.from("poa_activities").update({observations:v}).eq("id",id));
 }
 async function saludAddAct(){
   const name=prompt("Nombre de la nueva actividad:");if(!name||!name.trim())return;
@@ -1085,7 +1080,7 @@ function render(){
     if(isAdmin)h+=`<button class="add-btn" onclick="saludAddAct()" style="font-size:11px;padding:6px 14px">+ Agregar Actividad</button>`;
     h+=`</div>`;
     const fa=FC==="all"?ga():ga().filter(a=>a.category===FC);
-    h+='<div class="tw"><table><thead><tr><th style="min-width:34px">#</th><th style="min-width:200px;text-align:left">Actividad</th><th style="min-width:100px;text-align:left">Responsable</th>';
+    h+='<div class="tw"><table><thead><tr><th style="min-width:34px">#</th><th style="min-width:200px;text-align:left">Actividad</th><th style="min-width:100px;text-align:left">Responsable</th><th style="min-width:120px;text-align:left">Observaciones</th>';
     MO.forEach(m=>{h+=`<th style="width:38px;text-align:center">${m}</th>`});h+='<th style="width:46px;text-align:center">%</th>';
     if(isAdmin)h+='<th style="width:30px"></th>';
     h+='</tr></thead><tbody>';
@@ -1101,20 +1096,20 @@ function render(){
       const pct=tP>0?Math.round(tD/tP*100):0;
       // Determine if activity was done early (done in non-planned month)
       const earlyDone=doneMonths.some(mi=>act.planned[mi]!==1);
-      h+=`<tr class="poa-row" style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="text-align:center;color:#64748b;font-family:var(--mn);font-size:9px">${act.code}</td><td>${isAdmin?`<span style="cursor:pointer" onclick="saludEditActName(${act.id})" title="Clic para editar">`:''}<span style="font-size:7px;font-weight:700;color:${cat?.color};background:${cat?.color}18;padding:1px 3px;border-radius:3px">${cat?.icon}</span> <span style="font-weight:500;font-size:11px">${act.name}</span>${isAdmin?'</span>':''}</td><td><input class="ni" style="width:100%;font-size:9px" value="${act.responsible||''}" onchange="saludUpdResp(${act.id},this.value)" placeholder="..."></td>`;
+      h+=`<tr class="poa-row" style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="text-align:center;color:#64748b;font-family:var(--mn);font-size:9px">${act.code}</td><td>${isAdmin?`<span style="cursor:pointer" onclick="saludEditActName('${act.id}')" title="Clic para editar">`:''}<span style="font-size:7px;font-weight:700;color:${cat?.color};background:${cat?.color}18;padding:1px 3px;border-radius:3px">${cat?.icon}</span> <span style="font-weight:500;font-size:11px">${act.name}</span>${isAdmin?'</span>':''}</td><td><input class="ni" style="width:100%;font-size:9px" value="${act.responsible||''}" onchange="saludUpdResp('${act.id}',this.value)" placeholder="..."></td><td><input class="ni" style="width:100%;font-size:9px" value="${act.observations||''}" onchange="saludUpdObs('${act.id}',this.value)" placeholder="Observaciones..."></td>`;
       MO.forEach((_,mi)=>{const isP=act.planned[mi]===1,isD=act.done[mi]===1,isTrip=act.done[mi]===2;
         const isGhost=isP&&!isD&&!isTrip&&earlyDone;
         if(isD){
           const isEarly=!isP;
-          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb dn" style="border-color:${cat?.color};background:${cat?.color}22;color:${cat?.color}${isEarly?';border-style:dashed':''}" onclick="togAct(${act.id},${mi})">✓</div></td>`;
+          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb dn" style="border-color:${cat?.color};background:${cat?.color}22;color:${cat?.color}${isEarly?';border-style:dashed':''}" onclick="togAct('${act.id}',${mi})">✓</div></td>`;
         } else if(isTrip){
-          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" style="border-color:#f97316;background:rgba(249,115,22,0.2);color:#f97316;font-size:9px" onclick="togAct(${act.id},${mi})" title="En viaje — pendiente verificar">🚐</div></td>`;
+          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" style="border-color:#f97316;background:rgba(249,115,22,0.2);color:#f97316;font-size:9px" onclick="togAct('${act.id}',${mi})" title="En viaje — pendiente verificar">🚐</div></td>`;
         } else if(isGhost){
-          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" style="opacity:0.25;border-color:${cat?.color};background:${cat?.color}08" onclick="togAct(${act.id},${mi})"></div></td>`;
+          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" style="opacity:0.25;border-color:${cat?.color};background:${cat?.color}08" onclick="togAct('${act.id}',${mi})"></div></td>`;
         } else if(isP){
-          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" onclick="togAct(${act.id},${mi})" oncontextmenu="event.preventDefault();saludTogPlan(${act.id},${mi})"></div></td>`;
+          h+=`<td style="text-align:center;padding:4px 1px"><div class="cb" onclick="togAct('${act.id}',${mi})" oncontextmenu="event.preventDefault();saludTogPlan('${act.id}',${mi})"></div></td>`;
         } else {
-          h+=`<td style="text-align:center;padding:4px 1px;cursor:pointer" onclick="togAct(${act.id},${mi})" oncontextmenu="event.preventDefault();saludTogPlan(${act.id},${mi})"><span style="color:rgba(255,255,255,0.05);font-size:10px">·</span></td>`;
+          h+=`<td style="text-align:center;padding:4px 1px;cursor:pointer" onclick="togAct('${act.id}',${mi})" oncontextmenu="event.preventDefault();saludTogPlan('${act.id}',${mi})"><span style="color:rgba(255,255,255,0.05);font-size:10px">·</span></td>`;
         }
       });
       h+=`<td style="text-align:center;font-weight:700;font-family:var(--mn);font-size:11px;color:${pct===100?'#34d399':pct>0?'#fbbf24':'#475569'}">${pct}%</td>`;
