@@ -510,8 +510,8 @@ async function createUser(){
   const mods=[...document.querySelectorAll("#nuMods input:checked")].map(e=>e.value);
   if(!name||!ced||!pwd){document.getElementById("nuErr").textContent="Complete todos los campos";return}
   if(mods.length===0){document.getElementById("nuErr").textContent="Seleccione al menos un módulo";return}
-  const{error}=await sb.from("usuarios").insert({cedula:ced,pass:pwd,nombre:name,rol:mods.includes('jefe')?'jefe':(mods.length>1?"multi":mods[0]),modules:mods,created_by:CURRENT_USER.id});
-  if(error){document.getElementById("nuErr").textContent="Error: "+error.message;return}
+  const{error}=await sb.from("usuarios").insert({cedula:ced,pass:pwd,nombre:name,rol:mods.includes('jefe')?'jefe':(mods.length>1?"multi":mods[0]),modules:mods,created_by:CURRENT_USER.id,activo:true});
+  if(error){document.getElementById("nuErr").textContent="Error: "+error.message;console.error("Create user error:",error);return}
   hideNewUser();renderConfig()
 }
 async function toggleUserActive(uid,active){
