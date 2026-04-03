@@ -689,20 +689,17 @@ async function initSaludData(cid,yr){
   for(let i=0;i<rows.length;i+=30){
     await sb.from("poa_activities").upsert(rows.slice(i,i+30),{onConflict:'company_id,year,code',ignoreDuplicates:true});
   }
-  // Charlas de Salud Ocupacional
+  // 9 Charlas de Salud Ocupacional
   const CH=[
-  ["ch1","Socialización del POA de Salud","📋","#2dd4bf","all"],
-  ["ch2","Primeros Auxilios Básicos","🩹","#ef4444","all"],
-  ["ch3","Prevención de Enfermedades Ocupacionales","🏥","#3b82f6","all"],
-  ["ch4","Ergonomía y Pausas Activas","🧘","#8b5cf6","all"],
-  ["ch5","Riesgos Psicosociales en el Trabajo","🧠","#f472b6","all"],
-  ["ch6","Prevención del Consumo de Drogas y Alcohol","🛡","#34d399","all"],
-  ["ch7","Alimentación Saludable en el Trabajo","🍎","#fb923c","all"],
-  ["ch8","Manejo del Estrés Laboral","😌","#a78bfa","all"],
-  ["ch9","Prevención de Enfermedades Crónicas","❤️","#dc2626","all"],
-  ["ch10","ACV - Accidentes Cerebrovasculares","🧠","#ef4444","all"],
-  ["ch11","Higiene Personal y Prevención de Enfermedades Infecciosas","🧼","#06b6d4","all"],
-  ["ch12","Protección de la Salud Visual","👁️","#6366f1","all"]
+  ["ch1","Accidente Cerebrovascular (ACV)","🧠","#ef4444","all"],
+  ["ch2","Ergonomía","🪑","#8b5cf6","all"],
+  ["ch3","Nutrición","🥗","#fb923c","all"],
+  ["ch4","Salud Sexual y Reproductiva","🩺","#f472b6","all"],
+  ["ch5","VIH - SIDA","🎗️","#dc2626","all"],
+  ["ch6","Riesgos Psicosociales","😰","#34d399","all"],
+  ["ch7","Violencia de Género","🚫","#06b6d4","all"],
+  ["ch8","Prevención de Consumo de Alcohol, Tabaco y Drogas","🚭","#f59e0b","all"],
+  ["ch9","Grupos Prioritarios","🤰","#a78bfa","all"]
   ];
   await sb.from("charlas").upsert(CH.map(c=>({company_id:cid,year:yr,charla_key:c[0],name:c[1],icon:c[2],color:c[3],size_filter:c[4]})),{onConflict:'company_id,year,charla_key'});
 }
