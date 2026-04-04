@@ -412,8 +412,8 @@ function applyUserRole(){
   const lo=document.getElementById("sb-logout");if(lo)lo.style.display="block";
   const sw=document.getElementById("sb-switch");if(sw)sw.style.display=isAdmin?"block":"none";
   render();
-  // Post-login: show pending trips notification for workers (not jefe)
-  if(!isAdmin&&!IS_JEFE()){setTimeout(()=>showPostLoginNotifications(),800)}
+  // Post-login: show pending trips notification for all users
+  setTimeout(()=>showPostLoginNotifications(),800)
 }
 function doLogout(){CURRENT_USER=null;localStorage.removeItem("poa_user");document.body.classList.remove('jefe-readonly');
   ["salud","seguridad","talento","datos","config","pendientes","logistica"].forEach(m=>{const el=document.getElementById("sb-"+m);if(el)el.style.display="none"});
@@ -426,13 +426,23 @@ async function showPostLoginNotifications(){
   if(!CURRENT_USER||!sb)return;
   try{
     const uid=CURRENT_USER.id;
+    const isAdmin=CURRENT_USER.role==='admin';
     const today=new Date().toISOString().split('T')[0];
-    // Get trips where this user is a member, from today onwards
-    const{data:myMembers}=await sb.from("logistics_trip_members").select("trip_id").eq("user_id",uid);
-    if(!myMembers||myMembers.length===0)return;
-    const tids=myMembers.map(m=>m.trip_id);
-    const{data:trips}=await sb.from("logistics_trips").select("*").in("id",tids).gte("trip_date",today).order("trip_date");
-    if(!trips||trips.length===0)return;
+    let trips=[],tids=[];
+    if(isAdmin){
+      // Admin sees ALL upcoming trips
+      const{data}=await sb.from("logistics_trips").select("*").gte("trip_date",today).order("trip_date");
+      trips=data||[];
+      tids=trips.map(t=>t.id);
+    }else{
+      // Others see only trips where they are assigned
+      const{data:myMembers}=await sb.from("logistics_trip_members").select("trip_id").eq("user_id",uid);
+      if(!myMembers||myMembers.length===0)return;
+      tids=myMembers.map(m=>m.trip_id);
+      const{data}=await sb.from("logistics_trips").select("*").in("id",tids).gte("trip_date",today).order("trip_date");
+      trips=data||[];
+    }
+    if(trips.length===0)return;
     // Get companies for these trips
     const{data:tCos}=await sb.from("logistics_trip_companies").select("*,companies(name)").in("trip_id",tids);
     const coMap={};(tCos||[]).forEach(tc=>{if(!coMap[tc.trip_id])coMap[tc.trip_id]=[];coMap[tc.trip_id].push(tc.custom_name||tc.companies?.name||'')});
@@ -442,13 +452,11 @@ async function showPostLoginNotifications(){
     const userName=CURRENT_USER.name.split(' ')[0];
     let h=`<div id="postLoginPopup" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)">`;
     h+=`<div style="background:var(--bg2,#1e1e2e);border:2px solid #f97316;border-radius:16px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5)">`;
-    // Header
     h+=`<div style="background:linear-gradient(135deg,#f9731620,#f9731608);padding:20px;border-radius:14px 14px 0 0">`;
     h+=`<div style="font-size:20px;font-weight:800;color:#f97316;margin-bottom:4px">👋 ¡Hola ${userName}!</div>`;
-    h+=`<div style="font-size:12px;color:var(--t2)">Tienes ${trips.length} viaje${trips.length>1?'s':''} programado${trips.length>1?'s':''}</div>`;
+    h+=`<div style="font-size:12px;color:var(--t2)">${isAdmin?'Hay':'Tienes'} ${trips.length} viaje${trips.length>1?'s':''} programado${trips.length>1?'s':''}</div>`;
     h+=`</div>`;
     h+=`<div style="padding:16px">`;
-    // Unread notifications
     if(notifs&&notifs.length>0){
       h+=`<div style="margin-bottom:12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:10px">`;
       h+=`<div style="font-size:11px;font-weight:700;color:#ef4444;margin-bottom:6px">🔔 ${notifs.length} notificación${notifs.length>1?'es':''} sin leer</div>`;
@@ -459,7 +467,6 @@ async function showPostLoginNotifications(){
       if(notifs.length>3)h+=`<div style="font-size:9px;color:var(--t3)">... y ${notifs.length-3} más</div>`;
       h+=`</div>`;
     }
-    // Upcoming trips
     trips.forEach(t=>{
       const dd=new Date(t.trip_date+'T12:00:00');
       const diffDays=Math.ceil((dd-new Date())/(1000*60*60*24));
@@ -468,20 +475,16 @@ async function showPostLoginNotifications(){
       const coNames=coMap[t.id]||[];
       h+=`<div onclick="document.getElementById('postLoginPopup').remove();switchModule('logistica')" style="background:${urgColor}10;border:1px solid ${urgColor}30;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='${urgColor}20'" onmouseout="this.style.background='${urgColor}10'">`;
       h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">`;
-      if(coNames.length>0){
-        h+=`<div style="font-size:14px;font-weight:800;color:var(--t1)">🏢 ${coNames.join(' · ')}</div>`;
-      }
+      if(coNames.length>0){h+=`<div style="font-size:14px;font-weight:800;color:var(--t1)">🏢 ${coNames.join(' · ')}</div>`}
       h+=`<span style="background:${urgColor};color:#fff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px">${urgLabel}</span>`;
       h+=`</div>`;
       h+=`<div style="font-size:12px;color:var(--t2);margin-bottom:2px">📍 ${t.destination_city}</div>`;
       h+=`<div style="font-size:11px;color:var(--t3)">📅 ${dd.toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long'})} · ⏰ ${t.departure_time||'07:00'}</div>`;
       h+=`</div>`;
     });
-    // Button
     h+=`<button onclick="document.getElementById('postLoginPopup').remove()" style="width:100%;margin-top:8px;background:#f97316;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer">✅ Entendido</button>`;
     h+=`</div></div></div>`;
     document.body.insertAdjacentHTML('beforeend',h);
-    // Mark notifications as read
     if(notifs&&notifs.length>0){
       const nids=notifs.map(n=>n.id);
       await sb.from("logistics_notifications").update({read:true}).in("id",nids);
@@ -4101,8 +4104,8 @@ async function toggleMod(mod,val){
 let LOG={tab:"calendar",agData:[],calView:"month",weekStart:null,trips:[],dests:[],members:[],activities:[],notifications:[],month:new Date().getMonth(),year:new Date().getFullYear()};
 const LOG_COLOR="#f97316";
 const TRIP_ST={planned:{icon:"📅",label:"Planificado",color:"#60a5fa"},in_progress:{icon:"🚐",label:"En curso",color:"#fbbf24"},completed:{icon:"✅",label:"Completado",color:"#34d399"},cancelled:{icon:"❌",label:"Cancelado",color:"#ef4444"},rescheduled:{icon:"🔄",label:"Reagendado",color:"#a78bfa"}};
-const DEPT_ICONS={salud:"🩺",psicologo:"🧠",seguridad:"🔧",tthh:"👥",datos:"🛡",ambiente:"🌿"};
-const DEPT_LABELS={salud:"Doctor(a)",psicologo:"Psicólogo(a)",seguridad:"Seguridad",tthh:"TTHH",datos:"Datos",ambiente:"Ambiente"};
+const DEPT_ICONS={salud:"🩺",psicologo:"🧠",seguridad:"🔧",tthh:"👥",talento:"👥",datos:"🛡",ambiente:"🌿"};
+const DEPT_LABELS={salud:"Doctor(a)",psicologo:"Psicólogo(a)",seguridad:"Seguridad",tthh:"TTHH",talento:"Talento Humano",datos:"Datos",ambiente:"Ambiente"};
 
 async function logLoad(){
   if(!sb)return;
@@ -5214,7 +5217,7 @@ async function agLoad(){
       console.log('[AG] Company IDs en viajes:',LOG._agTripCos.map(tc=>tc.company_id+' ('+tc.custom_name+')'));
       console.log('[AG] Miembros por viaje:',LOG._agTripMembers.map(m=>m.trip_id.substring(0,8)+'→'+m.department));
       // Show which companies SHOULD be auto-detected
-      const deptRoleMapDebug={sst:'seguridad',salud:'salud',ambiente:'ambiente',lopdpd:'datos',tthh:['tthh','talento'],dpd:'_dpd'};
+      const deptRoleMapDebug={sst:'seguridad',salud:['salud','psicologo'],ambiente:'ambiente',lopdpd:'datos',tthh:['tthh','talento'],dpd:'_dpd'};
       LOG._agTripCos.forEach(tc=>{
         if(!tc.company_id)return;
         const co=cos.find(c=>c.id===tc.company_id);
@@ -5274,7 +5277,7 @@ function agGetVal(companyId,deptId,field){
   }
   // No manual record - auto-detect from trips for ag and vis fields only
   if(field==='ag'||field==='vis'){
-    const deptRoleMap={sst:'seguridad',salud:'salud',ambiente:'ambiente',lopdpd:'datos',tthh:['tthh','talento'],dpd:'_dpd'};
+    const deptRoleMap={sst:'seguridad',salud:['salud','psicologo'],ambiente:'ambiente',lopdpd:'datos',tthh:['tthh','talento'],dpd:'_dpd'};
     const trips=LOG._agTrips||[];
     const tripCos=LOG._agTripCos||[];
     const tripMembers=LOG._agTripMembers||[];
@@ -6947,7 +6950,7 @@ function logRenderForm(){
       const hasAdminAvail=availUsers.some(u=>u.role==='admin');
       if(hasAdminAvail){
         h+=`<select id="logAddDeptSel" style="padding:8px;border-radius:8px;border:1px solid var(--bd);background:rgba(255,255,255,0.06);color:var(--t1);font-size:12px">`;
-        h+=`<option value="salud">🩺 Doctor(a)</option><option value="psicologo">🧠 Psicólogo(a)</option><option value="seguridad">🔧 Seguridad</option><option value="tthh">👥 TTHH</option><option value="datos">🛡 Datos</option><option value="ambiente">🌿 Ambiente</option>`;
+        h+=`<option value="salud">🩺 Doctor(a)</option><option value="psicologo">🧠 Psicólogo(a)</option><option value="seguridad">🔧 Seguridad</option><option value="tthh">👥 TTHH</option><option value="talento">👥 Talento Humano</option><option value="datos">🛡 Datos</option><option value="ambiente">🌿 Ambiente</option>`;
         h+=`</select>`;
       }
       h+=`<button onclick="logAddMember('${e.id}')" style="background:${LOG_COLOR};color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer">+ Agregar</button>`;
