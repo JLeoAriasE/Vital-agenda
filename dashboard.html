@@ -357,8 +357,8 @@ function applyUserRole(){
   const rawMods=parseModules(u);
   const hasPsico=rawMods.includes("psicologo")||u.role==="psicologo";
   let effectiveMods;
-  if(isAdmin){effectiveMods=["salud","seguridad","talento","datos"]}
-  else if(_isJefe){effectiveMods=["salud","seguridad","talento","datos"]}
+  if(isAdmin){effectiveMods=["salud","seguridad","talento","datos","ambiente"]}
+  else if(_isJefe){effectiveMods=["salud","seguridad","talento","datos","ambiente"]}
   else if(hasPsico){effectiveMods=["salud"]}
   else{
     // Use role as primary: each role maps to ONE specific sidebar module
@@ -384,7 +384,7 @@ function applyUserRole(){
     }
   }
   // Show/hide sidebar items - FIRST hide ALL, then show only allowed
-  ["salud","seguridad","talento","datos","config","pendientes"].forEach(m=>{
+  ["salud","seguridad","talento","datos","ambiente","config","pendientes","logistica","contable"].forEach(m=>{
     const el=document.getElementById("sb-"+m);if(!el)return;
     el.style.display="none"; // hide all first
   });
@@ -4384,13 +4384,15 @@ function logRenderWeek(isAdmin,visibleTrips){
       if(t.jornada_medica)h+=`<div style="background:linear-gradient(135deg,rgba(45,212,191,0.25),rgba(129,140,248,0.25));border:2px solid rgba(45,212,191,0.4);border-radius:10px;padding:10px;text-align:center;margin-bottom:8px"><div style="font-size:16px;font-weight:900;color:#2dd4bf;letter-spacing:1px">🩺 JORNADA MÉDICA OCUPACIONAL</div></div>`;
       if(t.jornada_examenes)h+=`<div style="background:linear-gradient(135deg,rgba(129,140,248,0.25),rgba(244,114,182,0.25));border:2px solid rgba(129,140,248,0.4);border-radius:10px;padding:10px;text-align:center;margin-bottom:8px"><div style="font-size:16px;font-weight:900;color:#818cf8;letter-spacing:1px">🔬 JORNADA DE EXÁMENES OCUPACIONALES</div></div>`;
       if(t.socializacion)h+=`<div style="background:linear-gradient(135deg,rgba(244,114,182,0.25),rgba(251,191,36,0.25));border:2px solid rgba(244,114,182,0.4);border-radius:10px;padding:10px;text-align:center;margin-bottom:8px"><div style="font-size:16px;font-weight:900;color:#f472b6;letter-spacing:1px">📋 SOCIALIZACIÓN DE INFORME MENSUAL</div></div>`;
-      // Convocatoria check
+      // Convocatoria check - only admin
       const convocado=t.convocatoria_enviada||false;
+      if(CURRENT_USER&&CURRENT_USER.role==='admin'){
       h+=`<div onclick="event.stopPropagation();logToggleConvocatoria('${t.id}')" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 10px;border-radius:8px;border:1px solid ${convocado?'rgba(45,212,191,0.4)':'rgba(255,255,255,0.1)'};background:${convocado?'rgba(45,212,191,0.1)':'rgba(255,255,255,0.02)'};cursor:pointer;transition:all 0.15s">`;
       h+=`<div style="width:20px;height:20px;border-radius:5px;border:2px solid ${convocado?'#2dd4bf':'rgba(255,255,255,0.2)'};background:${convocado?'#2dd4bf':'transparent'};display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0">${convocado?'✓':''}</div>`;
       h+=`<span style="font-size:11px;font-weight:700;color:${convocado?'#2dd4bf':'var(--t3)'}">📧 Convocatoria formal enviada</span>`;
       if(convocado&&t.convocatoria_fecha)h+=`<span style="font-size:9px;color:var(--t3);margin-left:auto">${t.convocatoria_fecha}</span>`;
       h+=`</div>`;
+      } // end admin-only convocatoria
       h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">`;
       if(tcs.length>0){
         const coNames=tcs.map(c=>{
