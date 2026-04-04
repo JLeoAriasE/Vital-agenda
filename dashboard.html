@@ -333,7 +333,7 @@ async function doLogin(){
     const user=data[0];
     if(user.pass!==pwd){errEl.style.color="#ef4444";errEl.textContent="❌ Contraseña incorrecta";return}
     if(user.activo===false){errEl.style.color="#ef4444";errEl.textContent="⛔ Usuario desactivado";return}
-    user.name=user.nombre||"";user.role={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo"}[user.rol]||"salud";user.email=user.cedula||"";user.password=user.pass||"";user.active=user.activo!==false;
+    user.name=user.nombre||"";user.role={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo","talento":"talento","tthh":"tthh","seguridad":"seguridad","datos":"datos","ambiente":"ambiente","contador":"contador","jefe":"jefe","multi":"multi"}[user.rol]||user.rol||"salud";user.email=user.cedula||"";user.password=user.pass||"";user.active=user.activo!==false;
     CURRENT_USER=user;
     sb.from("usuarios").update({last_login:new Date().toISOString()}).eq("id",user.id).then(function(){}).catch(function(){});
     errEl.textContent="✅ Login OK, cargando...";errEl.style.color="#34d399";
@@ -345,7 +345,7 @@ async function autoLogin(){
   const saved=localStorage.getItem("poa_user");if(!saved)return false;
   try{const{cedula,password}=JSON.parse(saved);
   const{data}=await sb.from("usuarios").select("*").eq("cedula",cedula).eq("pass",password).limit(1);
-  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||"";u.role={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo"}[u.rol]||"salud";u.email=u.cedula||"";u.password=u.pass||"";u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
+  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||"";u.role={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo","talento":"talento","tthh":"tthh","seguridad":"seguridad","datos":"datos","ambiente":"ambiente","contador":"contador","jefe":"jefe","multi":"multi"}[u.rol]||u.rol||"salud";u.email=u.cedula||"";u.password=u.pass||"";u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
   return false
 }
 function applyUserRole(){
@@ -4410,7 +4410,15 @@ function logRenderWeek(isAdmin,visibleTrips){
         h+=`<span style="display:inline-block;background:${isMe?LOG_COLOR+'25':'rgba(255,255,255,0.06)'};border:1px solid ${isMe?LOG_COLOR+'50':'transparent'};border-radius:12px;padding:3px 10px;font-size:10px;color:${isMe?LOG_COLOR:'var(--t2)'};margin:2px 4px 2px 0;font-weight:${isMe?'700':'400'}">${DEPT_ICONS[m.department]||'👤'} ${m.usuarios?.nombre||DEPT_LABELS[m.department]||m.department}${isMe?' (tú)':''}</span>`;
       });
       h+=`</div>`;
-      // Activities grouped by department (in LEFT panel - remove from here)
+      // Personal informe check - only show for current user's membership
+      const myMember=members.find(m=>CURRENT_USER&&m.user_id===CURRENT_USER.id);
+      if(myMember){
+        const myInf=myMember.informe_subido===true;
+        h+=`<div style="margin-top:6px;display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;border:1px solid ${myInf?'rgba(52,211,153,0.3)':'rgba(251,191,36,0.3)'};background:${myInf?'rgba(52,211,153,0.06)':'rgba(251,191,36,0.06)'}">`;
+        h+=`<div class="cb ${myInf?'dn':''}" style="width:22px;height:22px;${myInf?'border-color:#34d399;background:rgba(52,211,153,0.2);color:#34d399':'border-color:#fbbf24'}" onclick="event.stopPropagation();logTogInforme('${myMember.id}')">📄</div>`;
+        h+=`<span style="font-size:10px;font-weight:700;color:${myInf?'#34d399':'#fbbf24'}">${myInf?'✅ Informe subido':'📄 Marcar informe subido'}</span>`;
+        h+=`</div>`;
+      }
       if(isAdmin){
         h+=`<div style="font-size:11px;font-weight:700;color:${LOG_COLOR};text-align:right;margin-top:4px">💰 $${(t.total_cost||0).toFixed(2)}</div>`;
         const tNotifs=LOG.allNotifs.filter(n=>n.trip_id===t.id);
