@@ -1170,7 +1170,7 @@ function render(){
       h+=`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px"><span style="color:var(--t3)">Cobertura</span><span style="color:${trC};font-weight:700;font-family:var(--mn)">${trPct}% (${tr}/${tw})</span></div><div style="height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(trPct,100)}%;background:${trC};border-radius:3px"></div></div><div style="font-size:8px;color:var(--t3);margin-top:2px">Meta ≥85%</div></div>`;
       h+=`<div style="display:flex;flex-direction:column;gap:6px"><div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Mes planificado</label><select onchange="setChPM(${idx},this.value)" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--bd);background:${c.select_bg_color||'rgba(255,255,255,0.05)'};color:${c.select_text_color||'var(--t1)'};font-size:11px;font-weight:600"><option value="-1" ${pm<0?'selected':''}>Sin planificar</option>`;
       MF.forEach((m,mi)=>{h+=`<option value="${mi}" ${pm===mi?'selected':''}>${m}</option>`});
-      h+=`</select></div><div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Trabajadores capacitados</label><input class="ni" style="width:100%;padding:6px" type="number" min="0" max="${tw}" value="${tr}" onchange="setChTr(${idx},this.value)"></div><button class="ct ${ch.done?'on':''}" onclick="togCh(${idx})">${ch.done?'✅ Realizada':'⬜ Marcar'}</button><input class="cdt" type="date" value="${ch.date}" onchange="setChD(${idx},this.value)"></div></div>`});h+='</div>';
+      h+=`</select></div><div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Trabajadores capacitados</label><input class="ni" style="width:100%;padding:6px" type="number" min="0" max="${tw}" value="${tr}" onchange="setChTr(${idx},this.value)"></div><button class="ct ${ch.done?'on':''}" onclick="togCh(${idx})">${ch.done?'✅ Realizada':'⬜ Marcar'}</button><input class="cdt" type="date" value="${ch.date}" onchange="setChD(${idx},this.value)"><button onclick="abrirReg('salud',${idx})" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(45,212,191,0.5);background:rgba(45,212,191,0.08);color:#2dd4bf;cursor:pointer;font-size:11px;font-weight:700">📋 Registro de Asistencia</button></div></div>`});h+='</div>';
 
   } else if(V==="incidents"){
     h+=`<div class="gr g6" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))"><div class="c"><div class="ib">🚨</div><div class="kl">Total</div><div class="kv" style="color:#ef4444">${s.incAll}</div></div>`;
@@ -2635,7 +2635,7 @@ function sstRender(){
       h+=`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px"><span style="color:var(--t3)">Cobertura</span><span style="color:${trC};font-weight:700;font-family:var(--mn)">${trPct}% (${tr}/${tw})</span></div><div style="height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(trPct,100)}%;background:${trC};border-radius:3px"></div></div><div style="font-size:8px;color:var(--t3);margin-top:2px">Meta ≥85%</div></div>`;
       h+=`<div style="display:flex;flex-direction:column;gap:6px"><div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Mes planificado</label><select onchange="sstSaveChPM('${ch.id}',this.value)" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--bd);background:${c.select_bg_color||'rgba(255,255,255,0.05)'};color:${c.select_text_color||'var(--t1)'};font-size:11px;font-weight:600"><option value="-1" ${pm<0?'selected':''}>Sin planificar</option>`;
       MF.forEach((m,mi)=>{h+=`<option value="${mi}" ${pm===mi?'selected':''}>${m}</option>`});
-      h+=`</select></div><div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Trabajadores capacitados</label><input class="ni" style="width:100%;padding:6px" type="number" min="0" max="${tw}" value="${tr}" onchange="sstSaveChTr('${ch.id}',this.value)"></div><button class="ct ${ch.done?'on':''}" onclick="sstTogCh('${ch.id}')">${ch.done?'✅ Realizada':'⬜ Marcar'}</button><input class="cdt" type="date" value="${ch.date||''}" onchange="sstSaveChF('${ch.id}','date',this.value)"></div></div>`});
+      h+=`</select></div><div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:2px">Trabajadores capacitados</label><input class="ni" style="width:100%;padding:6px" type="number" min="0" max="${tw}" value="${tr}" onchange="sstSaveChTr('${ch.id}',this.value)"></div><button class="ct ${ch.done?'on':''}" onclick="sstTogCh('${ch.id}')">${ch.done?'✅ Realizada':'⬜ Marcar'}</button><input class="cdt" type="date" value="${ch.date||''}" onchange="sstSaveChF('${ch.id}','date',this.value)"><button onclick="abrirReg('sst',${origIdx})" style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1px solid rgba(251,191,36,0.5);background:rgba(251,191,36,0.08);color:#fbbf24;cursor:pointer;font-size:11px;font-weight:700">📋 Registro de Asistencia</button></div></div>`});
     h+='</div>';
   } else if(SST_V==="verifs"){
     h+=`<div class="c"><div class="st">✅ Verificaciones — Servicios Permanentes</div><div class="hn">Clic izquierdo = marcar cumplimiento · Clic en ⚙️ = configurar meses y frecuencia · Check mensual/trimestral con observaciones.</div>`;
@@ -7134,6 +7134,12 @@ function logRenderForm(){
   }
 
   // ACTIVITIES (admin sees all, read-only)
+  if(!isNew&&members.length>0){
+    h+=`<div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">`;
+    h+=`<button onclick="genRegistroAsistencia('${e.id}','salud')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(45,212,191,0.4);background:rgba(45,212,191,0.1);color:#2dd4bf;font-size:11px;font-weight:700;cursor:pointer">🩺 Registro Asistencia Salud</button>`;
+    h+=`<button onclick="genRegistroAsistencia('${e.id}','seguridad')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(245,158,11,0.4);background:rgba(245,158,11,0.1);color:#f59e0b;font-size:11px;font-weight:700;cursor:pointer">🔧 Registro Asistencia SST</button>`;
+    h+=`</div>`;
+  }
   if(!isNew){
     const acts=LOG.activities.filter(a=>a.trip_id===e.id);
     h+=`<div style="margin-bottom:16px"><div style="font-size:10px;color:var(--t3);font-weight:700;margin-bottom:6px">📋 ACTIVIDADES PLANIFICADAS</div>`;
@@ -8722,6 +8728,139 @@ async function genTripReportDocx(tripId){
     URL.revokeObjectURL(url);
   }catch(e){alert("Error: "+e.message);console.error(e)}
 }
+async function genRegistroAsistencia(tripId,dept){
+  const trip=LOG.trips.find(t=>String(t.id)===String(tripId));if(!trip)return;
+  const tCos=LOG.tripCompanies.filter(tc=>tc.trip_id===tripId);
+  const coId=tCos[0]?.company_id;
+  const co=cos.find(c=>c.id===coId);
+  const coName=tCos[0]?.custom_name||co?.name||'EMPRESA';
+  // Check if nomina exists for this company
+  let nomina=[];
+  if(coId){
+    try{
+      const{data}=await sb.from("nomina").select("*").eq("company_id",coId).order("nombre");
+      nomina=data||[];
+    }catch(e){nomina=[]}
+  }
+  if(nomina.length===0){
+    // No nomina - ask to upload
+    const upload=confirm('📋 No hay nómina cargada para '+coName+'.\n\n¿Desea subir el archivo de nómina del IESS?');
+    if(upload){subirNomina(coId,coName,tripId,dept)}
+    return;
+  }
+  // Generate Excel with nomina data
+  generarExcelAsistencia(trip,tCos,co,coName,nomina,dept);
+}
+
+function subirNomina(companyId,companyName,tripId,dept){
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='.xlsx,.xls';
+  input.onchange=async function(e){
+    const file=e.target.files[0];if(!file)return;
+    try{
+      const ab=await file.arrayBuffer();
+      const wb=XLSX.read(ab);
+      // Find the sheet with worker data (Table 3 or first sheet with N°, Nombre, Cédula)
+      let workers=[];
+      for(const sn of wb.SheetNames){
+        const ws=wb.Sheets[sn];
+        const data=XLSX.utils.sheet_to_json(ws,{header:1});
+        for(let i=0;i<data.length;i++){
+          const row=data[i];
+          if(!row)continue;
+          const r=row.map(c=>String(c||'').trim());
+          // Detect header row
+          if(r.some(c=>c.toLowerCase().includes('nombre'))&&r.some(c=>c.toLowerCase().includes('dula'))){
+            // Found header - parse subsequent rows
+            const nameIdx=r.findIndex(c=>c.toLowerCase().includes('nombre'));
+            const cedIdx=r.findIndex(c=>c.toLowerCase().includes('dula'));
+            const actIdx=r.findIndex(c=>c.toLowerCase().includes('actividad'));
+            for(let j=i+1;j<data.length;j++){
+              const dr=data[j];
+              if(!dr||!dr[nameIdx])continue;
+              const nombre=String(dr[nameIdx]||'').trim();
+              const cedula=String(dr[cedIdx]||'').trim();
+              const cargo=String(dr[actIdx]||'').trim();
+              if(nombre&&nombre!=='Total Rol'&&!nombre.includes('Total')){
+                workers.push({nombre,cedula,cargo});
+              }
+            }
+            break;
+          }
+        }
+        if(workers.length>0)break;
+      }
+      if(workers.length===0){alert('No se encontraron trabajadores en el archivo. Asegúrese de que tenga columnas: Nombre, Cédula, Actividad');return}
+      // Save to Supabase
+      const now=new Date().toISOString();
+      const userName=CURRENT_USER?.name||'';
+      // Delete old nomina for this company
+      await sb.from("nomina").delete().eq("company_id",companyId);
+      // Insert new
+      const rows=workers.map(w=>({company_id:companyId,nombre:w.nombre,cedula:w.cedula,cargo:w.cargo,uploaded_by:CURRENT_USER?.id,uploaded_at:now,uploaded_by_name:userName}));
+      for(let i=0;i<rows.length;i+=50){
+        await sb.from("nomina").insert(rows.slice(i,i+50));
+      }
+      alert('✅ Nómina cargada: '+workers.length+' trabajadores para '+companyName+'\n\nSubido por: '+userName+'\nFecha: '+new Date().toLocaleDateString('es-EC'));
+      // Now generate the register
+      if(tripId){
+        const trip=LOG.trips.find(t=>String(t.id)===String(tripId));
+        const tCos=LOG.tripCompanies.filter(tc=>tc.trip_id===tripId);
+        const co=cos.find(c=>c.id===companyId);
+        generarExcelAsistencia(trip,tCos,co,companyName,workers.map((w,i)=>({...w,id:i})),dept);
+      }
+    }catch(err){alert('Error leyendo archivo: '+err.message)}
+  };
+  input.click();
+}
+
+function generarExcelAsistencia(trip,tCos,co,coName,nomina,dept){
+  const td=new Date(trip.trip_date+'T12:00:00');
+  const meses=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const dias=['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+  const mesNum=String(td.getMonth()+1).padStart(3,'0');
+  const anio=td.getFullYear();
+  const fechaStr=dias[td.getDay()]+', '+td.getDate()+' DE '+meses[td.getMonth()]+' DE '+anio;
+  const codigo='ANU-'+mesNum+'-'+anio;
+  const tema=prompt('Tema de la capacitación:','')||'';
+  const hora=trip.departure_time||'08:00';
+  const responsable=CURRENT_USER?.name||'';
+  const wb=XLSX.utils.book_new();
+  const rows=[];
+  rows.push([]);rows.push([]);rows.push([]);
+  rows.push(['','',dept==='salud'?'PLAN DE PROMOCIÓN DE LA SALUD EN EL TRABAJO':'PLAN DE SEGURIDAD Y SALUD EN EL TRABAJO']);
+  rows.push([]);rows.push([]);
+  rows.push(['REGISTRO DE PARTICIPANTES','','','','','','','','',codigo]);
+  rows.push(['FECHA: '+fechaStr,'','','HORA: '+hora,'','','','','EMPRESA: '+coName]);
+  rows.push(['RESPONSABLE: '+responsable]);
+  rows.push(['TEMA: '+tema]);
+  rows.push(['Nro.','Nombres y Apellidos','AUTOIDENTIFICACIÓN ÉTNICA','','','','','','','','PARTICIPANTES','','','','','','','','ACTIVIDAD','Nro. Cédula','FIRMA']);
+  rows.push(['','','Indígena','Afroecuatoriano','Negro/a','Mulato/a','Montubio/a','Mestizo/a','Otro/a','No sabe','ADOLESCENTES (18-19)','','','ADULTOS (20-64)','','','ADULTOS MAYORES (65+)','','','','']);
+  rows.push(['','','','','','','','','','','M','H','LGBTI','M','H','LGBTI','M','H','LGBTIQ+','','']);
+  // Fill with nomina data
+  nomina.forEach((w,i)=>{
+    rows.push([i+1,w.nombre,'','','','','','','','','','','','','','','','',w.cargo,w.cedula,'']);
+  });
+  // Add extra empty rows for visitors
+  const extra=Math.max(5,25-nomina.length);
+  for(let i=0;i<extra;i++){
+    rows.push([nomina.length+i+1,'','','','','','','','','','','','','','','','','','','','']);
+  }
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:5},{wch:35},{wch:9},{wch:14},{wch:9},{wch:9},{wch:11},{wch:11},{wch:7},{wch:8},{wch:5},{wch:6},{wch:6},{wch:5},{wch:6},{wch:6},{wch:5},{wch:6},{wch:30},{wch:12},{wch:15}];
+  ws['!merges']=[
+    {s:{r:3,c:2},e:{r:3,c:8}},
+    {s:{r:6,c:0},e:{r:6,c:2}},{s:{r:6,c:9},e:{r:6,c:10}},
+    {s:{r:7,c:0},e:{r:7,c:2}},{s:{r:7,c:3},e:{r:7,c:5}},{s:{r:7,c:8},e:{r:7,c:10}},
+    {s:{r:8,c:0},e:{r:8,c:8}},{s:{r:9,c:0},e:{r:9,c:8}},
+    {s:{r:10,c:2},e:{r:10,c:9}},{s:{r:10,c:10},e:{r:10,c:17}},
+    {s:{r:11,c:10},e:{r:11,c:12}},{s:{r:11,c:13},e:{r:11,c:15}},{s:{r:11,c:16},e:{r:11,c:18}},
+  ];
+  XLSX.utils.book_append_sheet(wb,ws,'Registro');
+  const fileName='Registro_'+(dept==='salud'?'Salud':'SST')+'_'+coName.replace(/[^a-zA-Z0-9]/g,'_')+'_'+codigo+'.xlsx';
+  XLSX.writeFile(wb,fileName);
+}
 async function logTogInforme(memberId){
   const m=LOG.members.find(x=>String(x.id)===String(memberId));if(!m)return;
   m.informe_subido=!m.informe_subido;
@@ -8820,5 +8959,318 @@ async function logSendNotifications(tripId){
     await logLoad();
     if(tid){const tr=LOG.trips.find(x=>String(x.id)===String(tid));if(tr){const ms=LOG.members.filter(m=>m.trip_id===tid);LOG.editTrip={...tr,num_people:ms.length||1};LOG.tab='form';logRender()}}
   }catch(e){alert('Error al enviar: '+e.message)}
+}
+
+// ================================================================
+// REGISTRO DE ASISTENCIA — con carga Excel IESS (Table 3, fila 1)
+// ================================================================
+let REG={mod:'salud',chIdx:0,ch:null,partes:[]};
+
+function abrirReg(mod,idx){
+  const ch=mod==='sst'?SST.charlas[idx]:D.charlas[idx];
+  if(!ch){alert('No se encontró la capacitación.');return;}
+  REG={mod,chIdx:idx,ch,partes:[]};
+  _showRegModal();
+}
+
+function _showRegModal(){
+  document.getElementById('regModal')?.remove();
+  const ch=REG.ch, co=D.comp||{};
+  const fecha=ch.date||ch.event_date||new Date().toISOString().split('T')[0];
+  const resp=CURRENT_USER?(CURRENT_USER.nombre||CURRENT_USER.name||''):'';
+  const esSST=REG.mod==='sst';
+  const color=esSST?'#fbbf24':'#2dd4bf';
+  const bord=esSST?'rgba(251,191,36,0.4)':'rgba(45,212,191,0.4)';
+  const bg=esSST?'rgba(251,191,36,0.06)':'rgba(45,212,191,0.06)';
+  const titulo=esSST?'PLAN ANUAL DE SEGURIDAD Y SALUD EN EL TRABAJO':'PLAN DE PROMOCIÓN DE LA SALUD EN EL TRABAJO';
+
+  document.body.insertAdjacentHTML('beforeend',`
+<div id="regModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:9999;overflow-y:auto;padding:16px">
+<div style="max-width:1060px;margin:0 auto;background:var(--bg2);border:1px solid var(--bd);border-radius:16px;overflow:hidden">
+
+  <div style="padding:16px 22px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;background:${bg}">
+    <div>
+      <div style="font-size:10px;color:${color};font-weight:700">${titulo}</div>
+      <div style="font-size:17px;font-weight:800;color:var(--t1)">📋 Registro de Asistencia</div>
+      <div style="font-size:12px;color:var(--t2)">${ch.icon||'🎓'} ${ch.name}</div>
+    </div>
+    <button onclick="document.getElementById('regModal').remove()" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:8px;padding:7px 16px;cursor:pointer;font-weight:700">✕ Cerrar</button>
+  </div>
+
+  <div style="padding:14px 22px;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
+    <div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:3px">EMPRESA</label>
+    <input id="rg_emp" type="text" value="${co.name||''}" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:rgba(255,255,255,0.04);color:var(--t1);font-size:12px;font-weight:700"></div>
+    <div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:3px">RESPONSABLE</label>
+    <input id="rg_resp" type="text" value="${resp}" placeholder="Dr./Dra. Nombre" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:rgba(255,255,255,0.04);color:var(--t1);font-size:12px"></div>
+    <div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:3px">FECHA</label>
+    <input id="rg_fecha" type="date" value="${fecha}" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:rgba(255,255,255,0.04);color:var(--t1);font-size:12px"></div>
+    <div><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:3px">HORA</label>
+    <input id="rg_hora" type="time" value="08:00" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:rgba(255,255,255,0.04);color:var(--t1);font-size:12px"></div>
+    <div style="grid-column:1/-1"><label style="font-size:9px;color:var(--t3);display:block;margin-bottom:3px">TEMA</label>
+    <input id="rg_tema" type="text" value="${ch.name}" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:rgba(255,255,255,0.04);color:var(--t1);font-size:12px;font-weight:700"></div>
+  </div>
+
+  <!-- CARGA IESS -->
+  <div style="padding:14px 22px;border-bottom:1px solid var(--bd);background:rgba(255,255,255,0.02)">
+    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:10px">📂 CARGAR NÓMINA DESDE EXCEL DEL IESS</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:8px;border:1.5px dashed ${bord};background:${bg};color:${color};cursor:pointer;font-size:12px;font-weight:700">
+        📊 Seleccionar Excel del IESS (.xlsx / .xls)
+        <input type="file" accept=".xlsx,.xls,.csv" onchange="leerExcelIESS(this)" style="display:none">
+      </label>
+      <div id="rg_status" style="font-size:11px;color:var(--t3)">Sin archivo — o ingresa los datos manualmente</div>
+    </div>
+    <div style="margin-top:7px;font-size:10px;color:var(--t3)">
+      💡 Compatible con <b style="color:var(--t2)">Consulta Rol Empleados</b> del IESS en línea. Lee automáticamente Nombre, Cédula y Cargo. Las cédulas se completan a 10 dígitos.
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  <div style="padding:14px 22px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;font-weight:700;color:var(--t1)">👥 PARTICIPANTES <span id="rg_cnt" style="color:${color};font-family:var(--mn)">0</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="rgAddFila()" style="padding:6px 14px;border-radius:7px;border:1px solid var(--bd);background:rgba(255,255,255,0.06);color:var(--t1);cursor:pointer;font-size:11px;font-weight:600">+ Agregar fila</button>
+        <button onclick="rgLimpiar()" style="padding:6px 14px;border-radius:7px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.06);color:#ef4444;cursor:pointer;font-size:11px;font-weight:600">🗑 Limpiar</button>
+        <button onclick="rgGuardar()" style="padding:6px 14px;border-radius:7px;border:1px solid rgba(99,102,241,0.4);background:rgba(99,102,241,0.08);color:#818cf8;cursor:pointer;font-size:11px;font-weight:700">💾 Guardar en sistema</button>
+        <button onclick="rgExportarExcel()" style="padding:6px 18px;border-radius:7px;border:1px solid ${bord};background:${bg};color:${color};cursor:pointer;font-size:11px;font-weight:700">📊 Exportar Excel Ministerio</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--bd);border-radius:8px">
+      <table style="width:100%;border-collapse:collapse;min-width:780px">
+        <thead><tr style="background:rgba(255,255,255,0.05)">
+          <th style="padding:7px 8px;font-size:9px;color:var(--t3);font-weight:600;border-bottom:1px solid var(--bd);width:35px;text-align:center">#</th>
+          <th style="padding:7px 8px;font-size:9px;color:var(--t3);font-weight:600;border-bottom:1px solid var(--bd);min-width:190px">Nombres y Apellidos</th>
+          <th style="padding:7px 8px;font-size:9px;color:var(--t3);font-weight:600;border-bottom:1px solid var(--bd);width:115px">Cédula</th>
+          <th style="padding:7px 8px;font-size:9px;color:var(--t3);font-weight:600;border-bottom:1px solid var(--bd);min-width:120px">Cargo / Actividad</th>
+          <th style="padding:7px 8px;font-size:9px;color:var(--t3);font-weight:600;border-bottom:1px solid var(--bd);width:105px">Género</th>
+          <th style="padding:7px 8px;font-size:9px;color:var(--t3);font-weight:600;border-bottom:1px solid var(--bd);width:140px">Autoidentificación</th>
+          <th style="padding:7px 8px;font-size:9px;color:var(--t3);font-weight:600;border-bottom:1px solid var(--bd);width:125px">Grupo de Edad</th>
+          <th style="padding:7px 8px;font-size:9px;color:var(--t3);font-weight:600;border-bottom:1px solid var(--bd);width:38px;text-align:center">✕</th>
+        </tr></thead>
+        <tbody id="rg_tbody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:8px;font-size:10px;color:var(--t3)">El Excel exportado incluye columna de Firma para impresión · Formato oficial Ministerio de Trabajo del Ecuador.</div>
+  </div>
+</div></div>`);
+  _rgRender();
+}
+
+// ── Leer Excel IESS (estructura: Table 3, fila 1=headers, col 1=Nombre, col 2=Cédula, col 3=Actividad) ──
+function leerExcelIESS(input){
+  const file=input.files[0]; if(!file) return;
+  const st=document.getElementById('rg_status');
+  st.textContent='⏳ Leyendo archivo...'; st.style.color='#fbbf24';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array',cellDates:true});
+
+      // Buscar la hoja con los datos (Table 3 o la que tenga "Nombre" en encabezados)
+      let ws=null, sheetName='';
+      for(const sn of wb.SheetNames){
+        const s=wb.Sheets[sn];
+        const rows=XLSX.utils.sheet_to_json(s,{header:1,defval:''});
+        // Buscar fila que tenga "Nombre" y "Cédula"
+        for(let r=0;r<Math.min(rows.length,10);r++){
+          const row=rows[r].map(c=>String(c).toLowerCase().trim());
+          if(row.some(c=>c.includes('nombre'))&&row.some(c=>c.includes('ced'))){
+            ws=s; sheetName=sn; break;
+          }
+        }
+        if(ws) break;
+      }
+
+      // Si no encontró por nombre de columna, usar última hoja (Table 3 en IESS)
+      if(!ws){
+        sheetName=wb.SheetNames[wb.SheetNames.length-1];
+        ws=wb.Sheets[sheetName];
+      }
+
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',cellDates:true});
+
+      // Detectar fila de encabezados
+      let hRow=-1;
+      let cols={nombre:-1,cedula:-1,cargo:-1,genero:-1,fnac:-1};
+      for(let r=0;r<Math.min(rows.length,15);r++){
+        const row=rows[r].map(c=>String(c).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim());
+        row.forEach((cell,ci)=>{
+          if(cols.nombre<0&&(cell==='nombre'||cell.includes('nombre')||cell.includes('apellido')||cell.includes('trabajador'))) cols.nombre=ci;
+          if(cols.cedula<0&&(cell==='cedula'||cell.includes('cedula')||cell.includes('identif')||cell==='ci'||cell==='dni')) cols.cedula=ci;
+          if(cols.cargo<0&&(cell==='actividad'||cell==='cargo'||cell.includes('puesto')||cell.includes('ocup')||cell.includes('funcion'))) cols.cargo=ci;
+          if(cols.genero<0&&(cell.includes('genero')||cell.includes('sexo'))) cols.genero=ci;
+          if(cols.fnac<0&&(cell.includes('nacim')||cell.includes('fecha_nac'))) cols.fnac=ci;
+        });
+        if(cols.nombre>=0&&cols.cedula>=0){hRow=r;break;}
+      }
+
+      // Fallback IESS conocido: col0=N°, col1=Nombre, col2=Cédula, col3=Actividad
+      if(hRow<0){hRow=1;cols={nombre:1,cedula:2,cargo:3,genero:-1,fnac:-1};}
+
+      const partes=[];
+      for(let r=hRow+1;r<rows.length;r++){
+        const row=rows[r];
+        const nombre=String(cols.nombre>=0?row[cols.nombre]||'':'').trim();
+        if(!nombre||/^total/i.test(nombre)||nombre===''||/^\d+$/.test(nombre)) continue;
+
+        // Cédula: completar a 10 dígitos con cero inicial si le falta
+        let ced=String(cols.cedula>=0?row[cols.cedula]||'':'').replace(/\.0+$/,'').trim();
+        if(ced&&ced.length===9) ced='0'+ced; // IESS omite el 0 inicial en cédulas de Manabí/El Oro
+
+        const cargo=String(cols.cargo>=0?row[cols.cargo]||'':'').trim();
+        const genero=cols.genero>=0?_rgNormGen(String(row[cols.genero]||'')):'';
+        const fnac=cols.fnac>=0?row[cols.fnac]:'';
+        const edad=_rgEdad(fnac);
+
+        partes.push({nombres:nombre,cedula:ced,cargo,genero,etnia:'Mestizo-Mestiza',grupo_edad:edad});
+      }
+
+      if(partes.length===0){
+        st.textContent='⚠️ No se encontraron trabajadores. Verifica que sea el Excel correcto del IESS.';
+        st.style.color='#ef4444'; return;
+      }
+      REG.partes=partes;
+      _rgRender();
+      st.textContent=`✅ ${partes.length} trabajadores cargados desde "${file.name}" (hoja: ${sheetName})`;
+      st.style.color='#34d399';
+    }catch(err){
+      st.textContent='❌ Error al leer: '+err.message;
+      st.style.color='#ef4444';
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function _rgNormGen(v){
+  const s=v.toUpperCase().trim();
+  if(['M','MASCULINO','HOMBRE','H','MALE'].includes(s)) return 'HOMBRE';
+  if(['F','FEMENINO','MUJER','MU','FEMALE'].includes(s)) return 'MUJER';
+  if(s.includes('LGBT')) return 'LGBTIQ+';
+  return '';
+}
+
+function _rgEdad(fnac){
+  if(!fnac) return 'adultos';
+  try{
+    let d;
+    if(typeof fnac==='number'){d=new Date(Math.round((fnac-25569)*86400*1000));}
+    else if(fnac instanceof Date){d=fnac;}
+    else{d=new Date(fnac);}
+    if(isNaN(d.getTime())) return 'adultos';
+    const age=Math.floor((Date.now()-d.getTime())/(365.25*24*3600*1000));
+    if(age>=65) return 'adultos_mayores';
+    if(age>=18&&age<=19) return 'adolescentes';
+    return 'adultos';
+  }catch(e){return 'adultos';}
+}
+
+const _ET=['Indígena','Afroecuatoriano/a','Negro-Negra','Mulato-Mulata','Montubio-Montubia','Mestizo-Mestiza','Otro/a','No sabe/No responde'];
+const _ED=[{v:'adolescentes',l:'Adolescente (18-19)'},{v:'adultos',l:'Adulto (20-64)'},{v:'adultos_mayores',l:'Adulto Mayor (65+)'}];
+
+function _rgRender(){
+  const tbody=document.getElementById('rg_tbody');
+  const cnt=document.getElementById('rg_cnt');
+  if(!tbody) return;
+  if(cnt) cnt.textContent=REG.partes.filter(p=>p.nombres&&p.nombres.trim()).length;
+  if(REG.partes.length===0){
+    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--t3);font-size:12px">📂 Sube el Excel del IESS arriba — o agrega filas manualmente con "+ Agregar fila"</td></tr>`;
+    return;
+  }
+  const sel=(field,opts,val,i)=>`<select oninput="REG.partes[${i}].${field}=this.value${field==='nombres'||field==='genero'?';_rgCnt()':''}" style="width:100%;background:var(--bg2);border:1px solid var(--bd);color:var(--t1);font-size:10px;border-radius:5px;padding:3px">${opts.map(o=>`<option value="${typeof o==='object'?o.v:o}" ${(val||'')===(typeof o==='object'?o.v:o)?'selected':''}>${typeof o==='object'?o.l:o}</option>`).join('')}</select>`;
+  tbody.innerHTML=REG.partes.map((p,i)=>`<tr style="border-bottom:1px solid var(--bd)">
+    <td style="text-align:center;padding:5px 4px;color:var(--t3);font-size:10px">${i+1}</td>
+    <td style="padding:4px 6px"><input type="text" value="${(p.nombres||'').replace(/"/g,'&quot;')}" oninput="REG.partes[${i}].nombres=this.value;_rgCnt()" style="width:100%;background:transparent;border:none;color:var(--t1);font-size:11px;outline:none;padding:3px"></td>
+    <td style="padding:4px 6px"><input type="text" value="${p.cedula||''}" oninput="REG.partes[${i}].cedula=this.value" style="width:100%;background:transparent;border:none;color:var(--t1);font-size:11px;outline:none;padding:3px;font-family:var(--mn)"></td>
+    <td style="padding:4px 6px"><input type="text" value="${(p.cargo||'').replace(/"/g,'&quot;')}" oninput="REG.partes[${i}].cargo=this.value" style="width:100%;background:transparent;border:none;color:var(--t1);font-size:11px;outline:none;padding:3px"></td>
+    <td style="padding:4px 6px">${sel('genero',['','MUJER','HOMBRE','LGBTIQ+'],p.genero,i)}</td>
+    <td style="padding:4px 6px">${sel('etnia',_ET,p.etnia||'Mestizo-Mestiza',i)}</td>
+    <td style="padding:4px 6px">${sel('grupo_edad',_ED,p.grupo_edad||'adultos',i)}</td>
+    <td style="text-align:center;padding:4px"><button onclick="REG.partes.splice(${i},1);_rgRender()" style="background:rgba(239,68,68,0.1);border:none;color:#ef4444;cursor:pointer;font-size:12px;padding:2px 7px;border-radius:4px">✕</button></td>
+  </tr>`).join('');
+}
+
+function _rgCnt(){
+  const c=document.getElementById('rg_cnt');
+  if(c) c.textContent=REG.partes.filter(p=>p.nombres&&p.nombres.trim()).length;
+}
+
+function rgAddFila(){
+  REG.partes.push({nombres:'',cedula:'',cargo:'',genero:'',etnia:'Mestizo-Mestiza',grupo_edad:'adultos'});
+  _rgRender();
+  setTimeout(()=>{const inp=document.querySelectorAll('#rg_tbody td:nth-child(2) input');inp[inp.length-1]?.focus();},60);
+}
+
+function rgLimpiar(){
+  if(!confirm('¿Limpiar todos los participantes?')) return;
+  REG.partes=[];_rgRender();
+  const s=document.getElementById('rg_status');
+  if(s){s.textContent='Sin archivo';s.style.color='var(--t3)';}
+}
+
+async function rgGuardar(){
+  const ch=REG.ch;
+  const tabla=REG.mod==='sst'?'asistencia_sst':'asistencia_salud';
+  const fecha=document.getElementById('rg_fecha')?.value||'';
+  const hora=document.getElementById('rg_hora')?.value||'';
+  const responsable=document.getElementById('rg_resp')?.value||'';
+  const filas=REG.partes.filter(p=>p.nombres&&p.nombres.trim());
+  if(!filas.length){alert('Ingrese al menos un participante.');return;}
+  try{
+    await sb.from(tabla).delete().eq('charla_id',ch.id);
+    await sb.from(tabla).insert(filas.map((p,i)=>({charla_id:ch.id,company_id:CID,year:YR,nro:i+1,nombres:p.nombres,etnia:p.etnia||'Mestizo-Mestiza',grupo_edad:p.grupo_edad||'adultos',genero:p.genero||'',cargo:p.cargo||'',cedula:p.cedula||'',fecha,hora,responsable})));
+    const h=filas.filter(p=>p.genero==='HOMBRE').length;
+    const mu=filas.filter(p=>p.genero==='MUJER').length;
+    const tot=filas.length;
+    if(REG.mod==='salud'){D.charlas[REG.chIdx].aM=h;D.charlas[REG.chIdx].aF=mu;D.charlas[REG.chIdx].trained=tot;await sb.from('charlas').update({attendees_male:h,attendees_female:mu,trained:tot}).eq('id',ch.id);}
+    else{SST.charlas[REG.chIdx].trained=tot;await sb.from('sst_charlas').update({trained:tot}).eq('id',ch.id);}
+    ss('ok');alert(`✅ Guardado: ${tot} participante(s)`);
+  }catch(e){alert('Error: '+e.message);}
+}
+
+function rgExportarExcel(){
+  const ch=REG.ch;
+  const empresa=document.getElementById('rg_emp')?.value||(D.comp?.name||'');
+  const resp=document.getElementById('rg_resp')?.value||'';
+  const fecha=document.getElementById('rg_fecha')?.value||'';
+  const hora=document.getElementById('rg_hora')?.value||'';
+  const tema=document.getElementById('rg_tema')?.value||ch.name;
+  const esSST=REG.mod==='sst';
+  const titulo=esSST?'PLAN ANUAL DE SEGURIDAD Y SALUD EN EL TRABAJO':'PLAN DE PROMOCIÓN DE LA SALUD EN EL TRABAJO';
+  let fs=fecha;
+  if(fecha){try{const d=new Date(fecha+'T12:00:00');const dias=['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];const mes=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];fs=`${dias[d.getDay()]}, ${d.getDate()} DE ${mes[d.getMonth()]} DE ${d.getFullYear()}`;}catch(e){}}
+  const partes=REG.partes.filter(p=>p.nombres&&p.nombres.trim());
+  const etMap={'Indígena':2,'Afroecuatoriano/a':3,'Negro-Negra':4,'Mulato-Mulata':5,'Montubio-Montubia':6,'Mestizo-Mestiza':7,'Otro/a':8,'No sabe/No responde':9};
+  const aoa=[
+    [],[],[],
+    ['','',titulo],
+    [],[],
+    ['REGISTRO DE PARTICIPANTES'],
+    [`FECHA : ${fs}`,'','',`HORA: ${hora}`,'','','','','',`EMPRESA: ${empresa}`],
+    [`RESPONSABLE : ${resp}`],
+    [`TEMA: ${tema}`],
+    ['Nro.','Nombres y Apellidos','AUTOIDENTIFICACIÓN ÉTNICA','','','','','','','','PARTICIPANTES (UBICAR UNA X SEGÚN CORRESPONDE)','','','','','','','','','ACTIVIDAD (PUESTO DE TRABAJO)','Nro. Cédula','FIRMA'],
+    ['','','Indígena','Afroecuatoriano/a','Negro-Negra','Mulato-Mulata','Montubio-Montubia','Mestizo-Mestiza','Otro/a','No sabe/No responde','ADOLESCENTES\n(18 a 19 años)','','','ADULTOS\n(20 a 64 años)','','','ADULTOS MAYORES\n(mayor a 65 años)','','','','',''],
+    ['','','','','','','','','','','MUJER','HOMBRE','LGBTI','MUJER','HOMBRE','LGBTI','MUJER','HOMBRE','LGBTIQ+','','','']
+  ];
+  partes.forEach((p,i)=>{
+    const ec=etMap[p.etnia]||7;
+    const eb=p.grupo_edad==='adolescentes'?10:p.grupo_edad==='adultos_mayores'?16:13;
+    const go=p.genero==='MUJER'?0:p.genero==='LGBTIQ+'?2:1;
+    const row=new Array(22).fill('');
+    row[0]=i+1;row[1]=p.nombres||'';row[ec]='X';
+    if(p.genero)row[eb+go]='X';
+    row[19]=p.cargo||'';row[20]=p.cedula||'';row[21]='';
+    aoa.push(row);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:5},{wch:28},{wch:10},{wch:14},{wch:10},{wch:12},{wch:14},{wch:13},{wch:8},{wch:14},{wch:7},{wch:7},{wch:7},{wch:7},{wch:7},{wch:7},{wch:7},{wch:7},{wch:9},{wch:22},{wch:13},{wch:12}];
+  ws['!merges']=[{s:{r:3,c:2},e:{r:3,c:9}},{s:{r:6,c:0},e:{r:6,c:21}},{s:{r:7,c:0},e:{r:7,c:2}},{s:{r:7,c:9},e:{r:7,c:21}},{s:{r:8,c:0},e:{r:8,c:21}},{s:{r:9,c:0},e:{r:9,c:21}},{s:{r:10,c:2},e:{r:10,c:9}},{s:{r:10,c:10},e:{r:10,c:18}},{s:{r:11,c:10},e:{r:11,c:12}},{s:{r:11,c:13},e:{r:11,c:15}},{s:{r:11,c:16},e:{r:11,c:18}},{s:{r:10,c:0},e:{r:12,c:0}},{s:{r:10,c:1},e:{r:12,c:1}},{s:{r:10,c:19},e:{r:12,c:19}},{s:{r:10,c:20},e:{r:12,c:20}},{s:{r:10,c:21},e:{r:12,c:21}}];
+  XLSX.utils.book_append_sheet(wb,ws,'Registro Asistencia');
+  const fa=fecha||new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb,`Registro_${(tema||'charla').replace(/[^a-zA-Z0-9]/g,'_').slice(0,20)}_${(empresa||'emp').replace(/[^a-zA-Z0-9]/g,'_').slice(0,15)}_${fa}.xlsx`);
 }
 </script></body></html>
