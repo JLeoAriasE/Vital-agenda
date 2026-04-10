@@ -321,6 +321,25 @@ async function loadBookedFromDB(){
 }
 loadBookedFromDB();
 
+// Sync pending citas that failed to save
+async function syncPendingCitas(){
+  let pending=[];
+  try{pending=JSON.parse(localStorage.getItem('mediagenda_pending_citas')||'[]')}catch(e){return}
+  if(pending.length===0)return;
+  console.log('🔄 Sincronizando '+pending.length+' cita(s) pendiente(s)...');
+  const saved=[];
+  for(const cita of pending){
+    const res=await sbQuery('citas','POST',cita);
+    if(res){saved.push(cita.id);console.log('✅ Cita pendiente sincronizada:',cita.id)}
+  }
+  if(saved.length>0){
+    pending=pending.filter(c=>!saved.includes(c.id));
+    localStorage.setItem('mediagenda_pending_citas',JSON.stringify(pending));
+    console.log('🔄 Quedan '+pending.length+' pendiente(s)');
+  }
+}
+syncPendingCitas();
+
 function confirmar(){
   // Guardar en localStorage (fallback)
   let pts=[];try{pts=JSON.parse(localStorage.getItem('mediagenda_pts')||'[]');}catch(e){}
@@ -382,14 +401,28 @@ function confirmar(){
         if(res&&res[0]){patientId=res[0].id;existing.id=patientId;localStorage.setItem('mediagenda_pts',JSON.stringify(pts));}
         console.log('👤 Paciente creado:',patientId);
       }
-      const citaRes=await sbQuery('citas','POST',{
-        id:aid,pid:patientId,tipo:'Laboratorio',fecha:TDS,hora:assignedSlot,
-        estado:'en_proceso',asistio:true,ex_asig:false,origen:'recepcion'
-      });
-      if(citaRes)console.log('✅ Guardado en Supabase');
-      else console.warn('⚠️ Cita no guardada');
+      // Save cita with retries
+      let citaRes=null;
+      const citaData={id:aid,pid:patientId,tipo:'Laboratorio',fecha:TDS,hora:assignedSlot,estado:'en_proceso',asistio:true,ex_asig:false,origen:'recepcion'};
+      for(let retry=0;retry<5;retry++){
+        citaRes=await sbQuery('citas','POST',citaData);
+        if(citaRes){console.log('✅ Cita guardada en Supabase (intento '+(retry+1)+')');break;}
+        console.warn('⚠️ Intento '+(retry+1)+' fallido, reintentando en 2s...');
+        await new Promise(r=>setTimeout(r,2000));
+      }
+      if(!citaRes){
+        console.error('❌ Cita NO guardada después de 5 intentos');
+        // Save pending cita for later sync
+        let pending=[];try{pending=JSON.parse(localStorage.getItem('mediagenda_pending_citas')||'[]')}catch(e){}
+        pending.push(citaData);
+        localStorage.setItem('mediagenda_pending_citas',JSON.stringify(pending));
+      }
     }catch(e){
       console.warn('⚠️ Error Supabase:',e);
+      // Save pending cita for later sync
+      let pending=[];try{pending=JSON.parse(localStorage.getItem('mediagenda_pending_citas')||'[]')}catch(e2){}
+      pending.push({id:aid,pid:pid,tipo:'Laboratorio',fecha:TDS,hora:assignedSlot,estado:'en_proceso',asistio:true,ex_asig:false,origen:'recepcion'});
+      localStorage.setItem('mediagenda_pending_citas',JSON.stringify(pending));
     }
   })();
   setTimeout(()=>{nuevoPaciente();},8000);
