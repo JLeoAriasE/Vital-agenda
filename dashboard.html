@@ -333,7 +333,7 @@ async function doLogin(){
     const user=data[0];
     if(user.pass!==pwd){errEl.style.color="#ef4444";errEl.textContent="❌ Contraseña incorrecta";return}
     if(user.activo===false){errEl.style.color="#ef4444";errEl.textContent="⛔ Usuario desactivado";return}
-    user.name=user.nombre||"";user.role={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo","talento":"talento","tthh":"tthh","seguridad":"seguridad","datos":"datos","ambiente":"ambiente","contador":"contador","jefe":"jefe","multi":"multi"}[user.rol]||user.rol||"salud";user.email=user.cedula||"";user.password=user.pass||"";user.active=user.activo!==false;
+    user.name=user.nombre||"";user.role={"administrador":"admin","enfermera":"salud","enfermeria":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo","talento":"talento","tthh":"tthh","seguridad":"seguridad","datos":"datos","ambiente":"ambiente","contador":"contador","jefe":"jefe","multi":"multi"}[user.rol]||user.rol||"salud";user.email=user.cedula||"";user.password=user.pass||"";user.active=user.activo!==false;
     CURRENT_USER=user;
     sb.from("usuarios").update({last_login:new Date().toISOString()}).eq("id",user.id).then(function(){}).catch(function(){});
     errEl.textContent="✅ Login OK, cargando...";errEl.style.color="#34d399";
@@ -345,7 +345,7 @@ async function autoLogin(){
   const saved=localStorage.getItem("poa_user");if(!saved)return false;
   try{const{cedula,password}=JSON.parse(saved);
   const{data}=await sb.from("usuarios").select("*").eq("cedula",cedula).eq("pass",password).limit(1);
-  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||"";u.role={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo","talento":"talento","tthh":"tthh","seguridad":"seguridad","datos":"datos","ambiente":"ambiente","contador":"contador","jefe":"jefe","multi":"multi"}[u.rol]||u.rol||"salud";u.email=u.cedula||"";u.password=u.pass||"";u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
+  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||"";u.role={"administrador":"admin","enfermera":"salud","enfermeria":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo","talento":"talento","tthh":"tthh","seguridad":"seguridad","datos":"datos","ambiente":"ambiente","contador":"contador","jefe":"jefe","multi":"multi"}[u.rol]||u.rol||"salud";u.email=u.cedula||"";u.password=u.pass||"";u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
   return false
 }
 function applyUserRole(){
@@ -4252,7 +4252,7 @@ async function logLoad(){
       LOG.allNotifs=isAdmin?(results[3]?.data||[]):[];
     }else{LOG.members=[];LOG.activities=[];LOG.tripCompanies=[];LOG.allNotifs=[];}
     // Load all users (admin: for member selector; all: for activity creator names)
-    const{data:_u}=await sb.from("usuarios").select("id,nombre,rol").order("nombre");const u=(_u||[]).map(function(x){const roleMap={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo"};return{id:x.id,name:x.nombre,role:roleMap[x.rol]||x.rol}});
+    const{data:_u}=await sb.from("usuarios").select("id,nombre,rol").order("nombre");const u=(_u||[]).map(function(x){const roleMap={"administrador":"admin","enfermera":"salud","enfermeria":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo"};return{id:x.id,name:x.nombre,role:roleMap[x.rol]||x.rol}});
     LOG.users=u||[];
     // POA suggestions now load on-demand in logLoadPoaSuggestionsUI()
     console.log("[LOG] trips:",LOG.trips.length,"members:",LOG.members.length,"notifs:",LOG.notifications.length,"user:",CURRENT_USER?.id,"isAdmin:",isAdmin);
