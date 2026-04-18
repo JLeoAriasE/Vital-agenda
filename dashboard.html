@@ -7560,7 +7560,7 @@ function contEditCompany(){
 
 // === CLIENTS DIRECTORY ===
 function contRenderClients(){
-  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador');
+  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador'||CURRENT_USER.role==='salud');
   let h='';
   if(isAdmin)h+=`<button onclick="contNewClient()" style="background:${CONT_COLOR};color:#000;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px">+ Nuevo Cliente/Proveedor</button>`;
 
@@ -7896,7 +7896,7 @@ function contDashboard(){
 }
 
 function contInvoices(){
-  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador');
+  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador'||CURRENT_USER.role==='salud');
   let h='';
   if(isAdmin){
     h+=`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">`;
@@ -7942,7 +7942,7 @@ function contInvoices(){
 }
 
 function contPayments(){
-  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador');
+  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador'||CURRENT_USER.role==='salud');
   let h='';
   if(isAdmin)h+=`<button onclick="contNewPayment()" style="background:#34d399;color:#000;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px">+ Registrar Cobro</button>`;
 
@@ -7969,7 +7969,7 @@ function contPayments(){
 }
 
 function contExpenses(){
-  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador');
+  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador'||CURRENT_USER.role==='salud');
   let h='';
   if(isAdmin)h+=`<button onclick="contNewExpense()" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px">+ Registrar Gasto</button>`;
 
