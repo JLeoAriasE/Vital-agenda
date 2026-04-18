@@ -989,7 +989,7 @@ function addRxRow(){
   c.appendChild(d);window._rxCount=n+1;
 }
 
-function svEx(){
+async function svEx(){
   const s=window._ex;
   // Recoger fechas
   const rxFecha=document.getElementById('rx_fecha')?.value||'';
@@ -1009,17 +1009,17 @@ function svEx(){
     if(pe&&pe.value){rxStudies.push({parte:pe.value,proy:pre?pre.value:'AP'});}
   }
   if(!s.lab.length&&!rxStudies.length&&!s.eco&&!s.ekg&&!s.esp&&!s.aud&&!s.med&&!s.ficha&&!s.psiocu&&!s.psicli){alert('Selecciona al menos un examen o servicio');return;}
-  if(s.lab.length)addO({aid:s.aid,pid:s.pid,cat:'laboratorio',exams:[...s.lab]});
-  rxStudies.forEach(rx=>addO({aid:s.aid,pid:s.pid,cat:'radiologia',parte:rx.parte,proy:rx.proy,fecha_prog:rxFecha,hora_prog:rxHora}));
-  if(s.eco)addO({aid:s.aid,pid:s.pid,cat:'ecografia',exams:['Ecografía'],fecha_prog:ecoFecha,hora_prog:ecoHora});
-  if(s.ekg)addO({aid:s.aid,pid:s.pid,cat:'electrocardiograma',exams:['EKG 12 derivaciones'],fecha_prog:ekgFecha,hora_prog:ekgHora});
-  if(s.esp)addO({aid:s.aid,pid:s.pid,cat:'espirometria',exams:['Espirometría']});
-  if(s.aud)addO({aid:s.aid,pid:s.pid,cat:'audiometria',exams:['Audiometría']});
-  if(s.psiocu)addO({aid:s.aid,pid:s.pid,cat:'psico_ocupacional',exams:['Valoración Psicológica Ocupacional']});
-  if(s.psicli)addO({aid:s.aid,pid:s.pid,cat:'psico_clinica',exams:['Valoración Psicológica Clínica']});
-  if(s.med)addO({aid:s.aid,pid:s.pid,cat:'atencion_medica',exams:['Atención Médica'],fecha_prog:medFecha,hora_prog:medHora});
-  if(s.ficha)addO({aid:s.aid,pid:s.pid,cat:'ficha_ocupacional',exams:['Ficha Ocupacional'],fecha_prog:fichaFecha,hora_prog:fichaHora});
-  updA(s.aid,{exAsig:true,estado:'en_proceso'});
+  if(s.lab.length)await addO({aid:s.aid,pid:s.pid,cat:'laboratorio',exams:[...s.lab]});
+  for(const rx of rxStudies){await addO({aid:s.aid,pid:s.pid,cat:'radiologia',parte:rx.parte,proy:rx.proy,fecha_prog:rxFecha,hora_prog:rxHora})}
+  if(s.eco)await addO({aid:s.aid,pid:s.pid,cat:'ecografia',exams:['Ecografía'],fecha_prog:ecoFecha,hora_prog:ecoHora});
+  if(s.ekg)await addO({aid:s.aid,pid:s.pid,cat:'electrocardiograma',exams:['EKG 12 derivaciones'],fecha_prog:ekgFecha,hora_prog:ekgHora});
+  if(s.esp)await addO({aid:s.aid,pid:s.pid,cat:'espirometria',exams:['Espirometría']});
+  if(s.aud)await addO({aid:s.aid,pid:s.pid,cat:'audiometria',exams:['Audiometría']});
+  if(s.psiocu)await addO({aid:s.aid,pid:s.pid,cat:'psico_ocupacional',exams:['Valoración Psicológica Ocupacional']});
+  if(s.psicli)await addO({aid:s.aid,pid:s.pid,cat:'psico_clinica',exams:['Valoración Psicológica Clínica']});
+  if(s.med)await addO({aid:s.aid,pid:s.pid,cat:'atencion_medica',exams:['Atención Médica'],fecha_prog:medFecha,hora_prog:medHora});
+  if(s.ficha)await addO({aid:s.aid,pid:s.pid,cat:'ficha_ocupacional',exams:['Ficha Ocupacional'],fecha_prog:fichaFecha,hora_prog:fichaHora});
+  await updA(s.aid,{exAsig:true,estado:'en_proceso'});
   closeModal();
   showToast('✅ Órdenes guardadas correctamente','ok');
 }
