@@ -527,7 +527,13 @@ async function toggleUserActive(uid,active){
 }
 async function deleteUser(uid,name){
   if(!confirm(`¿Eliminar permanentemente al usuario "${name||''}"?\n\nEsta acción no se puede deshacer.`))return;
-  await sb.from("usuarios").delete().eq("id",uid);renderConfig()
+  try{
+    await sb.from("logistics_trip_members").delete().eq("user_id",uid);
+    await sb.from("logistics_notifications").delete().eq("user_id",uid);
+    const{error}=await sb.from("usuarios").delete().eq("id",uid);
+    if(error)throw error;
+    renderConfig();
+  }catch(e){alert("Error al eliminar: "+e.message)}
 }
 // Edit user profile
 async function showEditUser(uid){
