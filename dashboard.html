@@ -401,7 +401,7 @@ function applyUserRole(){
   if(logEl)logEl.style.display="block";
   // Contabilidad: ONLY admin and contador
   const contEl=document.getElementById("sb-contable");
-  if(contEl)contEl.style.display=(isAdmin||u.role==='contador')?"block":"none";
+  if(contEl)contEl.style.display=(isAdmin||u.role==='contador'||u.role==='salud')?"block":"none";
   // User info in sidebar
   const ui=document.getElementById("sb-user");
   if(ui)ui.innerHTML=`<div style="font-size:16px">${isAdmin?'👑':u.role==='jefe'?'👔':hasPsico?'🧠':'👤'}</div><div style="font-size:7px;color:var(--t3);line-height:1.2;margin-top:2px">${u.name.split(' ')[0]}</div>`;
@@ -2352,7 +2352,7 @@ function updateSidebar(){
   if(logEl)logEl.style.display="block";
   // Contabilidad: ONLY admin and contador
   const contEl=document.getElementById("sb-contable");
-  if(contEl)contEl.style.display=(isAdm||(CURRENT_USER&&CURRENT_USER.role==='contador'))?"block":"none";
+  if(contEl)contEl.style.display=(isAdm||(CURRENT_USER&&(CURRENT_USER.role==='contador'||CURRENT_USER.role==='salud')))?"block":"none";
 }
 
 const SST_CREATE_SQL=`-- Ejecutar en SQL Editor de Supabase
