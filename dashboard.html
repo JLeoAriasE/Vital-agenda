@@ -149,9 +149,9 @@ canvas{width:100%!important;max-height:220px}
 <button class="b2" onclick="hideNewUser()">Cancelar</button>
 </div></div>
 <div class="ov" id="setupOv"><div class="ob"><h2>⚡ Conectar Supabase</h2><p>Settings → API</p><label>URL</label><input id="sUrl" placeholder="https://xxx.supabase.co"><label>Anon Key</label><input id="sKey" placeholder="eyJ..."><div class="er" id="sErr"></div><button class="bt" onclick="doConnect()">🔗 Conectar</button></div></div>
-<div class="ov" id="ncOv" style="display:none"><div class="ob"><h2>🏢 Nueva Empresa</h2><label>Nombre *</label><input id="ncN"><label>RUC</label><input id="ncR"><label>Actividad</label><input id="ncA"><label>Código CIIU</label><input id="ncCIIU" placeholder="Ej: G4711.00"><label>Ubicación</label><input id="ncL"><label>Representante Legal</label><input id="ncRL"><label>Trabajadores *</label><input id="ncW" type="number" min="1" value="10"><div class="er" id="ncE"></div><button class="bt" onclick="createCo()">✅ Crear</button><button class="b2" onclick="hideNc()">Cancelar</button></div></div>
+<div class="ov" id="ncOv" style="display:none"><div class="ob"><h2>🏢 Nueva Empresa</h2><label>Nombre *</label><input id="ncN"><label>RUC</label><input id="ncR"><label>Actividad</label><input id="ncA"><label>Código CIIU</label><input id="ncCIIU" placeholder="Ej: G4711.00"><label>Ubicación</label><input id="ncL"><label>Representante Legal</label><input id="ncRL"><label>Trabajadores *</label><input id="ncW" type="number" min="1" value="10"><div style="margin-top:4px;padding:12px;border-radius:10px;border:1px solid rgba(45,212,191,0.25);background:rgba(45,212,191,0.04)"><div style="font-size:11px;font-weight:700;color:#2dd4bf;margin-bottom:10px">📅 Fechas de Contrato y Servicios</div><label>Inicio del Contrato (Salud)</label><input id="ncContStart" type="date"><label>Fin del Contrato / Renovación (Salud)</label><input id="ncContEnd" type="date"><label>Próxima Renovación Exámenes Médicos</label><input id="ncExamDate" type="date"></div><div class="er" id="ncE"></div><button class="bt" onclick="createCo()">✅ Crear</button><button class="b2" onclick="hideNc()">Cancelar</button></div></div>
 <div class="ov" id="naOv" style="display:none"><div class="ob"><h2>📍 Nueva Área</h2><label>Nombre *</label><input id="naName"><div class="er" id="naE"></div><button class="bt" onclick="createArea()">✅ Agregar</button><button class="b2" onclick="hideNa()">Cancelar</button></div></div>
-<div class="ov" id="sstNcOv" style="display:none"><div class="ob"><h2>🔧 Nueva Empresa — Seguridad Industrial</h2><label>Nombre *</label><input id="sstNcN"><label>RUC</label><input id="sstNcR"><label>Actividad</label><input id="sstNcA"><label>Código CIIU</label><input id="sstNcCIIU" placeholder="Ej: G4711.00"><label>Ubicación</label><input id="sstNcL"><label>Representante Legal</label><input id="sstNcRL"><label>Trabajadores *</label><input id="sstNcW" type="number" min="1" value="10"><div class="er" id="sstNcE"></div><button class="bt" onclick="sstCreateCo()">✅ Crear</button><button class="b2" onclick="hideSSTNc()">Cancelar</button></div></div>
+<div class="ov" id="sstNcOv" style="display:none"><div class="ob"><h2>🔧 Nueva Empresa — Seguridad Industrial</h2><label>Nombre *</label><input id="sstNcN"><label>RUC</label><input id="sstNcR"><label>Actividad</label><input id="sstNcA"><label>Código CIIU</label><input id="sstNcCIIU" placeholder="Ej: G4711.00"><label>Ubicación</label><input id="sstNcL"><label>Representante Legal</label><input id="sstNcRL"><label>Trabajadores *</label><input id="sstNcW" type="number" min="1" value="10"><div style="margin-top:4px;padding:12px;border-radius:10px;border:1px solid rgba(245,158,11,0.25);background:rgba(245,158,11,0.04)"><div style="font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:10px">📅 Fechas de Contrato SST</div><label>Inicio del Contrato (Seguridad)</label><input id="sstNcContStart" type="date"><label>Fin del Contrato / Renovación (Seguridad)</label><input id="sstNcContEnd" type="date"></div><div class="er" id="sstNcE"></div><button class="bt" onclick="sstCreateCo()">✅ Crear</button><button class="b2" onclick="hideSSTNc()">Cancelar</button></div></div>
 <div class="ov" id="editUserOv" style="display:none"><div class="ob" style="max-width:420px">
 <h2>✏️ Editar Usuario</h2>
 <input id="euId" type="hidden">
@@ -175,6 +175,8 @@ canvas{width:100%!important;max-height:220px}
 <button class="b2" onclick="hideEditUser()">Cancelar</button>
 </div></div>
 <div class="app-wrap">
+<!-- BANNER GLOBAL CONTRATOS/EXÁMENES -->
+<div id="globalContractBanner" style="display:none;padding:8px 20px 0;margin-left:0"></div>
 <div id="configModule" style="display:none">
 <div class="hd" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
 <div style="display:flex;align-items:center;gap:12px"><div class="lg" style="background:linear-gradient(135deg,#64748b,#475569)">⚙️</div><div class="bn"><h1 style="background:linear-gradient(135deg,#94a3b8,#64748b);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Configuración General</h1><p style="color:var(--t3)">Gestión de empresas y módulos</p></div></div>
@@ -333,7 +335,7 @@ async function doLogin(){
     const user=data[0];
     if(user.pass!==pwd){errEl.style.color="#ef4444";errEl.textContent="❌ Contraseña incorrecta";return}
     if(user.activo===false){errEl.style.color="#ef4444";errEl.textContent="⛔ Usuario desactivado";return}
-    user.name=user.nombre||"";user.role={"administrador":"admin","enfermera":"salud","enfermeria":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo","talento":"talento","tthh":"tthh","seguridad":"seguridad","datos":"datos","ambiente":"ambiente","contador":"contador","jefe":"jefe","multi":"multi"}[user.rol]||user.rol||"salud";user.email=user.cedula||"";user.password=user.pass||"";user.active=user.activo!==false;
+    user.name=user.nombre||"";user.role={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo","talento":"talento","tthh":"tthh","seguridad":"seguridad","datos":"datos","ambiente":"ambiente","contador":"contador","jefe":"jefe","multi":"multi"}[user.rol]||user.rol||"salud";user.email=user.cedula||"";user.password=user.pass||"";user.active=user.activo!==false;
     CURRENT_USER=user;
     sb.from("usuarios").update({last_login:new Date().toISOString()}).eq("id",user.id).then(function(){}).catch(function(){});
     errEl.textContent="✅ Login OK, cargando...";errEl.style.color="#34d399";
@@ -345,7 +347,7 @@ async function autoLogin(){
   const saved=localStorage.getItem("poa_user");if(!saved)return false;
   try{const{cedula,password}=JSON.parse(saved);
   const{data}=await sb.from("usuarios").select("*").eq("cedula",cedula).eq("pass",password).limit(1);
-  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||"";u.role={"administrador":"admin","enfermera":"salud","enfermeria":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo","talento":"talento","tthh":"tthh","seguridad":"seguridad","datos":"datos","ambiente":"ambiente","contador":"contador","jefe":"jefe","multi":"multi"}[u.rol]||u.rol||"salud";u.email=u.cedula||"";u.password=u.pass||"";u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
+  if(data&&data.length>0&&data[0].activo!==false){const u=data[0];u.name=u.nombre||"";u.role={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo","talento":"talento","tthh":"tthh","seguridad":"seguridad","datos":"datos","ambiente":"ambiente","contador":"contador","jefe":"jefe","multi":"multi"}[u.rol]||u.rol||"salud";u.email=u.cedula||"";u.password=u.pass||"";u.active=true;CURRENT_USER=u;applyUserRole();return true}}catch(e){}
   return false
 }
 function applyUserRole(){
@@ -363,7 +365,7 @@ function applyUserRole(){
   else{
     // Use role as primary: each role maps to ONE specific sidebar module
     const roleModMap={
-      'salud':['salud','contable'],
+      'salud':['salud'],
       'seguridad':['seguridad'],
       'tthh':['talento'],
       'talento':['talento'],
@@ -401,7 +403,7 @@ function applyUserRole(){
   if(logEl)logEl.style.display="block";
   // Contabilidad: ONLY admin and contador
   const contEl=document.getElementById("sb-contable");
-  if(contEl)contEl.style.display=(isAdmin||u.role==='contador'||u.role==='salud')?"block":"none";
+  if(contEl)contEl.style.display=(isAdmin||u.role==='contador')?"block":"none";
   // User info in sidebar
   const ui=document.getElementById("sb-user");
   if(ui)ui.innerHTML=`<div style="font-size:16px">${isAdmin?'👑':u.role==='jefe'?'👔':hasPsico?'🧠':'👤'}</div><div style="font-size:7px;color:var(--t3);line-height:1.2;margin-top:2px">${u.name.split(' ')[0]}</div>`;
@@ -412,6 +414,8 @@ function applyUserRole(){
   const lo=document.getElementById("sb-logout");if(lo)lo.style.display="block";
   const sw=document.getElementById("sb-switch");if(sw)sw.style.display=isAdmin?"block":"none";
   render();
+  // Mostrar banner de alertas de contratos para todos los usuarios
+  setTimeout(()=>showContractAlertsBanner(),1200);
   // Post-login: show pending trips notification for all users
   setTimeout(()=>showPostLoginNotifications(),800)
 }
@@ -527,13 +531,7 @@ async function toggleUserActive(uid,active){
 }
 async function deleteUser(uid,name){
   if(!confirm(`¿Eliminar permanentemente al usuario "${name||''}"?\n\nEsta acción no se puede deshacer.`))return;
-  try{
-    await sb.from("logistics_trip_members").delete().eq("user_id",uid);
-    await sb.from("logistics_notifications").delete().eq("user_id",uid);
-    const{error}=await sb.from("usuarios").delete().eq("id",uid);
-    if(error)throw error;
-    renderConfig();
-  }catch(e){alert("Error al eliminar: "+e.message)}
+  await sb.from("usuarios").delete().eq("id",uid);renderConfig()
 }
 // Edit user profile
 async function showEditUser(uid){
@@ -754,11 +752,11 @@ async function delYear(){if(D.allYears.length<=1)return alert("Debe haber al men
 // === COMPANY/AREA CRUD ===
 function showNc(){document.getElementById("ncOv").style.display="flex"}
 function hideNc(){document.getElementById("ncOv").style.display="none"}
-async function createCo(){const n=document.getElementById("ncN").value.trim(),tw=parseInt(document.getElementById("ncW").value)||10,e=document.getElementById("ncE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("ncR").value.trim();const act=document.getElementById("ncA").value.trim();const loc=document.getElementById("ncL").value.trim();const repLegal=document.getElementById("ncRL").value.trim();const ciiu=(document.getElementById("ncCIIU")||{}).value||"";async function tryCreate(){const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_salud:true}).select().single();return{data,error}}try{let r=await tryCreate();if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await sb.from("imc_records").delete().neq("company_id","00000000-0000-0000-0000-000000000000").is("company_id",null);r=await tryCreate()}if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>c.name===n);if(f){CID=f.id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}e.innerHTML='Error del trigger IMC en Supabase.<br>Ejecuta en SQL Editor:<br><code style="font-size:10px;background:#1e1e2e;padding:4px 8px;border-radius:4px;display:block;margin-top:6px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code><br>Luego recarga.';e.style.display="block";return}if(r.error)throw r.error;CID=r.data.id;await loadCos();YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
+async function createCo(){const n=document.getElementById("ncN").value.trim(),tw=parseInt(document.getElementById("ncW").value)||10,e=document.getElementById("ncE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("ncR").value.trim();const act=document.getElementById("ncA").value.trim();const loc=document.getElementById("ncL").value.trim();const repLegal=document.getElementById("ncRL").value.trim();const ciiu=(document.getElementById("ncCIIU")||{}).value||"";const contStart=document.getElementById("ncContStart")?.value||null;const contEnd=document.getElementById("ncContEnd")?.value||null;const examDate=document.getElementById("ncExamDate")?.value||null;async function tryCreate(){const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_salud:true,contract_start_date:contStart||undefined,contract_end_date:contEnd||undefined,exam_renewal_date:examDate||undefined}).select().single();return{data,error}}try{let r=await tryCreate();if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await sb.from("imc_records").delete().neq("company_id","00000000-0000-0000-0000-000000000000").is("company_id",null);r=await tryCreate()}if(r.error&&r.error.message&&r.error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>c.name===n);if(f){CID=f.id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render();return}e.innerHTML='Error del trigger IMC en Supabase.<br>Ejecuta en SQL Editor:<br><code style="font-size:10px;background:#1e1e2e;padding:4px 8px;border-radius:4px;display:block;margin-top:6px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code><br>Luego recarga.';e.style.display="block";return}if(r.error)throw r.error;CID=r.data.id;await loadCos();YR=2026;try{await loadYears()}catch(x){}try{await loadCD()}catch(x){}hideNc();V="dashboard";ss("ok");render()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
 // SST: Create company with mod_seguridad=true
 function showSSTNc(){document.getElementById("sstNcOv").style.display="flex"}
 function hideSSTNc(){document.getElementById("sstNcOv").style.display="none"}
-async function sstCreateCo(){const n=document.getElementById("sstNcN").value.trim(),tw=parseInt(document.getElementById("sstNcW").value)||10,e=document.getElementById("sstNcE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("sstNcR").value.trim();const act=document.getElementById("sstNcA").value.trim();const loc=document.getElementById("sstNcL").value.trim();const repLegal=document.getElementById("sstNcRL").value.trim();const ciiu=(document.getElementById("sstNcCIIU")||{}).value||"";try{const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_seguridad:true}).select().single();if(error&&error.message&&error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>c.name===n);if(f){CID=f.id;SST_YR=2026;hideSSTNc();sstLoad();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;SST_YR=2026;hideSSTNc();sstLoad();return}e.innerHTML='Trigger IMC impide crear. Ejecuta en SQL Editor:<br><code style="font-size:10px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code>';e.style.display="block";return}if(error)throw error;CID=data.id;await loadCos();SST_YR=2026;hideSSTNc();sstLoad()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
+async function sstCreateCo(){const n=document.getElementById("sstNcN").value.trim(),tw=parseInt(document.getElementById("sstNcW").value)||10,e=document.getElementById("sstNcE");if(!n){e.textContent="Nombre obligatorio.";e.style.display="block";return}e.style.display="none";const ruc=document.getElementById("sstNcR").value.trim();const act=document.getElementById("sstNcA").value.trim();const loc=document.getElementById("sstNcL").value.trim();const repLegal=document.getElementById("sstNcRL").value.trim();const ciiu=(document.getElementById("sstNcCIIU")||{}).value||"";const sstContStart=document.getElementById("sstNcContStart")?.value||null;const sstContEnd=document.getElementById("sstNcContEnd")?.value||null;try{const{data,error}=await sb.from("companies").insert({name:n,ruc:ruc,activity:act,location:loc,total_workers:tw,rep_legal:repLegal,ciiu_code:ciiu.trim(),mod_seguridad:true,sst_contract_start_date:sstContStart||undefined,sst_contract_end_date:sstContEnd||undefined}).select().single();if(error&&error.message&&error.message.includes("imc_records")){await loadCos();const f=cos.find(c=>c.name===n);if(f){CID=f.id;SST_YR=2026;hideSSTNc();sstLoad();return}const{data:newest}=await sb.from("companies").select("*").eq("name",n).order("id",{ascending:false}).limit(1);if(newest&&newest[0]){await loadCos();CID=newest[0].id;SST_YR=2026;hideSSTNc();sstLoad();return}e.innerHTML='Trigger IMC impide crear. Ejecuta en SQL Editor:<br><code style="font-size:10px">DROP TRIGGER IF EXISTS create_imc_on_company ON companies;</code>';e.style.display="block";return}if(error)throw error;CID=data.id;await loadCos();SST_YR=2026;hideSSTNc();sstLoad()}catch(er){e.textContent="Error: "+er.message;e.style.display="block"}}
 // SST: Add year
 function sstPromptYr(){const y=prompt("Agregar año (ej: 2027):");if(!y||isNaN(y))return;SST_YR=+y;sstLoad()}
 async function delCo(){if(!CID||cos.length<=1)return alert("Debe haber al menos 1 empresa.");if(!confirm("¿Eliminar empresa y TODOS sus datos?"))return;try{await sb.from("companies").delete().eq("id",CID);await loadCos();CID=cos[0]?.id;if(CID){await loadYears();await loadCD()}V="dashboard";ss("ok");render()}catch(e){alert(e.message)}}
@@ -1279,6 +1277,33 @@ function render(){
     const perfil=getSSTPerfil(D.tw,ciiuRisk);
     h+=`<div style="margin-bottom:16px;padding:10px;border-radius:8px;border:1px solid ${getRiskColor(ciiuRisk)}40;background:${getRiskColor(ciiuRisk)}08"><div style="font-size:10px;font-weight:700;color:${getRiskColor(ciiuRisk)};margin-bottom:6px">⚡ PERFIL SST (AM 196 Art. 13)</div><div style="font-size:11px;color:var(--t2)">👷 Responsable: <b style="color:var(--t1)">${perfil.tecnico?'Técnico SST':'Monitor SST'}</b></div><div style="font-size:11px;color:var(--t2)">🤝 Organismo: <b style="color:var(--t1)">${perfil.comite?'Comité Paritario':perfil.delegado?'Delegado SST':'N/A (< 10 trab.)'}</b></div></div>`;
     h+=`<div style="margin-bottom:16px"><label style="font-size:11px;color:var(--t3);font-weight:600;display:block;margin-bottom:4px">👔 Representante Legal</label><input style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.04);color:var(--t1);font-size:13px;font-family:var(--sn);outline:none" value="${c.rep_legal||''}" onchange="saveRepLegal(this.value)" placeholder="Nombre del representante legal"></div>`;
+    // ── SECCIÓN FECHAS DE CONTRATO Y EXÁMENES ──────────────────────────────
+    const fmtD=v=>v?new Date(v+'T12:00:00').toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'}):'No registrada';
+    function contractBadge(dateStr){
+      if(!dateStr)return '<span style="font-size:10px;color:var(--t3)">Sin fecha</span>';
+      const d=new Date(dateStr+'T12:00:00');const today=new Date();today.setHours(0,0,0,0);
+      const diff=Math.round((d-today)/(1000*60*60*24));
+      if(diff<0)return `<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(239,68,68,0.15);color:#ef4444;font-weight:700">⛔ VENCIDO (${Math.abs(diff)}d)</span>`;
+      if(diff<=30)return `<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(239,68,68,0.12);color:#ef4444;font-weight:700">🚨 ${diff}d restantes</span>`;
+      if(diff<=60)return `<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(251,191,36,0.12);color:#fbbf24;font-weight:700">⚠️ ${diff}d restantes</span>`;
+      if(diff<=90)return `<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(251,146,60,0.1);color:#fb923c;font-weight:700">🔔 ${diff}d restantes</span>`;
+      return `<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(52,211,153,0.1);color:#34d399;font-weight:700">✅ ${diff}d restantes</span>`;
+    }
+    h+=`<div style="margin-top:20px;padding:16px;border-radius:12px;border:1px solid rgba(45,212,191,0.2);background:rgba(45,212,191,0.03)">`;
+    h+=`<div style="font-size:12px;font-weight:800;color:#2dd4bf;margin-bottom:14px;display:flex;align-items:center;gap:7px">📅 Contrato y Exámenes — Seguimiento de Vencimientos</div>`;
+    h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">`;
+    h+=`<div><label style="font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Inicio Contrato (Salud)</label><input type="date" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:var(--t1);font-size:12px;font-family:var(--mn);outline:none" value="${c.contract_start_date||''}" onchange="saveField('contract_start_date',this.value)"></div>`;
+    h+=`<div><label style="font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Renovación Contrato (Salud) ${contractBadge(c.contract_end_date)}</label><input type="date" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:var(--t1);font-size:12px;font-family:var(--mn);outline:none" value="${c.contract_end_date||''}" onchange="saveField('contract_end_date',this.value)"></div>`;
+    h+=`</div>`;
+    h+=`<div><label style="font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Próxima Renovación Exámenes Médicos ${contractBadge(c.exam_renewal_date)}</label><input type="date" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:var(--t1);font-size:12px;font-family:var(--mn);outline:none" value="${c.exam_renewal_date||''}" onchange="saveField('exam_renewal_date',this.value)"></div>`;
+    if(c.mod_seguridad){
+      h+=`<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);display:grid;grid-template-columns:1fr 1fr;gap:10px">`;
+      h+=`<div><label style="font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Inicio Contrato (Seguridad)</label><input type="date" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:var(--t1);font-size:12px;font-family:var(--mn);outline:none" value="${c.sst_contract_start_date||''}" onchange="saveField('sst_contract_start_date',this.value)"></div>`;
+      h+=`<div><label style="font-size:10px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Renovación Contrato (Seguridad) ${contractBadge(c.sst_contract_end_date)}</label><input type="date" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:var(--t1);font-size:12px;font-family:var(--mn);outline:none" value="${c.sst_contract_end_date||''}" onchange="saveField('sst_contract_end_date',this.value)"></div>`;
+      h+=`</div>`;
+    }
+    h+=`</div>`;
+    // ─────────────────────────────────────────────────────────────────────
     h+=`<div style="margin-bottom:16px"><label style="font-size:11px;color:var(--t3);font-weight:600;display:block;margin-bottom:4px">Años Activos</label><div style="font-size:13px;color:var(--t2)">${D.allYears.join(", ")}</div></div>`;
     if(D.allYears.length>1)h+=`<div style="margin-bottom:16px"><button class="del-btn" style="padding:8px 16px;font-size:12px" onclick="delYear()">🗑️ Eliminar año ${YR}</button></div>`;
     // Doctor / signature section
@@ -2096,6 +2121,43 @@ async function checkAutoBackup(){
     if(st)st.innerHTML=`<span style="color:var(--t3)">Último respaldo: hace ${hrs<24?hrs+'h':Math.round(hrs/24)+'d'}. Próximo auto: en ${Math.round(48-diff)}h</span>`;
   }
 }
+async function showContractAlertsBanner(){
+  const banner=document.getElementById("globalContractBanner");
+  if(!banner)return;
+  try{
+    await loadCos();
+    const today=new Date();today.setHours(0,0,0,0);
+    const alerts=[];
+    for(const co of cos){
+      function chk(dateStr,label,icon){
+        if(!dateStr)return;
+        const d=new Date(dateStr);d.setHours(0,0,0,0);
+        const diff=Math.round((d-today)/(1000*60*60*24));
+        if(diff>90)return;
+        let cl,bg,txt;
+        if(diff<0){cl="#ef4444";bg="rgba(239,68,68,0.12)";txt="⛔ VENCIDO";}
+        else if(diff<=30){cl="#ef4444";bg="rgba(239,68,68,0.10)";txt=`🚨 ${diff}d`;}
+        else if(diff<=60){cl="#fbbf24";bg="rgba(251,191,36,0.10)";txt=`⚠️ ${diff}d`;}
+        else{cl="#fb923c";bg="rgba(251,146,60,0.08)";txt=`🔔 ${diff}d`;}
+        alerts.push({co:co.name,label,icon,cl,bg,txt,diff});
+      }
+      chk(co.contract_end_date,"Contrato Salud","🩺");
+      chk(co.exam_renewal_date,"Exámenes Méd.","🔬");
+      chk(co.sst_contract_end_date,"Contrato SST","🔧");
+    }
+    if(alerts.length===0){banner.style.display="none";return;}
+    alerts.sort((a,b)=>a.diff-b.diff);
+    let h=`<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:8px 12px;border-radius:10px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);margin-bottom:6px">`;
+    h+=`<span style="font-size:12px;font-weight:800;color:#fbbf24;white-space:nowrap">⚠️ Contratos/Exámenes:</span>`;
+    alerts.forEach(a=>{
+      h+=`<span onclick="switchModule('pendientes')" style="cursor:pointer;font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid ${a.cl}40;background:${a.bg};color:${a.cl};font-weight:700;white-space:nowrap" title="${a.co} — ${a.label}">${a.icon} ${a.co.split(' ')[0]} · ${a.txt}</span>`;
+    });
+    h+=`<span onclick="this.parentElement.parentElement.style.display='none'" style="margin-left:auto;cursor:pointer;color:var(--t3);font-size:14px;padding:2px 6px;border-radius:4px" title="Cerrar">✕</span>`;
+    h+=`</div>`;
+    banner.innerHTML=h;
+    banner.style.display="block";
+  }catch(e){console.log("Banner error:",e.message)}
+}
 async function renderPendientes(){
   const mc=document.getElementById("pendMc");const ms=document.getElementById("pendMes");if(!mc)return;
   const cm=new Date().getMonth();const yr=new Date().getFullYear();
@@ -2161,13 +2223,50 @@ async function renderPendientes(){
         }
       });
     }
+    // ── ALERTAS DE CONTRATOS Y EXÁMENES ──────────────────────────────────
+    const today=new Date();today.setHours(0,0,0,0);
+    const contractAlerts=[];
+    await loadCos();
+    for(const co of cos){
+      function calcAlert(dateStr,label,icon,color){
+        if(!dateStr)return;
+        const d=new Date(dateStr);d.setHours(0,0,0,0);
+        const diff=Math.round((d-today)/(1000*60*60*24));
+        let level,bg,cl;
+        if(diff<0){level="VENCIDO";bg="rgba(239,68,68,0.12)";cl="#ef4444";}
+        else if(diff<=30){level="CRÍTICO ("+diff+"d)";bg="rgba(239,68,68,0.08)";cl="#ef4444";}
+        else if(diff<=60){level="PRÓXIMO ("+diff+"d)";bg="rgba(251,191,36,0.08)";cl="#fbbf24";}
+        else if(diff<=90){level="ATENCIÓN ("+diff+"d)";bg="rgba(251,146,60,0.08)";cl="#fb923c";}
+        else return;
+        contractAlerts.push({co:co.name,label,icon,level,date:dateStr,diff,bg,cl});
+      }
+      calcAlert(co.contract_end_date,"Contrato Salud","🩺","#2dd4bf");
+      calcAlert(co.exam_renewal_date,"Exámenes Médicos","🔬","#2dd4bf");
+      calcAlert(co.sst_contract_end_date,"Contrato Seguridad","🔧","#f59e0b");
+    }
+    contractAlerts.sort((a,b)=>a.diff-b.diff);
     // Sort: overdue first, then by module
     items.sort((a,b)=>(b.overdue?1:0)-(a.overdue?1:0)||a.mod.localeCompare(b.mod));
     // Render
     const overdueCount=items.filter(i=>i.overdue).length;
     const thisMonthCount=items.filter(i=>!i.overdue).length;
     let h='';
-    h+=`<div class="gr g4" style="margin-bottom:16px"><div class="c"><div class="kl">Total Pendientes</div><div class="kv" style="color:#fbbf24">${items.length}</div></div><div class="c"><div class="kl">Este Mes</div><div class="kv" style="color:#60a5fa">${thisMonthCount}</div></div><div class="c"><div class="kl">Vencidas</div><div class="kv" style="color:#ef4444">${overdueCount}</div></div><div class="c"><div class="kl">Empresas</div><div class="kv" style="color:#34d399">${new Set(items.map(i=>i.co)).size}</div></div></div>`;
+    // ── BANNER DE ALERTAS CONTRATOS ───────────────────────────────────────
+    if(contractAlerts.length>0){
+      h+=`<div style="margin-bottom:16px;padding:16px;border-radius:14px;border:1px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.05)">`;
+      h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:18px">⚠️</span><span style="font-size:13px;font-weight:800;color:#fbbf24">Alertas de Contratos y Exámenes (próximos 90 días)</span><span style="margin-left:auto;font-size:10px;padding:3px 10px;border-radius:20px;background:rgba(251,191,36,0.15);color:#fbbf24;font-weight:700">${contractAlerts.length} alerta${contractAlerts.length>1?'s':''}</span></div>`;
+      h+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">`;
+      contractAlerts.forEach(a=>{
+        const fechaFmt=new Date(a.date+'T12:00:00').toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'});
+        h+=`<div style="padding:10px 14px;border-radius:10px;border:1px solid ${a.cl}40;background:${a.bg};display:flex;align-items:center;gap:10px">`;
+        h+=`<span style="font-size:20px">${a.icon}</span>`;
+        h+=`<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.co}</div><div style="font-size:11px;color:var(--t2)">${a.label}</div><div style="font-size:10px;color:var(--t3);margin-top:1px">📅 ${fechaFmt}</div></div>`;
+        h+=`<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:6px;background:${a.cl}18;color:${a.cl};white-space:nowrap">${a.level}</span>`;
+        h+=`</div>`;
+      });
+      h+=`</div></div>`;
+    }
+    h+=`<div class="gr g4" style="margin-bottom:16px"><div class="c"><div class="kl">Total Pendientes</div><div class="kv" style="color:#fbbf24">${items.length}</div></div><div class="c"><div class="kl">Este Mes</div><div class="kv" style="color:#60a5fa">${thisMonthCount}</div></div><div class="c"><div class="kl">Vencidas</div><div class="kv" style="color:#ef4444">${overdueCount}</div></div><div class="c"><div class="kl">Contratos/Exámenes</div><div class="kv" style="color:${contractAlerts.length>0?'#fbbf24':'#34d399'}">${contractAlerts.length}</div></div></div>`;
     if(items.length===0){
       h+='<div class="c" style="text-align:center;padding:40px"><div style="font-size:48px;margin-bottom:16px">🎉</div><div style="font-size:16px;font-weight:700;color:#34d399">¡Todo al día!</div><div style="color:var(--t3);margin-top:8px">No hay actividades pendientes para '+MF[cm]+'</div></div>';
     }else{
@@ -2352,7 +2451,7 @@ function updateSidebar(){
   if(logEl)logEl.style.display="block";
   // Contabilidad: ONLY admin and contador
   const contEl=document.getElementById("sb-contable");
-  if(contEl)contEl.style.display=(isAdm||(CURRENT_USER&&(CURRENT_USER.role==='contador'||CURRENT_USER.role==='salud')))?"block":"none";
+  if(contEl)contEl.style.display=(isAdm||(CURRENT_USER&&CURRENT_USER.role==='contador'))?"block":"none";
 }
 
 const SST_CREATE_SQL=`-- Ejecutar en SQL Editor de Supabase
@@ -4252,7 +4351,7 @@ async function logLoad(){
       LOG.allNotifs=isAdmin?(results[3]?.data||[]):[];
     }else{LOG.members=[];LOG.activities=[];LOG.tripCompanies=[];LOG.allNotifs=[];}
     // Load all users (admin: for member selector; all: for activity creator names)
-    const{data:_u}=await sb.from("usuarios").select("id,nombre,rol").order("nombre");const u=(_u||[]).map(function(x){const roleMap={"administrador":"admin","enfermera":"salud","enfermeria":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo"};return{id:x.id,name:x.nombre,role:roleMap[x.rol]||x.rol}});
+    const{data:_u}=await sb.from("usuarios").select("id,nombre,rol").order("nombre");const u=(_u||[]).map(function(x){const roleMap={"administrador":"admin","enfermera":"salud","medico":"salud","laboratorio":"salud","radiologia":"salud","psicologia":"psicologo"};return{id:x.id,name:x.nombre,role:roleMap[x.rol]||x.rol}});
     LOG.users=u||[];
     // POA suggestions now load on-demand in logLoadPoaSuggestionsUI()
     console.log("[LOG] trips:",LOG.trips.length,"members:",LOG.members.length,"notifs:",LOG.notifications.length,"user:",CURRENT_USER?.id,"isAdmin:",isAdmin);
@@ -7560,7 +7659,7 @@ function contEditCompany(){
 
 // === CLIENTS DIRECTORY ===
 function contRenderClients(){
-  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador'||CURRENT_USER.role==='salud');
+  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador');
   let h='';
   if(isAdmin)h+=`<button onclick="contNewClient()" style="background:${CONT_COLOR};color:#000;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px">+ Nuevo Cliente/Proveedor</button>`;
 
@@ -7640,9 +7739,7 @@ function contCajaSaldo(){
 
 function contRenderCaja(){
   const isAdmin=CURRENT_USER&&CURRENT_USER.role==='admin';
-  const isContador=CURRENT_USER&&CURRENT_USER.role==='contador';
-  const isSalud=CURRENT_USER&&CURRENT_USER.role==='salud';
-  if(!isAdmin&&!isContador&&!isSalud)return '<div style="text-align:center;padding:40px;color:var(--t3)">⛔ Acceso restringido</div>';
+  if(!isAdmin)return '<div style="text-align:center;padding:40px;color:var(--t3)">⛔ Solo el administrador puede acceder a Caja Chica</div>';
   
   if(!CONT.caja){contLoadCaja().then(()=>contRender());return '<div style="text-align:center;padding:40px;color:var(--t3)">⏳ Cargando...</div>';}
   
@@ -7659,13 +7756,11 @@ function contRenderCaja(){
   h+=`<div class="c" style="border-color:rgba(239,68,68,0.2);text-align:center"><div class="kl">📤 Total Gastos</div><div class="kv" style="color:#ef4444">$${gastos.toFixed(2)}</div></div>`;
   h+=`</div>`;
   
-  // Buttons - only admin
-  if(isAdmin||isSalud){
+  // Buttons
   h+=`<div style="display:flex;gap:8px;margin-bottom:16px">`;
   h+=`<button onclick="contCajaNew('ingreso')" style="padding:10px 20px;border-radius:10px;border:1px solid rgba(52,211,153,0.4);background:rgba(52,211,153,0.1);color:#34d399;font-size:13px;font-weight:700;cursor:pointer">📥 Registrar Ingreso</button>`;
   h+=`<button onclick="contCajaNew('gasto')" style="padding:10px 20px;border-radius:10px;border:1px solid rgba(239,68,68,0.4);background:rgba(239,68,68,0.1);color:#ef4444;font-size:13px;font-weight:700;cursor:pointer">📤 Registrar Gasto</button>`;
   h+=`</div>`;
-  }
   
   // Table
   h+=`<div class="c" style="overflow-x:auto">`;
@@ -7695,7 +7790,7 @@ function contRenderCaja(){
     h+=`<td style="font-size:10px;color:var(--t3)">${m.responsable||''}</td>`;
     h+=`<td style="text-align:right;font-weight:700;color:${color};font-family:var(--mn)">$${(m.monto||0).toFixed(2)}</td>`;
     h+=`<td style="text-align:right;font-weight:700;color:${runSaldo>=0?'#34d399':'#ef4444'};font-family:var(--mn)">$${runSaldo.toFixed(2)}</td>`;
-    h+=`<td style="text-align:center">${CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='salud')?`<button onclick="contCajaDel('${m.id}')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:6px;padding:3px 8px;font-size:9px;cursor:pointer">🗑</button>`:''}</td>`;
+    h+=`<td style="text-align:center"><button onclick="contCajaDel('${m.id}')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:6px;padding:3px 8px;font-size:9px;cursor:pointer">🗑</button></td>`;
     h+=`</tr>`;
   });
   
@@ -7896,7 +7991,7 @@ function contDashboard(){
 }
 
 function contInvoices(){
-  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador'||CURRENT_USER.role==='salud');
+  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador');
   let h='';
   if(isAdmin){
     h+=`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">`;
@@ -7942,7 +8037,7 @@ function contInvoices(){
 }
 
 function contPayments(){
-  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador'||CURRENT_USER.role==='salud');
+  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador');
   let h='';
   if(isAdmin)h+=`<button onclick="contNewPayment()" style="background:#34d399;color:#000;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px">+ Registrar Cobro</button>`;
 
@@ -7969,7 +8064,7 @@ function contPayments(){
 }
 
 function contExpenses(){
-  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador'||CURRENT_USER.role==='salud');
+  const isAdmin=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='contador');
   let h='';
   if(isAdmin)h+=`<button onclick="contNewExpense()" style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px">+ Registrar Gasto</button>`;
 
@@ -8225,7 +8320,7 @@ async function contNewPayment(){
   const coId=prompt("Nombre de la empresa:");if(!coId)return;
   const co=cos.find(c=>c.name.toLowerCase().includes(coId.toLowerCase()));
   const invNum=prompt("N° Factura (opcional):")||'';
-  const inv=invNum?CONT.invoices.find(i=>String(i.invoice_number)===String(invNum)):null;
+  const inv=invNum?CONT.invoices.find(i=>String(i.i)===String(invoice_number)):null;
   const amount=parseFloat(prompt("Monto cobrado:")||0);if(!amount)return;
   const method=prompt("Método (transferencia/efectivo/cheque/tarjeta):","transferencia");
   const date=prompt("Fecha (YYYY-MM-DD):",new Date().toISOString().split('T')[0]);
@@ -8259,24 +8354,13 @@ async function contNewExpense(){
   }catch(e){alert("Error: "+e.message)}
 }
 
-async function contDelInv(id){
-  const inv=CONT.invoices.find(i=>String(i.id)===String(id));
-  if(!inv){alert("⚠️ Factura no encontrada");return}
-  if(!confirm(`¿Eliminar la factura ${inv.invoice_number||'S/N'}?\n\nEmpresa: ${inv.company_name||'—'}\nTotal: $${(inv.total||0).toFixed(2)}\n\nEsta acción no se puede deshacer.`))return;
-  try{
-    const{error}=await sb.from("cont_invoices").delete().eq("id",id);
-    if(error)throw error;
-    // También eliminar cobros asociados (si los hay)
-    await sb.from("cont_payments").delete().eq("invoice_id",id);
-    await contLoad();
-  }catch(e){alert("❌ Error al eliminar: "+e.message)}
-}
+async function contDelInv(id){if(!confirm("¿Eliminar factura?"))return;await sb.from("cont_invoices").delete().eq("id",id);await contLoad()}
 
 // === EMAIL SENDING ===
 const RESEND_KEY='';
 
 async function contSendInvEmail(invId){
-  const inv=CONT.invoices.find(i=>String(i.id)===String(id));if(!inv){alert("Factura no encontrada");return}
+  const inv=CONT.invoices.find(i=>String(i.i)===String(id));if(!inv){alert("Factura no encontrada");return}
   const contCo=CONT.companies.find(c=>c.id===CONT.companyId);if(!contCo){alert("Empresa no configurada");return}
   
   // Get client email
@@ -8412,71 +8496,19 @@ async function contDelExp(id){if(!confirm("¿Eliminar gasto?"))return;await sb.f
 async function contImportSRIXml(files){
   if(!files||files.length===0)return;
   let imported=0,errors=0,duplicates=0;
-  const errDetails=[];
   const existingNums=new Set(CONT.invoices.map(i=>i.invoice_number));
-
-  // Helper: extrae el XML real del comprobante (maneja XMLs "autorizados" del SRI)
-  function extractComprobante(xmlText){
-    // Quitar BOM si existe
-    if(xmlText.charCodeAt(0)===0xFEFF)xmlText=xmlText.slice(1);
-    xmlText=xmlText.trim();
-
-    const parser=new DOMParser();
-    let doc=parser.parseFromString(xmlText,'text/xml');
-
-    // Detectar errores de parseo
-    const parseErr=doc.querySelector('parsererror');
-    if(parseErr){
-      console.warn('Parse error detected, trying fallback...');
-    }
-
-    // Caso 1: XML envuelto en <autorizacion>...<comprobante>CDATA</comprobante>...</autorizacion>
-    // Este es el formato más común cuando descargas desde el SRI
-    let compNode=doc.querySelector('autorizacion > comprobante, comprobante');
-    if(compNode){
-      const inner=compNode.textContent.trim();
-      // Si el contenido empieza con <?xml o <factura/<notaCredito/<comprobanteRetencion
-      if(inner.startsWith('<?xml')||inner.startsWith('<factura')||inner.startsWith('<notaCredito')||inner.startsWith('<comprobanteRetencion')||inner.startsWith('<liquidacionCompra')||inner.startsWith('<notaDebito')){
-        doc=parser.parseFromString(inner,'text/xml');
-      }
-    }
-
-    // Caso 2: puede venir con entidades HTML escapadas (&lt;factura&gt;)
-    if(!doc.querySelector('factura')&&!doc.querySelector('notaCredito')&&!doc.querySelector('comprobanteRetencion')){
-      // Intentar decodificar entidades HTML en todo el texto
-      const decoded=xmlText
-        .replace(/&lt;/g,'<')
-        .replace(/&gt;/g,'>')
-        .replace(/&quot;/g,'"')
-        .replace(/&amp;/g,'&');
-      if(decoded.includes('<factura')||decoded.includes('<notaCredito')||decoded.includes('<comprobanteRetencion')){
-        // Buscar el inicio del comprobante real
-        const startIdx=Math.max(
-          decoded.indexOf('<factura'),
-          decoded.indexOf('<notaCredito'),
-          decoded.indexOf('<comprobanteRetencion')
-        );
-        if(startIdx>=0){
-          const sub=decoded.substring(startIdx);
-          doc=parser.parseFromString(sub,'text/xml');
-        }
-      }
-    }
-    return doc;
-  }
-
 
   for(const file of files){
     try{
       let xmlTexts=[];
-      if(file.name.toLowerCase().endsWith('.zip')){
+      if(file.name.endsWith('.zip')){
         // ZIP file with multiple XMLs
         if(typeof JSZip==='undefined'){
           await new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";s.onload=res;s.onerror=rej;document.head.appendChild(s)});
         }
         const zip=await JSZip.loadAsync(file);
         for(const[name,entry] of Object.entries(zip.files)){
-          if(name.toLowerCase().endsWith('.xml')&&!entry.dir){
+          if(name.endsWith('.xml')&&!entry.dir){
             xmlTexts.push(await entry.async('text'));
           }
         }
@@ -8484,47 +8516,32 @@ async function contImportSRIXml(files){
         xmlTexts.push(await file.text());
       }
 
-      if(xmlTexts.length===0){
-        errDetails.push(`${file.name}: no se encontraron XMLs dentro del archivo`);
-        errors++;continue;
-      }
-
       for(const xmlText of xmlTexts){
         try{
-          const doc=extractComprobante(xmlText);
-
+          const parser=new DOMParser();
+          const doc=parser.parseFromString(xmlText,'text/xml');
+          
           // Detect document type
           const factura=doc.querySelector('factura');
           const notaCredito=doc.querySelector('notaCredito');
           const retencion=doc.querySelector('comprobanteRetencion');
           const root=factura||notaCredito||retencion;
-          if(!root){
-            errDetails.push(`${file.name}: no se detectó factura/nota de crédito/retención`);
-            errors++;continue;
-          }
+          if(!root){errors++;continue}
 
           // Extract infoTributaria
           const infoTrib=root.querySelector('infoTributaria');
-          if(!infoTrib){
-            errDetails.push(`${file.name}: falta infoTributaria`);
-            errors++;continue;
-          }
-
-          const getTag=(parent,tag)=>{const el=parent&&parent.querySelector(tag);return el?el.textContent.trim():''};
-
+          if(!infoTrib){errors++;continue}
+          
+          const getTag=(parent,tag)=>{const el=parent.querySelector(tag);return el?el.textContent.trim():''};
+          
           const ruc=getTag(infoTrib,'ruc');
-          const razonSocial=getTag(infoTrib,'razonSocial')||getTag(infoTrib,'nombreComercial');
+          const razonSocial=getTag(infoTrib,'razonSocial');
           const estab=getTag(infoTrib,'estab');
           const ptoEmi=getTag(infoTrib,'ptoEmi');
           const secuencial=getTag(infoTrib,'secuencial');
           const numFact=estab+'-'+ptoEmi+'-'+secuencial;
           const claveAcceso=getTag(infoTrib,'claveAcceso');
           const codDoc=getTag(infoTrib,'codDoc'); // 01=factura, 04=NC, 07=retencion
-
-          if(!estab||!ptoEmi||!secuencial){
-            errDetails.push(`${file.name}: falta número de comprobante (estab/ptoEmi/secuencial)`);
-            errors++;continue;
-          }
 
           // Check duplicate
           if(existingNums.has(numFact)){duplicates++;continue}
@@ -8535,6 +8552,7 @@ async function contImportSRIXml(files){
           if(factura){
             const infoFact=factura.querySelector('infoFactura');
             if(infoFact){
+              // Parse date (DD/MM/YYYY -> YYYY-MM-DD)
               const fechaRaw=getTag(infoFact,'fechaEmision');
               if(fechaRaw.includes('/')){
                 const p=fechaRaw.split('/');
@@ -8545,6 +8563,7 @@ async function contImportSRIXml(files){
               total=parseFloat(getTag(infoFact,'importeTotal'))||0;
               iva=total-subtotal;
 
+              // Check IVA from totalConImpuestos
               const impuestos=infoFact.querySelectorAll('totalImpuesto');
               let ivaSum=0;
               impuestos.forEach(imp=>{
@@ -8553,11 +8572,19 @@ async function contImportSRIXml(files){
               });
               if(ivaSum>0)iva=ivaSum;
 
-              companyName=razonSocial;
+              // Determine if we emitted or received
+              const rucComprador=getTag(infoFact,'identificacionComprador');
+              const nombreComprador=getTag(infoFact,'razonSocialComprador');
+              
+              // If the emisor RUC is our company, it's a SALE (venta)
+              // If the comprador RUC is our company, it's a PURCHASE (compra)
+              // Default: treat as compra (received invoice)
+              companyName=razonSocial; // The emisor
               companyRuc=ruc;
               tipo='compra';
             }
 
+            // Get concept from first detail
             const det=factura.querySelector('detalle');
             if(det)concept=getTag(det,'descripcion');
             if(!concept){
@@ -8571,7 +8598,7 @@ async function contImportSRIXml(files){
               const fechaRaw=getTag(infoNC,'fechaEmision');
               if(fechaRaw.includes('/')){const p=fechaRaw.split('/');fecha=p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0')}else fecha=fechaRaw;
               subtotal=parseFloat(getTag(infoNC,'totalSinImpuestos'))||0;
-              total=parseFloat(getTag(infoNC,'valorModificacion'))||parseFloat(getTag(infoNC,'totalConImpuestos'))||0;
+              total=parseFloat(getTag(infoNC,'valorModificacion'))||0;
               iva=total-subtotal;
               companyName=razonSocial;companyRuc=ruc;
             }
@@ -8593,17 +8620,17 @@ async function contImportSRIXml(files){
 
           // Match company
           const matchCo=cos.find(c=>c.ruc===ruc);
+
           const ivaRate=subtotal>0?Math.round(iva/subtotal*100):15;
 
-          const payload={
-            cont_company_id:CONT.companyId,
+          // Insert
+          const{error}=await sb.from("cont_invoices").insert({
             company_id:matchCo?.id||null,
             company_name:companyName,
-            company_ruc:ruc,
             invoice_number:numFact,
-            concept:(concept||'').substring(0,200),
+            concept:concept.substring(0,200),
             subtotal,iva,iva_rate:ivaRate,total,
-            invoice_date:fecha||new Date().toISOString().split('T')[0],
+            invoice_date:fecha,
             status:'emitida',
             type:tipo,
             sri_clave_acceso:claveAcceso,
@@ -8611,65 +8638,28 @@ async function contImportSRIXml(files){
             sri_cod_doc:codDoc,
             year:fecha?parseInt(fecha.split('-')[0]):new Date().getFullYear(),
             created_by:CURRENT_USER?.id
-          };
-
-          const{error}=await sb.from("cont_invoices").insert(payload);
-          if(error){
-            console.error("Import error:",error.message,payload);
-            errDetails.push(`${numFact}: ${error.message}`);
-            errors++;
-          }else{
-            imported++;
-            existingNums.add(numFact);
-          }
-        }catch(e){
-          console.error("XML parse error:",e);
-          errDetails.push(`${file.name}: ${e.message}`);
-          errors++;
-        }
+          });
+          if(error){console.error("Import error:",error.message);errors++}
+          else{imported++;existingNums.add(numFact)}
+        }catch(e){console.error("XML parse error:",e);errors++}
       }
-    }catch(e){
-      console.error("File error:",e);
-      errDetails.push(`${file.name}: ${e.message}`);
-      errors++;
-    }
+    }catch(e){console.error("File error:",e);errors++}
   }
 
-  let msg=`📥 Importación completada:\n\n✅ ${imported} comprobantes importados`;
+  let msg=`✅ Importación completada:\n\n📄 ${imported} comprobantes importados`;
   if(duplicates>0)msg+=`\n⚠️ ${duplicates} duplicados (ya existían)`;
-  if(errors>0){
-    msg+=`\n❌ ${errors} errores`;
-    if(errDetails.length>0)msg+=`\n\nDetalles:\n• `+errDetails.slice(0,5).join('\n• ');
-    if(errDetails.length>5)msg+=`\n• ...y ${errDetails.length-5} más (ver consola)`;
-  }
+  if(errors>0)msg+=`\n❌ ${errors} errores`;
   alert(msg);
-  const inp=document.getElementById('sriXmlInput');
-  if(inp)inp.value='';
+  document.getElementById('sriXmlInput').value='';
   await contLoad();
-  contRender();
 }
 
 async function contEditInv(id){
-  const inv=CONT.invoices.find(i=>String(i.id)===String(id));
-  if(!inv){alert("⚠️ Factura no encontrada");return}
-  // Cargar datos de la factura al formulario
-  CONT._editInv=inv.id;
-  CONT._invForm={
-    company_id:inv.company_id||null,
-    company_name:inv.company_name||'',
-    ruc:inv.company_ruc||'',
-    _coSearch:'',
-    invoice_number:inv.invoice_number||'',
-    concept:inv.concept||'',
-    subtotal:inv.subtotal||0,
-    iva_rate:inv.iva_rate||0,
-    registra_iva:(inv.iva_rate||0)>0,
-    type:inv.type||'venta',
-    invoice_date:inv.invoice_date||new Date().toISOString().split('T')[0],
-    items:inv.items||[{desc:inv.concept||'',qty:1,price:inv.subtotal||0}]
-  };
-  CONT.tab='inv_form';
-  contRender();
+  const inv=CONT.invoices.find(i=>String(i.i)===String(id));if(!inv)return;
+  const newSt=prompt("Nuevo estado (emitida/pagada/parcial/vencida/anulada):",inv.status);
+  if(!newSt||newSt===inv.status)return;
+  await sb.from("cont_invoices").update({status:newSt}).eq("id",id);
+  await contLoad();
 }
 
 // === Word Report - follows model INFORME_MENSUAL_MEDICO.docx exactly ===
