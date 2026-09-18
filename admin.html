@@ -149,6 +149,7 @@ const SB={
 };
 
 let DB_OK=false;
+let INITIAL_LOAD_OK=false;
 
 // ═══ CATÁLOGOS DINÁMICOS ═══
 let LAB={
@@ -223,6 +224,7 @@ async function loadAll(){
   ]);
   if(usrs!==null){
     DB_OK=true;
+    INITIAL_LOAD_OK=true;
     S.usrs=usrs.map(u=>({id:u.id,nombre:u.nombre,cedula:u.cedula,pass:u.pass,rol:u.rol,activo:u.activo,apodo:u.apodo||'',firma:u.firma||'',firma_cfg:u.firma_cfg||{}}));
     // Si hay usuario logueado, actualizar su firma desde la lista recargada
     if(S.u){const uu=S.usrs.find(x=>x.id===S.u.id);if(uu){S.u.firma=uu.firma;S.u.firma_cfg=uu.firma_cfg;}}
@@ -331,13 +333,44 @@ async function syncOfflineQ(){
     render();
   }
 }
+// ═══ RECONEXIÓN AUTOMÁTICA ═══
+// DB_OK solo se ponía en true/false una vez al cargar la página, y nunca se
+// volvía a comprobar. Si la app arrancó sin señal (o Supabase tardó en responder),
+// DB_OK quedaba en false para siempre y ya nada intentaba subirse al servidor,
+// aunque el internet volviera. checkConnection() vuelve a probar la conexión
+// real contra Supabase y corrige DB_OK cuando cambia.
+async function checkConnection(){
+  try{
+    const r=await SB.get('usuarios','select=id&limit=1');
+    if(r!==null){
+      if(!DB_OK){DB_OK=true;console.log('✅ Conexión a Supabase restablecida');showToast('✅ Conexión restablecida — sincronizando datos pendientes...','ok');render();}
+      return true;
+    }else{
+      if(DB_OK){DB_OK=false;render();}
+      return false;
+    }
+  }catch(e){
+    if(DB_OK){DB_OK=false;render();}
+    return false;
+  }
+}
+async function reconnectAndSync(){
+  if(!navigator.onLine)return;
+  await checkConnection();
+  if(DB_OK&&!INITIAL_LOAD_OK){
+    // La app nunca llegó a cargar los datos reales del servidor (arrancó sin conexión) — recargar todo
+    showToast('✅ Conexión restablecida — cargando datos del servidor...','ok');
+    await loadAll();
+  }else if(DB_OK){
+    syncOfflineQ();syncOfflineQCitas();syncOfflineQOrd();
+  }
+}
 // Intentar sincronizar cuando vuelve la conexión
-window.addEventListener('online',()=>{setTimeout(()=>{syncOfflineQ();syncOfflineQCitas();syncOfflineQOrd();},2000);});
-// Reintento periódico: mientras haya datos pendientes, sigue intentando sincronizar cada 20s
-setInterval(()=>{
-  const pend=getOfflineQ().length+getOfflineQCitas().length+getOfflineQOrd().length;
-  if(pend>0&&navigator.onLine){syncOfflineQ();syncOfflineQCitas();syncOfflineQOrd();}
-},20000);
+window.addEventListener('online',()=>{setTimeout(reconnectAndSync,2000);});
+// Al volver a la pestaña/pantalla (tablet que estuvo en reposo, cambio de wifi, etc.)
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reconnectAndSync();});
+// Reintento periódico: revisa la conexión real y sincroniza lo pendiente cada 15s
+setInterval(reconnectAndSync,15000);
 
 function showToast(msg,tipo='ok'){
   const old=document.getElementById('_toast');if(old)old.remove();
