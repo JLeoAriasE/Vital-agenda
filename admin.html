@@ -332,7 +332,12 @@ async function syncOfflineQ(){
   }
 }
 // Intentar sincronizar cuando vuelve la conexión
-window.addEventListener('online',()=>{setTimeout(syncOfflineQ,2000);});
+window.addEventListener('online',()=>{setTimeout(()=>{syncOfflineQ();syncOfflineQCitas();syncOfflineQOrd();},2000);});
+// Reintento periódico: mientras haya datos pendientes, sigue intentando sincronizar cada 20s
+setInterval(()=>{
+  const pend=getOfflineQ().length+getOfflineQCitas().length+getOfflineQOrd().length;
+  if(pend>0&&navigator.onLine){syncOfflineQ();syncOfflineQCitas();syncOfflineQOrd();}
+},20000);
 
 function showToast(msg,tipo='ok'){
   const old=document.getElementById('_toast');if(old)old.remove();
@@ -760,7 +765,7 @@ function amMod(pre){
     <div class="fg"><label>Paciente *</label><select class="fi" id="ap" onchange="onPacienteChange(this)"><option value="">Seleccionar...</option>${opts}</select></div>
     <div class="fg"><label>Empresa / Motivo de visita *</label><input class="fi" id="a_empresa" value="${pPre?.empresa||''}" placeholder="Ej: ABC S.A. o Particular"></div>
     <div class="fg"><label>Tipo *</label><select class="fi" id="at"><option>Pre-ocupacional</option><option>Periódico</option><option>Retiro</option><option>Consulta General</option><option>Reintegro</option><option>Especial</option></select></div>
-    <div class="fr"><div class="fg"><label>Fecha *</label><input type="date" class="fi" id="af" min="${TD}"></div><div class="fg"><label>Hora *</label><select class="fi" id="ah"><option value="">—</option>${tO}</select></div></div>
+    <div class="fr"><div class="fg"><label>Fecha *</label><input type="date" class="fi" id="af" min="${TD}" value="${TD}"></div><div class="fg"><label>Hora *</label><select class="fi" id="ah"><option value="">—</option>${tO}</select></div></div>
   </div><div class="mft"><button class="btn bg" onclick="closeModal()">Cancelar</button><button class="btn bp" onclick="svA()">Agendar</button></div>`);
 }
 function onPacienteChange(sel){
@@ -1220,7 +1225,7 @@ function rSide(){
     items=`<div class="ni ${S.v==='psiord'?'on':''}" onclick="nav('psiord')">🧠 Mis Órdenes Psicología</div>`;
   }
   return `<aside class="side ${S.so?'open':''}">
-    <div class="brand">${getEmpCfg().logo?`<img src="${getEmpCfg().logo}" style="width:${Math.min(getEmpCfg().logo_size||36,50)}px;height:${Math.min(getEmpCfg().logo_size||36,50)}px;object-fit:contain;border-radius:9px">`:`<div class="brand-i">${ic('cal',18)}</div>`}<div><h1>${getEmpCfg().nombre||'MediAgenda'}</h1><small>${getEmpCfg().direccion||'Salud Ocupacional'}</small></div></div>
+    <div class="brand">${getEmpCfg().logo?`<img src="${getEmpCfg().logo}" style="width:${Math.min(getEmpCfg().logo_size||64,80)}px;height:${Math.min(getEmpCfg().logo_size||64,80)}px;object-fit:contain;border-radius:9px">`:`<div class="brand-i">${ic('cal',18)}</div>`}<div><h1>${getEmpCfg().nombre||'MediAgenda'}</h1><small>${getEmpCfg().direccion||'Salud Ocupacional'}</small></div></div>
     <div class="ubar"><div class="uav ${rolC[S.u.rol]}">${ini(S.u.nombre)}</div><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${S.u.nombre}</div><div style="font-size:9px;color:var(--tm)">${rolN[S.u.rol]}</div></div></div>
     ${items}
     <div style="margin-top:auto;border-top:1px solid var(--bd);padding-top:8px"><div class="ni" onclick="logout()">${ic('out')} Cerrar Sesión</div></div>
@@ -1609,7 +1614,10 @@ function rNrs(){
             <div style="font-size:11px;color:var(--tm)">${p.empresa||''} · ${p.cedula||''}</div>
           </div>
         </div>
-        <span class="ba ba-w" style="font-size:10px">Sin cita agendada</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="ba ba-w" style="font-size:10px">Sin cita agendada</span>
+          <button class="btn bsm bp" onclick="amMod('${p.id}')">📅 Agendar Cita</button>
+        </div>
       </div>
     </div>`).join('');
     if(tA.length===0&&sinCita.length===0)return '<div class="cd"><div class="es"><h4>Sin pacientes registrados hoy</h4></div></div>';
