@@ -76,7 +76,8 @@ const CFG={
 };
 
 const NOW=new Date();
-const TDS=NOW.toISOString().split('T')[0];
+function ymdLocal(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const TDS=ymdLocal(NOW);
 const H_INI_H=7,H_INI_M=30,INTERVALO=5;
 
 function getHoraFin(){try{const v=localStorage.getItem('mediagenda_hora_fin');if(v)return JSON.parse(v);}catch(e){}return{h:10,m:0};}

@@ -265,6 +265,7 @@ canvas{width:100%!important;max-height:220px}
 </div>
 </div>
 <script>
+function ymdLocal(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 let MOD="salud";
 let CURRENT_USER=null;const ROLE_LABELS={admin:"👑 Administrador",jefe:"👔 Jefe",salud:"🩺 Salud Ocupacional",seguridad:"🔧 Seguridad Industrial",psicologo:"🧠 Psicología Ocupacional",talento:"👥 Talento Humano",datos:"🛡 Protección de Datos",ambiente:"🌿 Ambiente",contador:"💰 Contador/a"};
 const IS_JEFE=()=>CURRENT_USER?.role==='jefe'||(CURRENT_USER?.modules&&CURRENT_USER.modules.includes('jefe'));
@@ -455,7 +456,7 @@ async function showPostLoginNotifications(){
   try{
     const uid=CURRENT_USER.id;
     const isAdmin=CURRENT_USER.role==='admin';
-    const today=new Date().toISOString().split('T')[0];
+    const today=ymdLocal(new Date());
     let trips=[],tids=[];
     if(isAdmin){
       // Admin sees ALL upcoming trips
@@ -936,7 +937,7 @@ function autoResch(){
 }
 function saveMed(mi,tid,sex,v){D.med[mi][tid][sex]=Math.max(0,+v||0);render();dbs(`m-${mi}-${tid}`,()=>sb.from("medical_records").update({male_count:D.med[mi][tid].m,female_count:D.med[mi][tid].f}).eq("company_id",CID).eq("year",YR).eq("month_index",mi).eq("exam_type",tid))}
 function savePsy(mi,tid,sex,v){D.psy[mi][tid][sex]=Math.max(0,+v||0);render();dbs(`p-${mi}-${tid}`,()=>sb.from("psych_records").update({male_count:D.psy[mi][tid].m,female_count:D.psy[mi][tid].f}).eq("company_id",CID).eq("year",YR).eq("month_index",mi).eq("service_type",tid))}
-function togCh(i){const c=D.charlas[i];c.done=!c.done;if(c.done&&!c.date)c.date=new Date().toISOString().split('T')[0];render();dbs("ch-"+c.id,()=>{const upd={done:c.done};if(c.done&&c.date)upd.event_date=c.date;return sb.from("charlas").update(upd).eq("id",c.id)})}
+function togCh(i){const c=D.charlas[i];c.done=!c.done;if(c.done&&!c.date)c.date=ymdLocal(new Date());render();dbs("ch-"+c.id,()=>{const upd={done:c.done};if(c.done&&c.date)upd.event_date=c.date;return sb.from("charlas").update(upd).eq("id",c.id)})}
 function setChD(i,v){D.charlas[i].date=v;dbs("cd-"+D.charlas[i].id,()=>sb.from("charlas").update({event_date:v||null}).eq("id",D.charlas[i].id))}
 function setChPM(i,v){D.charlas[i].pm=+v;render();dbs("cpm-"+D.charlas[i].id,()=>sb.from("charlas").update({planned_month:+v}).eq("id",D.charlas[i].id))}
 function setChTr(i,v){D.charlas[i].trained=+v;render();dbs("ctr-"+D.charlas[i].id,()=>sb.from("charlas").update({trained:+v}).eq("id",D.charlas[i].id))}
@@ -2129,7 +2130,7 @@ function downloadBackupExcel(snapshot){
   }
   const blob=new Blob([lines.join("\n")],{type:"text/tab-separated-values"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-  a.download="respaldo_"+new Date().toISOString().slice(0,10)+".tsv";
+  a.download="respaldo_"+ymdLocal(new Date())+".tsv";
   a.click();URL.revokeObjectURL(a.href);
 }
 async function checkAutoBackup(){
@@ -2951,7 +2952,7 @@ async function sstDelAct(id){
   }catch(e){alert("Error: "+e.message)}
 }
 // Old monthly toggle removed - now using sstUpdAct for status-based tracking
-function sstTogCh(id){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch.done=!ch.done;if(ch.done&&!ch.date)ch.date=new Date().toISOString().split('T')[0];sstRender();dbs("sc-"+id,()=>{const upd={done:ch.done};if(ch.done&&ch.date)upd.event_date=ch.date;return sb.from("sst_charlas").update(upd).eq("id",id)})}
+function sstTogCh(id){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch.done=!ch.done;if(ch.done&&!ch.date)ch.date=ymdLocal(new Date());sstRender();dbs("sc-"+id,()=>{const upd={done:ch.done};if(ch.done&&ch.date)upd.event_date=ch.date;return sb.from("sst_charlas").update(upd).eq("id",id)})}
 function sstSaveCh(id,f,v){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch[f]=+v;sstRender();dbs("scf-"+id,()=>sb.from("sst_charlas").update({[f]:+v}).eq("id",id))}
 function sstSaveChF(id,f,v){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch[f]=v;sstRender();dbs("scfs-"+id,()=>sb.from("sst_charlas").update({[f]:v}).eq("id",id))}
 function sstSaveChPM(id,v){const ch=SST.charlas.find(x=>String(x.id)===String(id));if(!ch)return;ch.planned_month=+v;sstRender();dbs("scpm-"+id,()=>sb.from("sst_charlas").update({planned_month:+v}).eq("id",id))}
@@ -3650,7 +3651,7 @@ function toggleGenModCharla(mod,id){id=String(id);
   const table=mod==='tthh'?'tthh_charlas':'datos_charlas';
   const ch=M.charlas.find(x=>String(x.id)===String(id));if(!ch)return;
   ch.done=!ch.done;
-  if(ch.done&&!ch.event_date&&!ch.date){const td=new Date().toISOString().split('T')[0];ch.event_date=td;ch.date=td}
+  if(ch.done&&!ch.event_date&&!ch.date){const td=ymdLocal(new Date());ch.event_date=td;ch.date=td}
   // Re-render locally first
   const prefix=mod==="tthh"?"tthh":mod==="ambiente"?"amb":"datos";
   const thColor=mod==="tthh"?"#a855f7":"#10b981";
@@ -4367,8 +4368,8 @@ async function logLoad(){
     if(LOG.calView==='week'&&LOG.weekStart){
       const ws=new Date(LOG.weekStart);
       const we=new Date(ws);we.setDate(ws.getDate()+6);
-      const wsStr=ws.toISOString().split('T')[0];
-      const weStr=we.toISOString().split('T')[0];
+      const wsStr=ymdLocal(ws);
+      const weStr=ymdLocal(we);
       if(wsStr<startD)startD=wsStr;
       if(weStr>endD)endD=weStr;
     }
@@ -4448,7 +4449,7 @@ function logRender(){
 
   // Next trip banner for workers
   if(!isAdmin&&visibleTrips.length>0){
-    const today=new Date().toISOString().split('T')[0];
+    const today=ymdLocal(new Date());
     const upcoming=visibleTrips.filter(t=>t.trip_date>=today&&t.status!=='cancelled').sort((a,b)=>a.trip_date.localeCompare(b.trip_date));
     if(upcoming.length>0){
       const next=upcoming[0];
@@ -4597,11 +4598,11 @@ function logRenderWeek(isAdmin,visibleTrips){
   }
   h+=`</div>`;
 
-  const today=new Date().toISOString().split('T')[0];
+  const today=ymdLocal(new Date());
   h+=`<div class="c">`;
   for(let i=0;i<7;i++){
     const d=new Date(ws);d.setDate(ws.getDate()+i);
-    const dateStr=d.toISOString().split('T')[0];
+    const dateStr=ymdLocal(d);
     const isToday=dateStr===today;
     const dayTrips=visibleTrips.filter(t=>t.trip_date===dateStr).sort((a,b)=>(a.departure_time||'07:00').localeCompare(b.departure_time||'07:00'));
     const dayBg=isToday?`background:${LOG_COLOR}10;border:2px solid ${LOG_COLOR}40`:'background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06)';
@@ -6244,12 +6245,12 @@ async function logSendGroupWA(tipo){
   let titulo='';
 
   if(tipo==='hoy'){
-    const hoy=now.toISOString().split('T')[0];
+    const hoy=ymdLocal(now);
     trips=LOG.trips.filter(t=>t.trip_date===hoy&&t.status!=='cancelled');
     titulo='PLANIFICACION DE HOY '+dias[now.getDay()].toUpperCase()+' '+now.getDate()+' de '+meses[now.getMonth()];
   }else if(tipo==='manana'){
     const man=new Date(now);man.setDate(man.getDate()+1);
-    const manStr=man.toISOString().split('T')[0];
+    const manStr=ymdLocal(man);
     trips=LOG.trips.filter(t=>t.trip_date===manStr&&t.status!=='cancelled');
     titulo='PLANIFICACION DE MANANA '+dias[man.getDay()].toUpperCase()+' '+man.getDate()+' de '+meses[man.getMonth()];
   }else{
@@ -6257,8 +6258,8 @@ async function logSendGroupWA(tipo){
     const day=now.getDay();
     const lunes=new Date(now);lunes.setDate(now.getDate()-(day===0?6:day-1));
     const viernes=new Date(lunes);viernes.setDate(lunes.getDate()+4);
-    const lunesStr=lunes.toISOString().split('T')[0];
-    const viernesStr=viernes.toISOString().split('T')[0];
+    const lunesStr=ymdLocal(lunes);
+    const viernesStr=ymdLocal(viernes);
     trips=LOG.trips.filter(t=>t.trip_date>=lunesStr&&t.trip_date<=viernesStr&&t.status!=='cancelled');
     titulo='PLANIFICACION SEMANAL ('+lunes.getDate()+' al '+viernes.getDate()+' de '+meses[lunes.getMonth()]+')';
   }
@@ -6920,7 +6921,7 @@ async function syncTripActivityToCharla(actId,opts){
         if(matches.length>0){
           for(const m of matches){
             if(opts.completed!==undefined){
-              const dateVal=opts.tripDate||new Date().toISOString().split('T')[0];
+              const dateVal=opts.tripDate||ymdLocal(new Date());
               if(opts.completed){
                 // Update done + date (try both field names to cover all table schemas)
                 await sb.from(cTable).update({done:true}).eq("id",m.id);
@@ -8124,7 +8125,7 @@ async function contCajaNew(tipo){
   const categoria=categorias[parseInt(catIdx)-1]||categorias[0];
   
   const responsable=prompt('Responsable:',CURRENT_USER?.name||'')||'';
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=ymdLocal(new Date());
   const fecha=prompt('Fecha (AAAA-MM-DD):',hoy)||hoy;
   
   try{
@@ -8773,7 +8774,7 @@ async function pvAddDeuda(id){
   const amount=parseFloat(prompt(`➕ AGREGAR DEUDA a ${pv.name}\n\nMonto que le debes (ej: 350.00):`,"0"))||0;
   if(amount<=0){alert("Monto inválido");return}
   const concepto=prompt("Concepto (ej: Exámenes marzo, Deuda anterior):","Deuda")||'Deuda';
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   const date=prompt("Fecha (YYYY-MM-DD):",today)||today;
 
   let svc=null;
@@ -8806,7 +8807,7 @@ async function pvAddAbono(id){
   const amount=parseFloat(prompt(`💵 REGISTRAR ABONO a ${pv.name}\n(Deuda actual: $${s.toFixed(2)})\n\nMonto del abono:`,"0"))||0;
   if(amount<=0){alert("Monto inválido");return}
   const concepto=prompt("Concepto (ej: Abono efectivo, Transferencia):","Abono")||'Abono';
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   const date=prompt("Fecha (YYYY-MM-DD):",today)||today;
 
   try{
@@ -8850,7 +8851,7 @@ async function pvJornadaConvenio(id){
   const msg=`🗓️ JORNADA A PRECIO CONVENIO\n\n${qty} × ${svcKey==='lab'?'Laboratorio':'Radiografía'} × $${svc.convenio.toFixed(2)} = $${convenioTotal.toFixed(2)}\n\nLe pagas al proveedor: $${convenioTotal.toFixed(2)}\n(No afecta la deuda anterior)\n\n¿Confirmar?`;
   if(!confirm(msg))return;
 
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   const date=prompt("Fecha de la jornada (YYYY-MM-DD):",today)||today;
   const note=prompt("Nota/lugar (opcional):")||'';
 
@@ -8909,7 +8910,7 @@ async function pvJornadaVenta(id){
   const msg=`🎯 JORNADA A PRECIO VENTA\n\n${qty} × ${svcKey==='lab'?'Laboratorio':'Radiografía'}\n\nPrecio convenio: $${svc.convenio.toFixed(2)} × ${qty} = $${convenioTotal.toFixed(2)}\nPrecio venta:    $${svc.venta.toFixed(2)} × ${qty} = $${ventaTotal.toFixed(2)}\n\nEl proveedor cobra:       $${convenioTotal.toFixed(2)}\nDIFERENCIA (baja deuda):  $${diferencia.toFixed(2)}\n\nDeuda actual: $${s.toFixed(2)}\nDeuda después: $${(s-diferencia).toFixed(2)}\n\n¿Confirmar?`;
   if(!confirm(msg))return;
 
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   const date=prompt("Fecha de la jornada (YYYY-MM-DD):",today)||today;
   const note=prompt("Nota/lugar (opcional):")||'';
 
@@ -8953,7 +8954,7 @@ async function pvAddCargo(id){
   const defaultDesc=svcKey==='lab'?'Exámenes de laboratorio':'Radiografías';
   const desc=prompt("Descripción:",defaultDesc)||defaultDesc;
   const patient=prompt("Paciente/Empresa (opcional):")||'';
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   const date=prompt("Fecha (YYYY-MM-DD):",today)||today;
   const amount=svc.convenio*qty;
 
@@ -8984,7 +8985,7 @@ async function pvAddAbonoEfectivo(id){
   const s=pvSaldo(pv);
   const amount=parseFloat(prompt(`Monto del abono en efectivo:\n(Deuda actual: $${s.toFixed(2)})`,"0"))||0;
   if(amount<=0){alert("Monto inválido");return}
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   const date=prompt("Fecha del abono (YYYY-MM-DD):",today)||today;
   const method=prompt("Método (Efectivo/Transferencia/Cheque):","Efectivo")||'Efectivo';
   const note=prompt("Nota (opcional):")||'';
@@ -9039,7 +9040,7 @@ async function pvAddAbonoVenta(id){
   if(!confirm(msg))return;
 
   const patient=prompt("Paciente/Empresa (opcional):")||'';
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   const date=prompt("Fecha (YYYY-MM-DD):",today)||today;
 
   try{
@@ -9072,7 +9073,7 @@ async function pvAjuste(id){
   const monto=Math.abs(parseFloat(prompt("Monto del ajuste:","0"))||0);
   if(monto<=0){alert("Monto inválido");return}
   const desc=prompt("Razón del ajuste:","Ajuste manual")||'Ajuste manual';
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   const date=prompt("Fecha (YYYY-MM-DD):",today)||today;
 
   try{
@@ -9191,7 +9192,7 @@ function pvExportExcel(id){
 
   // Descargar
   const safeName=(pv.name||'proveedor').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,40);
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   XLSX.writeFile(wb,`Estado_Cuenta_${safeName}_${today}.xlsx`);
 }
 
@@ -9202,7 +9203,7 @@ function pvExport(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download=`proveedores_${CONT.companyId||'default'}_${new Date().toISOString().slice(0,10)}.json`;
+  a.download=`proveedores_${CONT.companyId||'default'}_${ymdLocal(new Date())}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -9495,7 +9496,7 @@ function contNewInvoice(){
     invoice_number:autoNum,concept:'',
     subtotal:0,iva_rate:defaultIva,registra_iva:defaultIva>0,
     type:'venta',
-    invoice_date:new Date().toISOString().split('T')[0],
+    invoice_date:ymdLocal(new Date()),
     items:[{desc:'',qty:1,price:0}]
   };
   CONT.tab='inv_form';
@@ -9673,7 +9674,7 @@ async function contNewPayment(){
   const inv=invNum?CONT.invoices.find(i=>String(i.i)===String(invoice_number)):null;
   const amount=parseFloat(prompt("Monto cobrado:")||0);if(!amount)return;
   const method=prompt("Método (transferencia/efectivo/cheque/tarjeta):","transferencia");
-  const date=prompt("Fecha (YYYY-MM-DD):",new Date().toISOString().split('T')[0]);
+  const date=prompt("Fecha (YYYY-MM-DD):",ymdLocal(new Date()));
   const notes=prompt("Nota (opcional):")||'';
   try{
     const{error}=await sb.from("cont_payments").insert({company_id:co?.id||null,company_name:co?.name||coId,invoice_id:inv?.id||null,invoice_number:invNum,amount,method,payment_date:date,notes,year:parseInt(date.split('-')[0]),created_by:CURRENT_USER?.id});
@@ -9696,7 +9697,7 @@ async function contNewExpense(){
   const cat=CONT_CATS_EXP[catIdx]?.id||'otro';
   const amount=parseFloat(prompt("Monto:")||0);if(!amount)return;
   const voucher=prompt("N° Comprobante (opcional):")||'';
-  const date=prompt("Fecha (YYYY-MM-DD):",new Date().toISOString().split('T')[0]);
+  const date=prompt("Fecha (YYYY-MM-DD):",ymdLocal(new Date()));
   try{
     const{error}=await sb.from("cont_expenses").insert({description:desc,provider,category:cat,amount,voucher_number:voucher,expense_date:date,year:parseInt(date.split('-')[0]),created_by:CURRENT_USER?.id});
     if(error)throw error;
@@ -10293,7 +10294,7 @@ function abrirReg(mod,idx){
 function _showRegModal(){
   document.getElementById('regModal')?.remove();
   const ch=REG.ch, co=D.comp||{};
-  const fecha=ch.date||ch.event_date||new Date().toISOString().split('T')[0];
+  const fecha=ch.date||ch.event_date||ymdLocal(new Date());
   const resp=CURRENT_USER?(CURRENT_USER.nombre||CURRENT_USER.name||''):'';
   const esSST=REG.mod==='sst';
   const color=esSST?'#fbbf24':'#2dd4bf';
@@ -10587,7 +10588,7 @@ function rgExportarExcel(){
   ws['!cols']=[{wch:5},{wch:28},{wch:10},{wch:14},{wch:10},{wch:12},{wch:14},{wch:13},{wch:8},{wch:14},{wch:7},{wch:7},{wch:7},{wch:7},{wch:7},{wch:7},{wch:7},{wch:7},{wch:9},{wch:22},{wch:13},{wch:12}];
   ws['!merges']=[{s:{r:3,c:2},e:{r:3,c:9}},{s:{r:6,c:0},e:{r:6,c:21}},{s:{r:7,c:0},e:{r:7,c:2}},{s:{r:7,c:9},e:{r:7,c:21}},{s:{r:8,c:0},e:{r:8,c:21}},{s:{r:9,c:0},e:{r:9,c:21}},{s:{r:10,c:2},e:{r:10,c:9}},{s:{r:10,c:10},e:{r:10,c:18}},{s:{r:11,c:10},e:{r:11,c:12}},{s:{r:11,c:13},e:{r:11,c:15}},{s:{r:11,c:16},e:{r:11,c:18}},{s:{r:10,c:0},e:{r:12,c:0}},{s:{r:10,c:1},e:{r:12,c:1}},{s:{r:10,c:19},e:{r:12,c:19}},{s:{r:10,c:20},e:{r:12,c:20}},{s:{r:10,c:21},e:{r:12,c:21}}];
   XLSX.utils.book_append_sheet(wb,ws,'Registro Asistencia');
-  const fa=fecha||new Date().toISOString().split('T')[0];
+  const fa=fecha||ymdLocal(new Date());
   XLSX.writeFile(wb,`Registro_${(tema||'charla').replace(/[^a-zA-Z0-9]/g,'_').slice(0,20)}_${(empresa||'emp').replace(/[^a-zA-Z0-9]/g,'_').slice(0,15)}_${fa}.xlsx`);
 }
 
@@ -10616,7 +10617,7 @@ async function attLoadToday(){
         tolerance:cfg.tolerance_minutes||10
       };
     }
-    const today=new Date().toISOString().slice(0,10);
+    const today=ymdLocal(new Date());
     const{data}=await sb.from("attendance_records").select("*").eq("user_id",CURRENT_USER.id).eq("work_date",today).maybeSingle();
     ATT.todayRecord=data||null;
   }catch(e){console.error("attLoadToday:",e)}
@@ -10624,7 +10625,7 @@ async function attLoadToday(){
 
 // Verificar si el usuario está en período de justificación (maternidad/permiso)
 async function attCheckJustification(userId){
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   try{
     const{data}=await sb.from("attendance_justifications").select("*")
       .eq("user_id",userId)
@@ -10827,7 +10828,7 @@ async function attDoFichaje(action){
   if(btn){btn.disabled=true;btn.style.opacity='0.6';btn.innerHTML='⏳ Registrando...'}
 
   const now=new Date();
-  const today=now.toISOString().slice(0,10);
+  const today=ymdLocal(now);
   const nowISO=now.toISOString();
 
   try{
@@ -10986,7 +10987,7 @@ function attInitView(){
   const dow=now.getDay();
   const offset=dow===0?-6:1-dow;
   const ws=new Date(now);ws.setDate(ws.getDate()+offset);ws.setHours(0,0,0,0);
-  _attView.weekStart=ws.toISOString().slice(0,10);
+  _attView.weekStart=ymdLocal(ws);
   _attView.month=now.getMonth();
   _attView.year=now.getFullYear();
 }
@@ -11002,7 +11003,7 @@ async function attRenderAdminPanel(){
     // Cargar últimos 60 días
     const today=new Date();
     const sinceDate=new Date(today);sinceDate.setDate(sinceDate.getDate()-60);
-    const since=sinceDate.toISOString().slice(0,10);
+    const since=ymdLocal(sinceDate);
 
     const[recR,justR]=await Promise.all([
       sb.from("attendance_records").select("*").gte("work_date",since).order("work_date",{ascending:false}),
@@ -11069,7 +11070,7 @@ function attRenderWeek(records,users,justs){
   const days=[];
   for(let i=0;i<7;i++){
     const d=new Date(ws);d.setDate(d.getDate()+i);
-    days.push(d.toISOString().slice(0,10));
+    days.push(ymdLocal(d));
   }
   const dayNames=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 
@@ -11091,7 +11092,7 @@ function attRenderWeek(records,users,justs){
   h+=`<th style="padding:12px 10px;text-align:left;position:sticky;left:0;background:#1e293b;z-index:1">EMPLEADO</th>`;
   days.forEach((d,i)=>{
     const dt=new Date(d);
-    const isToday=d===new Date().toISOString().slice(0,10);
+    const isToday=d===ymdLocal(new Date());
     const isWeekend=i>=5;
     h+=`<th style="padding:12px 6px;text-align:center;${isToday?'background:rgba(59,130,246,0.1);':''}${isWeekend?'opacity:0.5;':''}">`;
     h+=`<div>${dayNames[i]}</div><div style="font-size:14px;color:${isToday?'#60a5fa':'var(--t2)'};font-weight:800;margin-top:2px">${dt.getDate()}</div>`;
@@ -11112,7 +11113,7 @@ function attRenderWeek(records,users,justs){
       const r=records.find(rr=>rr.user_id===u.id&&rr.work_date===d);
       const j=justs.find(jj=>jj.user_id===u.id&&jj.start_date<=d&&jj.end_date>=d&&jj.status==='aprobado');
       const isWeekend=i>=5;
-      const isFuture=d>new Date().toISOString().slice(0,10);
+      const isFuture=d>ymdLocal(new Date());
       let cell='';
       if(j){
         const types={maternidad:'🤰',permiso_medico:'🏥',vacaciones:'🏖️',permiso_personal:'📋',otro:'📝'};
@@ -11150,7 +11151,7 @@ function attRenderWeek(records,users,justs){
 function attChangeWeek(delta){
   const d=new Date(_attView.weekStart);
   d.setDate(d.getDate()+(delta*7));
-  _attView.weekStart=d.toISOString().slice(0,10);
+  _attView.weekStart=ymdLocal(d);
   attRenderAdminPanel();
 }
 
@@ -11266,7 +11267,7 @@ function attRenderJustifications(justs){
   const types={maternidad:{i:'🤰',c:'#ec4899',l:'Maternidad'},permiso_medico:{i:'🏥',c:'#3b82f6',l:'Permiso Médico'},vacaciones:{i:'🏖️',c:'#10b981',l:'Vacaciones'},permiso_personal:{i:'📋',c:'#f59e0b',l:'Permiso Personal'},otro:{i:'📝',c:'#94a3b8',l:'Otro'}};
   justs.forEach(j=>{
     const t=types[j.type]||types.otro;
-    const today=new Date().toISOString().slice(0,10);
+    const today=ymdLocal(new Date());
     const isActive=j.start_date<=today&&j.end_date>=today;
     h+=`<div style="background:linear-gradient(180deg,rgba(30,41,59,0.6),rgba(15,23,42,0.6));border:1px solid ${t.c}33;border-radius:14px;padding:18px;${isActive?'box-shadow:0 0 0 2px '+t.c+'44':''}">`;
     h+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">`;
@@ -11294,7 +11295,7 @@ async function attNewManualRecord(){
   const name=prompt("Nombre completo del empleado:");
   if(!name||!name.trim())return;
 
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   const date=prompt("Fecha del registro (YYYY-MM-DD):",today);
   if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date)){alert("Fecha inválida");return}
 
@@ -11386,7 +11387,7 @@ async function attNewJustification(){
   const type=types[tIdx-1];
 
   // Fechas
-  const today=new Date().toISOString().slice(0,10);
+  const today=ymdLocal(new Date());
   const start=prompt("Fecha INICIO (YYYY-MM-DD):",today);if(!start)return;
   const end=prompt("Fecha FIN (YYYY-MM-DD):",start);if(!end)return;
 
@@ -11531,7 +11532,7 @@ function attExportExcel(){
   ws3['!cols']=[{wch:25},{wch:18},{wch:12},{wch:12},{wch:40},{wch:20},{wch:12}];
   XLSX.utils.book_append_sheet(wb,ws3,'Justificaciones');
 
-  XLSX.writeFile(wb,`Asistencia_${new Date().toISOString().slice(0,10)}.xlsx`);
+  XLSX.writeFile(wb,`Asistencia_${ymdLocal(new Date())}.xlsx`);
 }
 
 </script></body></html>

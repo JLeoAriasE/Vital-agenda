@@ -179,7 +179,8 @@ const allRX=Object.values(RXZ).flat();
 
 // ═══ STATE ═══
 let S={v:'login',u:null,pts:[],apt:[],ord:[],usrs:[],empresas_cli:[],cargos_ciuo:[],cie10:[],fichas:[],sel:null,q:'',hq:'',ffq:'',medTab:'pendientes',cDate:new Date(),af:'all',so:false,loading:true,calView:'month'};
-const _dn=new Date();const TD=`${_dn.getFullYear()}-${String(_dn.getMonth()+1).padStart(2,'0')}-${String(_dn.getDate()).padStart(2,'0')}`;
+function ymdLocal(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const _dn=new Date();const TD=ymdLocal(_dn);
 
 // ═══ HELPERS ═══
 function fD(d){if(!d)return'—';return new Date(d+'T00:00:00').toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'});}
@@ -1467,7 +1468,7 @@ function getNrsDate(){
   const h=new Date();
   if(S.nrsFilter==='hoy')return TD;
   if(S.nrsFilter==='manana'){
-    const m=new Date(h);m.setDate(m.getDate()+1);return m.toISOString().split('T')[0];
+    const m=new Date(h);m.setDate(m.getDate()+1);return ymdLocal(m);
   }
   if(S.nrsFilter==='semana'){return 'semana';}
   if(S.nrsFilter==='custom')return S.nrsCustomDate||TD;
@@ -1481,8 +1482,8 @@ function rNrs(){
     const h=new Date();
     const dom=new Date(h);dom.setDate(dom.getDate()-dom.getDay());
     const sab=new Date(dom);sab.setDate(sab.getDate()+6);
-    const desde=dom.toISOString().split('T')[0];
-    const hasta=sab.toISOString().split('T')[0];
+    const desde=ymdLocal(dom);
+    const hasta=ymdLocal(sab);
     tA=S.apt.filter(a=>a.fecha>=desde&&a.fecha<=hasta&&a.estado!=='cancelada');
     // Agregar citas cuyas órdenes tienen fecha_prog en esta semana (si la cita no está ya en la lista)
     const aidsSem=new Set(tA.map(a=>a.id));
@@ -1504,7 +1505,7 @@ function rNrs(){
 
   // Date labels
   const manana=new Date();manana.setDate(manana.getDate()+1);
-  const mananaStr=manana.toISOString().split('T')[0];
+  const mananaStr=ymdLocal(manana);
 
   let cards='';
   tA.forEach(a=>{
@@ -1574,9 +1575,9 @@ function rNrs(){
     <button class="btn bsm ${S.nrsFilter==='hoy'?'bp':'bt'}" onclick="S.nrsFilter='hoy';S.nrsCustomDate=TD;render()">📅 Hoy</button>
     <button class="btn bsm ${S.nrsFilter==='semana'?'bp':'bt'}" onclick="S.nrsFilter='semana';render()">📅 Esta Semana</button>
     <div style="display:flex;align-items:center;gap:4px">
-      <button class="btn bic bg" title="Día anterior" onclick="(()=>{const _d=new Date((S.nrsCustomDate||TD)+'T12:00:00');_d.setDate(_d.getDate()-1);S.nrsCustomDate=_d.toISOString().split('T')[0];S.nrsFilter='custom';render()})()">◀</button>
+      <button class="btn bic bg" title="Día anterior" onclick="(()=>{const _d=new Date((S.nrsCustomDate||TD)+'T12:00:00');_d.setDate(_d.getDate()-1);S.nrsCustomDate=ymdLocal(_d);S.nrsFilter='custom';render()})()">◀</button>
       <input type="date" class="fi" style="width:140px;padding:4px 8px;font-size:11px" value="${S.nrsCustomDate||TD}" onchange="S.nrsCustomDate=this.value;S.nrsFilter='custom';render()">
-      <button class="btn bic bg" title="Día siguiente" onclick="(()=>{const _d=new Date((S.nrsCustomDate||TD)+'T12:00:00');_d.setDate(_d.getDate()+1);S.nrsCustomDate=_d.toISOString().split('T')[0];S.nrsFilter='custom';render()})()">▶</button>
+      <button class="btn bic bg" title="Día siguiente" onclick="(()=>{const _d=new Date((S.nrsCustomDate||TD)+'T12:00:00');_d.setDate(_d.getDate()+1);S.nrsCustomDate=ymdLocal(_d);S.nrsFilter='custom';render()})()">▶</button>
     </div>
     ${S.nrsFilter==='manana'&&tA.length>0?`<button class="btn bsm" style="background:#25d366;color:#fff;margin-left:auto" onclick="sendWABulk('${mananaStr}')">📱 WhatsApp recordatorio a todos (${tA.length})</button>`:''}
   </div>
@@ -6702,7 +6703,7 @@ async function downloadExcelAtendidos(periodo){
     desde=hasta=TD;
   }else if(periodo==='semana'){
     const d=new Date(hoy);d.setDate(d.getDate()-d.getDay());
-    desde=d.toISOString().split('T')[0];hasta=TD;
+    desde=ymdLocal(d);hasta=TD;
   }else if(periodo==='mes'){
     desde=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-01`;hasta=TD;
   }else if(periodo==='custom'){
